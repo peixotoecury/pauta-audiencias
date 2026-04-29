@@ -1154,6 +1154,7 @@ td.parte{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
 <!-- ══════════ LOGIN ══════════ -->
 <div id="login-screen">
   <div class="login-box">
+
     <div class="login-logo">
       <img src="https://www.peixotoecury.com.br/assets/images/ui/logo-light.png" alt="Peixoto e Cury">
     </div>
@@ -1741,9 +1742,8 @@ function submitChangePassword() {
     msg.style.color = 'var(--red)'; msg.textContent = 'As senhas não coincidem.'; return;
   }
 
-  // Find logged-in username from label
-  const label = document.getElementById('user-label')?.textContent || '';
-  const userName = label.split(' (')[0].trim();
+  // Usa o email armazenado no login (evita confusão com nome/sigla no label)
+  const userName = currentUserEmail;
   if (!userName) { msg.style.color = 'var(--red)'; msg.textContent = 'Erro: sessão inválida.'; return; }
 
   const users = getUsers();
@@ -1861,12 +1861,21 @@ function getUsers(){
     {user:"vinicius.dasilva@peixotoecury.com.br",pass:"123456",role:'visualizador',grupos:["Grupo A3"],sigla:'VSI',nome:'Vinicius da Silva Cerqueira'},
     {user:"washington.soares@peixotoecury.com.br",pass:"123456",role:'editor',grupos:["Grupo E2"],sigla:'WSF',nome:'Washington Soares Silva Filho'}
   ];
-  // Aplica senhas customizadas sobre os defaults
-  const merged = defaults.map(u => ({...u, pass: customPasses[u.user] || u.pass}));
-  // Adiciona usuários extras criados pelo admin (não estão nos defaults)
+  // Aplica senhas customizadas e perfis alterados sobre os defaults
   const adminExtras = JSON.parse(localStorage.getItem(ADMIN_USERS_KEY) || '[]');
+  const adminOverrides = new Map(adminExtras.map(u => [u.user, u]));
   const defaultEmails = new Set(defaults.map(u => u.user));
-  adminExtras.forEach(u => { if(!defaultEmails.has(u.user)) merged.push(u); });
+  
+  const merged = defaults.map(u => {
+    const override = adminOverrides.get(u.user);
+    return {
+      ...u,
+      pass: customPasses[u.user] || u.pass,
+      role: override?.role || u.role,  // respeita perfil alterado pelo admin
+    };
+  });
+  // Adiciona usuários extras criados pelo admin (não estão nos defaults)
+  adminExtras.forEach(u => { if(!defaultEmails.has(u.user)) merged.push({...u, pass: customPasses[u.user] || u.pass}); });
   return merged;
 }
 function saveUsers(u){ localStorage.setItem(USERS_KEY, JSON.stringify(u)); }
@@ -1900,6 +1909,7 @@ function getPautaRecords() {
 let currentRole = 'visualizador';
 let currentUserGrupos = []; // [] = todos os grupos (admin/visualizador)
 let currentUserSigla = null; // sigla do advogado logado, filtra pauta automaticamente
+let currentUserEmail = null; // email de login do usuário atual
 let selectedRoleLogin = 'visualizador';
 
 function selectRole(r, el){
@@ -1988,6 +1998,7 @@ function doLogin(){
   currentRole = found.role;
   currentUserGrupos = found.grupos || [];
   currentUserSigla = found.sigla || null;
+  currentUserEmail = found.user;
   document.getElementById('login-screen').style.display='none';
   const app = document.getElementById('app');
   app.style.display='flex';
@@ -3315,16 +3326,47 @@ function renderUsers(){
   document.getElementById('users-tbody').innerHTML = users.map((u,i)=>{
     const grupos = (u.grupos && u.grupos.length) ? u.grupos.map(g=>`<span style="background:rgba(0,174,239,.12);border:1px solid var(--border);border-radius:10px;padding:1px 7px;font-size:10px;color:var(--cyan);margin:1px">${g}</span>`).join('') : '<em style="color:var(--muted2);font-size:11px">Todos</em>';
     const siglaTag = u.sigla ? `<span style="background:rgba(39,174,96,.12);border:1px solid var(--border);border-radius:10px;padding:1px 7px;font-size:10px;color:var(--green);font-weight:700;">${u.sigla}</span>` : '<em style="color:var(--muted2);font-size:11px">—</em>';
+    const roleSelect = u.user==='admin' 
+      ? '<em style="color:var(--muted2);font-size:11px">protegido</em>'
+      : `<select onchange="changeUserRole(${i},this.value)" style="background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:6px;padding:3px 6px;font-size:11px;font-family:var(--font);cursor:pointer">
+          <option value="visualizador" ${u.role==='visualizador'?'selected':''}>👁 Visualizador</option>
+          <option value="editor" ${u.role==='editor'?'selected':''}>✏️ Editor</option>
+          <option value="admin" ${u.role==='admin'?'selected':''}>⚙️ Admin</option>
+        </select>`;
+    const actions = u.user==='admin' 
+      ? '<em style="color:var(--muted);font-size:11px">protegido</em>'
+      : `<button class="cred-edit" onclick="removeUser(${i})" style="color:var(--red)">Remover</button>`;
     return `<tr>
-      <td style="font-weight:500">${u.user}</td>
+      <td style="font-weight:500;font-size:11px">${u.user}</td>
       <td>${siglaTag}</td>
-      <td><span class="badge ${u.role==='admin'?'badge-sim':u.role==='editor'?'badge-tipo':'badge-nao'}">${u.role}</span></td>
-      <td style="max-width:260px">${u.role==='editor'?grupos:'<em style="color:var(--muted2);font-size:11px">—</em>'}</td>
-      <td style="color:var(--muted)">••••••••</td>
-      <td>${u.user==='admin'?'<em style="color:var(--muted);font-size:11px">protegido</em>':'<button class="cred-edit" onclick="removeUser('+i+')">Remover</button>'}</td>
+      <td>${roleSelect}</td>
+      <td style="max-width:200px">${u.role==='editor'?grupos:'<em style="color:var(--muted2);font-size:11px">—</em>'}</td>
+      <td style="color:var(--muted)">••••••</td>
+      <td>${actions}</td>
     </tr>`;
   }).join('');
   renderGruposCheck();
+}
+
+function changeUserRole(i, newRole) {
+  // Salva a mudança de perfil no ADMIN_USERS_KEY (sobrescreve o default do código)
+  const users = getUsers();
+  const u = users[i];
+  if (!u || u.user === 'admin') return;
+  
+  // Adiciona/atualiza no ADMIN_USERS_KEY para persistir entre atualizações
+  const adminExtras = JSON.parse(localStorage.getItem(ADMIN_USERS_KEY) || '[]');
+  const existing = adminExtras.find(x => x.user === u.user);
+  if (existing) {
+    existing.role = newRole;
+  } else {
+    adminExtras.push({...u, role: newRole});
+  }
+  localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(adminExtras));
+  
+  // Atualiza também o PASS_KEY se necessário (não afeta senha)
+  showToast(`✅ Perfil de ${u.sigla || u.user} alterado para ${newRole}`);
+  renderUsers();
 }
 
 function renderGruposCheck(){
