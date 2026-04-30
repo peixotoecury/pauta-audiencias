@@ -1209,6 +1209,7 @@ td.parte{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
         <button class="nav-btn" id="btn-pos" onclick="showTab('pos',this)">📝 Pós-Audiência</button>
         <button class="nav-btn" id="btn-auditoria" style="display:none" onclick="showTab('auditoria',this)">📋 Auditoria</button>
         <button class="nav-btn" id="admin-nav" style="display:none" onclick="showTab('admin',this)">⚙️ Admin</button>
+        <button class="nav-btn" id="historico-nav" style="display:none" onclick="showTab('historico',this)">📚 Histórico</button>
   </div>
 
   <!-- BOTTOM NAV (mobile app style) -->
@@ -1245,6 +1246,9 @@ td.parte{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
     </button>
     <button id="mn-admin" onclick="closeMobileMenu();showTab('admin',document.querySelector('.nav-btn'))" style="display:none;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
       <span style="font-size:20px">⚙️</span> Admin
+    </button>
+    <button id="mn-historico" onclick="closeMobileMenu();showTab('historico',document.querySelector('.nav-btn'))" style="display:none;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
+      <span style="font-size:20px">📚</span> Histórico
     </button>
     <button onclick="closeMobileMenu();showChangePasswordModal()" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--cyan);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
       <span style="font-size:20px">🔐</span> Alterar Senha
@@ -1604,6 +1608,64 @@ td.parte{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
       </div>
     </div>
 
+<!-- HISTÓRICO ACUMULADO -->
+<div id="tab-historico" style="display:none;padding:20px 24px">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+    <div>
+      <div style="font-size:16px;font-weight:700;color:var(--white)">📚 Histórico Acumulado de Audiências</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:3px">Registro persistente de todas as pautas — os dados são mantidos mesmo após atualização do sistema.</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button onclick="importarPautaHistorico()" style="background:rgba(39,174,96,.15);border:1px solid rgba(39,174,96,.4);color:#4CAF70;border-radius:var(--radius);padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:6px">📥 Absorver Pauta Atual</button>
+      <button onclick="exportarHistoricoCSV()" style="background:rgba(0,174,239,.12);border:1px solid rgba(0,174,239,.3);color:var(--cyan);border-radius:var(--radius);padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:6px">📊 Exportar CSV</button>
+      <button onclick="importarJSONHistorico()" style="background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.35);color:var(--gold);border-radius:var(--radius);padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">📂 Importar JSON</button>
+      <button onclick="exportarJSONHistorico()" style="background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.35);color:var(--gold);border-radius:var(--radius);padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">💾 Backup JSON</button>
+      <button onclick="limparHistorico()" style="background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.3);color:#E57373;border-radius:var(--radius);padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">🗑 Limpar</button>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div id="hist-kpis" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px"></div>
+
+  <!-- Filtros -->
+  <div class="filters" style="margin-bottom:16px">
+    <input class="filter-input" id="hist-search" placeholder="🔍 Buscar processo, parte, comarca…" style="min-width:200px" oninput="renderHistorico()">
+    <select class="filter-select" id="hist-filter-grupo" onchange="renderHistorico()"><option value="">Todos os grupos</option></select>
+    <select class="filter-select" id="hist-filter-tipo" onchange="renderHistorico()">
+      <option value="">Todos os tipos</option>
+      <option value="Audiência">Audiência</option>
+      <option value="Julgamento">Julgamento</option>
+      <option value="Perícia">Perícia</option>
+    </select>
+    <select class="filter-select" id="hist-filter-pauta" onchange="renderHistorico()"><option value="">Todas as pautas</option></select>
+    <span class="filter-count" id="hist-count"></span>
+    <button class="filter-clear-btn" id="hist-clear-btn" style="display:none" onclick="clearHistoricoFilters()">✕ Limpar</button>
+  </div>
+
+  <!-- Tabela -->
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Pauta</th>
+          <th>Data</th>
+          <th>Hora</th>
+          <th>Grupo</th>
+          <th>Processo</th>
+          <th>Parte Principal</th>
+          <th>Tipo</th>
+          <th>Comarca</th>
+          <th>Adv. Audiência</th>
+          <th>Adv. Preparo</th>
+        </tr>
+      </thead>
+      <tbody id="hist-tbody">
+        <tr><td colspan="10" style="text-align:center;color:var(--muted);padding:40px">Nenhuma pauta absorvida ainda. Clique em "Absorver Pauta Atual" para começar.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
   </div>
 </div>
 
@@ -1927,7 +1989,7 @@ function doPublicAccess(){
   app.classList.add('visible');
   document.getElementById('user-label').textContent = 'Consulta Pública';
   if(document.getElementById('admin-nav')) document.getElementById('admin-nav').style.display='none';
-  if(document.getElementById('admin-bottom-nav')) document.getElementById('admin-bottom-nav').style.display='none';
+  if(document.getElementById('historico-nav')) document.getElementById('historico-nav').style.display='none';
   // Oculta a aba Dashboard para consulta pública
   document.getElementById('tab-dashboard').style.display='none';
   document.querySelectorAll('.nav-btn').forEach(b=>{
@@ -2010,6 +2072,7 @@ function doLogin(){
   document.querySelectorAll('.bottom-nav-btn').forEach(b=>{ b.style.display=''; b.style.visibility=''; b.style.pointerEvents=''; });
   if(currentRole==='admin') {
     document.getElementById('admin-nav').style.display='';
+    document.getElementById('historico-nav').style.display='';
     const abn = document.getElementById('admin-bottom-nav');
     if(abn) abn.style.display='';
     const btnAud = document.getElementById('btn-auditoria');
@@ -2017,18 +2080,23 @@ function doLogin(){
     // mobile menu
     const mnAud = document.getElementById('mn-auditoria');
     const mnAdm = document.getElementById('mn-admin');
+    const mnHist = document.getElementById('mn-historico');
     if(mnAud) mnAud.style.display='flex';
     if(mnAdm) mnAdm.style.display='flex';
+    if(mnHist) mnHist.style.display='flex';
   } else {
     document.getElementById('admin-nav').style.display='none';
+    document.getElementById('historico-nav').style.display='none';
     const abn = document.getElementById('admin-bottom-nav');
     if(abn) abn.style.display='none';
     const btnAud = document.getElementById('btn-auditoria');
     if(btnAud) btnAud.style.display='none';
     const mnAud = document.getElementById('mn-auditoria');
     const mnAdm = document.getElementById('mn-admin');
+    const mnHist = document.getElementById('mn-historico');
     if(mnAud) mnAud.style.display='none';
     if(mnAdm) mnAdm.style.display='none';
+    if(mnHist) mnHist.style.display='none';
   }
   initApp();
   // If has sigla goes directly to personal schedule
@@ -2070,13 +2138,15 @@ function logout(){
   // Hide admin-only items
   const mnAud = document.getElementById('mn-auditoria');
   const mnAdm = document.getElementById('mn-admin');
+  const mnHist = document.getElementById('mn-historico');
   if(mnAud) mnAud.style.display='none';
   if(mnAdm) mnAdm.style.display='none';
+  if(mnHist) mnHist.style.display='none';
 }
 
 // ---- TABS ----
 function showTab(id, el){
-  ['dashboard','pauta','conflitos','comarcas','responsavel','auditoria','pos','admin'].forEach(t=>{
+  ['dashboard','pauta','conflitos','comarcas','responsavel','auditoria','pos','admin','historico'].forEach(t=>{
     const _el=document.getElementById('tab-'+t);
     if(_el) _el.style.display = t===id?'':'none';
   });
@@ -2084,7 +2154,7 @@ function showTab(id, el){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   if(el && el.classList.contains('nav-btn')) el.classList.add('active');
   // sync bottom nav — highlight "Mais" for drawer-only tabs
-  const drawerTabs = ['comarcas','responsavel','auditoria','admin'];
+  const drawerTabs = ['comarcas','responsavel','auditoria','admin','historico'];
   document.querySelectorAll('.bottom-nav-btn').forEach(b=>{
     if(b.id === 'bn-mais') {
       b.classList.toggle('active', drawerTabs.includes(id));
@@ -2101,6 +2171,7 @@ function showTab(id, el){
   if(id==='auditoria') renderAuditLog();
   if(id==='pos') renderPos();
   if(id==='admin') { renderUsers(); renderGruposCheck(); }
+  if(id==='historico') renderHistorico();
 }
 
 // ---- DASHBOARD ----
@@ -4541,6 +4612,248 @@ function exportarPosExcel() {
   showToast('📊 Excel exportado com sucesso!');
 }
 // ═══════════════════════════════════════════════════════
+
+// ═══════════════════════════════════════════════════════
+// HISTÓRICO ACUMULADO DE AUDIÊNCIAS
+// ═══════════════════════════════════════════════════════
+const HIST_KEY = 'pauta_historico_v1';
+
+function getHistorico() {
+  try { return JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); } catch { return []; }
+}
+function saveHistorico(arr) { localStorage.setItem(HIST_KEY, JSON.stringify(arr)); }
+
+// Absorve a pauta atual no histórico (merge por código, sem duplicar)
+function importarPautaHistorico() {
+  const hist = getHistorico();
+  // Chave robusta: prioriza codigo único, senão usa processo+data+horario+tipo
+  const makeChave = r => r.codigo || [r.processo, r.data, r.horario, r.tipo].join('|');
+  const existingCodes = new Set(hist.map(r => r._hist_codigo));
+  // Identifica a "pauta" pelo range de datas
+  const datas = DATA.main.map(r => r.data).filter(Boolean);
+  const datasOrdenadas = [...new Set(datas)].sort((a,b)=>{
+    const [da,ma,ya]=a.split('/');const [db,mb,yb]=b.split('/');
+    return new Date(ya,ma-1,da)-new Date(yb,mb-1,db);
+  });
+  const pautaLabel = datasOrdenadas.length
+    ? (datasOrdenadas[0] + (datasOrdenadas.length > 1 ? ' → ' + datasOrdenadas[datasOrdenadas.length-1] : ''))
+    : new Date().toLocaleDateString('pt-BR');
+
+  let novos = 0, atualizados = 0;
+  DATA.main.forEach(r => {
+    const chave = makeChave(r);
+    if (!existingCodes.has(chave)) {
+      hist.push({
+        ...r,
+        _hist_codigo: chave,
+        _hist_pauta: pautaLabel,
+        _hist_absorvido: new Date().toISOString()
+      });
+      novos++;
+    }
+  });
+  saveHistorico(hist);
+  addAuditEntry('Histórico', `${novos} audiências novas absorvidas da pauta "${pautaLabel}"`);
+  if (novos === 0) {
+    showToast('ℹ️ Nenhuma audiência nova — pauta já absorvida anteriormente.');
+  } else {
+    showToast(`✅ ${novos} audiências novas adicionadas ao histórico!`);
+  }
+  renderHistorico();
+}
+
+function limparHistorico() {
+  if (!confirm('Tem certeza que deseja apagar todo o histórico acumulado? Esta ação não pode ser desfeita.')) return;
+  saveHistorico([]);
+  showToast('🗑 Histórico apagado.');
+  renderHistorico();
+}
+
+function getHistoricoFiltered() {
+  const hist = getHistorico();
+  const q = (document.getElementById('hist-search')?.value || '').toLowerCase();
+  const grupo = document.getElementById('hist-filter-grupo')?.value || '';
+  const tipo = document.getElementById('hist-filter-tipo')?.value || '';
+  const pauta = document.getElementById('hist-filter-pauta')?.value || '';
+  return hist.filter(r => {
+    if (grupo && r.grupo !== grupo) return false;
+    if (pauta && r._hist_pauta !== pauta) return false;
+    if (tipo) {
+      const t = r.tipo || '';
+      if (tipo === 'Audiência' && !t.includes('Audiência')) return false;
+      if (tipo === 'Julgamento' && !t.includes('Julgamento') && !t.includes('Sessão')) return false;
+      if (tipo === 'Perícia' && !t.includes('Perícia')) return false;
+    }
+    if (q) {
+      const hay = [r.processo, r.parte_principal, r.parte_contraria, r.comarca, r.adv_audiencia, r.adv_preparo, r._hist_pauta].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function renderHistorico() {
+  const hist = getHistorico();
+
+  // Populate grupo filter
+  const grupoEl = document.getElementById('hist-filter-grupo');
+  if (grupoEl && grupoEl.options.length <= 1) {
+    const grupos = [...new Set(hist.map(r => r.grupo).filter(Boolean))].sort();
+    grupos.forEach(g => { const o = new Option(g, g); grupoEl.add(o); });
+  }
+  // Populate pauta filter
+  const pautaEl = document.getElementById('hist-filter-pauta');
+  if (pautaEl) {
+    const pautas = [...new Set(hist.map(r => r._hist_pauta).filter(Boolean))].sort();
+    // Reset and rebuild
+    while (pautaEl.options.length > 1) pautaEl.remove(1);
+    pautas.forEach(p => { const o = new Option(p, p); pautaEl.add(o); });
+  }
+
+  const rows = getHistoricoFiltered();
+
+  // Clear btn
+  const cb = document.getElementById('hist-clear-btn');
+  const hasFilter = (document.getElementById('hist-search')?.value || document.getElementById('hist-filter-grupo')?.value || document.getElementById('hist-filter-tipo')?.value || document.getElementById('hist-filter-pauta')?.value);
+  if (cb) cb.style.display = hasFilter ? '' : 'none';
+
+  // Count
+  const countEl = document.getElementById('hist-count');
+  if (countEl) countEl.textContent = rows.length + ' resultado(s) de ' + hist.length + ' total';
+
+  // KPIs
+  const kpiEl = document.getElementById('hist-kpis');
+  if (kpiEl) {
+    const pautas = [...new Set(hist.map(r => r._hist_pauta))].length;
+    const grupos = [...new Set(hist.map(r => r.grupo).filter(Boolean))].length;
+    const comAdv = hist.filter(r => r.adv_audiencia && r.adv_audiencia !== 'N/A' && r.adv_audiencia !== 'Indicar Advogado').length;
+    const kCard = (icon, val, label, color='var(--cyan)') => `
+      <div style="display:flex;align-items:center;gap:12px;background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:14px 20px;min-width:130px;flex:1;position:relative;overflow:hidden">
+        <span style="font-size:20px">${icon}</span>
+        <div>
+          <div style="font-size:26px;font-weight:700;color:${color};line-height:1;font-variant-numeric:tabular-nums">${val}</div>
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-top:2px">${label}</div>
+        </div>
+      </div>`;
+    kpiEl.innerHTML =
+      kCard('📋', hist.length, 'Total de Audiências', 'var(--white)') +
+      kCard('📁', pautas, 'Pautas Absorvidas', 'var(--cyan)') +
+      kCard('🗂', grupos, 'Grupos', '#9B59B6') +
+      kCard('✅', comAdv, 'Com Adv. Designado', 'var(--green)');
+  }
+
+  // Table
+  const tbody = document.getElementById('hist-tbody');
+  if (!tbody) return;
+  if (hist.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:40px">Nenhuma pauta absorvida ainda. Clique em "Absorver Pauta Atual" para começar.</td></tr>';
+    return;
+  }
+  if (rows.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:40px">Nenhum resultado para os filtros selecionados.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = rows.map(r => {
+    const advAud = r.adv_audiencia || '—';
+    const advPre = r.adv_preparo || '—';
+    const advAudNome = PROF[advAud] ? PROF[advAud].nome : advAud;
+    const advPreNome = PROF[advPre] ? PROF[advPre].nome : advPre;
+    return `<tr>
+      <td style="font-size:10px;color:var(--muted);white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis" title="${r._hist_pauta||''}">${r._hist_pauta||'—'}</td>
+      <td style="white-space:nowrap;font-weight:500">${r.data||'—'}</td>
+      <td style="white-space:nowrap;color:var(--cyan)">${r.horario && r.horario!=='00:00'?r.horario:'—'}</td>
+      <td><span style="color:var(--cyan);font-weight:600;font-size:11px">${r.grupo||'—'}</span></td>
+      <td class="processo">${r.processo||'—'}</td>
+      <td class="parte" title="${r.parte_principal||''}">${r.parte_principal||'—'}</td>
+      <td><span class="badge badge-tipo" style="font-size:9px">${(r.tipo||'—').substring(0,28)}</span></td>
+      <td style="font-size:11px;color:var(--muted)">${r.comarca||'—'}</td>
+      <td style="font-size:11px">${advAudNome!=='—'?`<span style="font-weight:600;color:var(--text)">${advAudNome}</span>`:'<span style="color:var(--muted2)">—</span>'}</td>
+      <td style="font-size:11px;color:var(--muted)">${advPreNome!=='—'?advPreNome:'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function clearHistoricoFilters() {
+  ['hist-search','hist-filter-grupo','hist-filter-tipo','hist-filter-pauta'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  renderHistorico();
+}
+
+function exportarHistoricoCSV() {
+  const hist = getHistorico();
+  if (!hist.length) { showToast('⚠ Histórico vazio.'); return; }
+  const headers = ['Pauta','Data Absorção','Código','Data','Horário','Tipo','Processo','Parte Principal','Parte Contrária','Comarca','Estado','Vara','Grupo','Adv. Audiência','Adv. Preparo'];
+  const csvRows = [headers, ...hist.map(r => {
+    const advAudNome = PROF[r.adv_audiencia] ? PROF[r.adv_audiencia].nome : (r.adv_audiencia || '');
+    const advPreNome = PROF[r.adv_preparo] ? PROF[r.adv_preparo].nome : (r.adv_preparo || '');
+    return [
+      r._hist_pauta||'', r._hist_absorvido ? new Date(r._hist_absorvido).toLocaleDateString('pt-BR') : '',
+      r.codigo||'', r.data||'', r.horario||'', r.tipo||'', r.processo||'',
+      r.parte_principal||'', r.parte_contraria||'', r.comarca||'', r.estado||'', r.vara||'', r.grupo||'',
+      advAudNome, advPreNome
+    ].map(v => '"' + String(v).replace(/"/g,'""') + '"');
+  })];
+  const bom = '\uFEFF';
+  const csv = bom + csvRows.map(r => r.join(';')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'Historico_Audiencias_' + new Date().toLocaleDateString('pt-BR').replace(/\//g,'-') + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  showToast('📊 Histórico exportado com sucesso!');
+}
+// ═══════════════════════════════════════════════════════
+
+function exportarJSONHistorico() {
+  const hist = getHistorico();
+  if (!hist.length) { showToast('⚠ Histórico vazio.'); return; }
+  const blob = new Blob([JSON.stringify(hist, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'Historico_PC_' + new Date().toLocaleDateString('pt-BR').replace(/\//g,'-') + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  showToast('💾 Backup JSON exportado!');
+}
+
+function importarJSONHistorico() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.json';
+  input.onchange = function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev) {
+      try {
+        const imported = JSON.parse(ev.target.result);
+        if (!Array.isArray(imported)) { showToast('⚠ Arquivo inválido.'); return; }
+        const hist = getHistorico();
+        const existingCodes = new Set(hist.map(r => r._hist_codigo));
+        let novos = 0;
+        imported.forEach(r => {
+          if (r._hist_codigo && !existingCodes.has(r._hist_codigo)) {
+            hist.push(r);
+            novos++;
+          }
+        });
+        saveHistorico(hist);
+        showToast(`✅ ${novos} registros importados do backup!`);
+        renderHistorico();
+      } catch { showToast('⚠ Erro ao ler o arquivo JSON.'); }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
 
 // Register service worker for PWA
 if ('serviceWorker' in navigator) {
