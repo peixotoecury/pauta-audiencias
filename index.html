@@ -1,19 +1,20 @@
 <!DOCTYPE html>
+
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Pauta PC">
-<link rel="manifest" href="manifest.json">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Pauta P&C">
-<meta name="theme-color" content="#0B1E2D">
-<title>Pauta de Audiências — Peixoto & Cury Advogados</title>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/>
+<meta content="yes" name="mobile-web-app-capable"/>
+<meta content="yes" name="apple-mobile-web-app-capable"/>
+<meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
+<meta content="Pauta PC" name="apple-mobile-web-app-title"/>
+<link href="manifest.json" rel="manifest"/>
+<meta content="yes" name="apple-mobile-web-app-capable"/>
+<meta content="black-translucent" name="apple-mobile-web-app-status-bar-style"/>
+<meta content="Pauta P&amp;C" name="apple-mobile-web-app-title"/>
+<meta content="#0B1E2D" name="theme-color"/>
+<title>Pauta de Audiências — Peixoto &amp; Cury Advogados</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
 <style>
 :root {
   --bg:       #0B1E2D;
@@ -1609,630 +1610,751 @@ button,
   color: #FFFFFF !important;
 }
 
+
+
+/* === Ajustes finais — Banco Cliente / Modal / Acesso público === */
+.cliente-panel-b > div:empty { display:none !important; }
+.cliente-panel-b .cliente-note, .cliente-panel-b .info-box { display:none !important; }
+.modal { width: 900px !important; max-width: 94vw !important; overflow-x: hidden !important; }
+#modal-body.modal-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px !important; overflow-x: hidden !important; }
+#modal-body > * { min-width: 0 !important; }
+#modal-body > .modal-wide, #modal-body > .controladoria-panel, #modal-body > .modal-field.full { grid-column: 1 / -1 !important; width: 100% !important; }
+#modal-body textarea, #modal-body input, #modal-body select { max-width:100% !important; box-sizing:border-box !important; }
+#modal-body [style*="grid-template-columns:repeat(3,1fr)"] { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+body.public-mode .nav .nav-btn:not(.public-allowed),
+body.public-mode #bottom-nav .bottom-nav-btn:not(.public-allowed),
+body.public-mode #mobile-menu-drawer,
+body.public-mode #mobile-menu-overlay,
+body.public-mode #admin-nav,
+body.public-mode #historico-nav,
+body.public-mode #cliente-nav,
+body.public-mode #btn-conflitos,
+body.public-mode #btn-comarcas,
+body.public-mode #btn-responsavel,
+body.public-mode #btn-pos,
+body.public-mode #btn-pericia,
+body.public-mode #btn-auditoria,
+body.public-mode .topbar-right .logout-btn:first-of-type { display:none !important; }
+body.public-mode .nav { justify-content:flex-start !important; }
+@media(max-width:768px){
+  .modal{width:100vw!important;max-width:100vw!important;height:92vh!important;max-height:92vh!important;}
+  #modal-body.modal-grid{grid-template-columns:1fr!important;}
+  #modal-body [style*="grid-template-columns:repeat(3,1fr)"]{grid-template-columns:1fr!important;}
+}
+
+
+/* === CONTROLE DE PÓS NÍVEL DIRETORIA === */
+.pos-diretoria-wrap{margin-bottom:18px;display:grid;grid-template-columns:1.35fr .65fr;gap:14px;align-items:stretch;}
+.pos-diretoria-card{background:#fff;border:1px solid var(--border2);border-radius:16px;box-shadow:0 8px 22px rgba(0,59,92,.07);padding:16px 18px;color:var(--preto-pc);}
+.pos-diretoria-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--escuro-pc);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.pos-diretoria-title::after{content:'';height:1px;background:#D8E7F0;flex:1;}
+.pos-kpi-diretoria-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.pos-kpi-dir{background:#F7FCFF;border:1px solid #D8E7F0;border-radius:14px;padding:14px 14px;min-height:86px;}
+.pos-kpi-dir .num{font-size:28px;font-weight:800;line-height:1;color:#006080;font-variant-numeric:tabular-nums;}
+.pos-kpi-dir .label{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:#5F7E92;font-weight:800;margin-top:6px;}
+.pos-kpi-dir.alerta .num{color:#C0392B;}.pos-kpi-dir.ok .num{color:#117A65;}.pos-kpi-dir.warn .num{color:#E67E22;}
+.pos-progress{height:10px;background:#E9F3F8;border-radius:99px;overflow:hidden;margin-top:10px;border:1px solid #D8E7F0;}
+.pos-progress-fill{height:100%;background:linear-gradient(90deg,#117A65,#00A9E0);border-radius:99px;transition:width .5s ease;}
+.pos-ranking-list{display:flex;flex-direction:column;gap:7px;max-height:190px;overflow:auto;}
+.pos-ranking-row{display:grid;grid-template-columns:1fr 42px;gap:10px;align-items:center;font-size:12px;padding:8px 10px;border:1px solid #E4EEF5;border-radius:10px;background:#F9FCFE;}
+.pos-ranking-row b{color:#003B5C;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pos-ranking-row span{font-weight:800;color:#C0392B;text-align:right;}
+.pos-empty-mini{font-size:12px;color:#5F7E92;padding:12px;background:#F7FCFF;border:1px dashed #BFD6E4;border-radius:12px;}
+@media(max-width:900px){.pos-diretoria-wrap{grid-template-columns:1fr}.pos-kpi-diretoria-grid{grid-template-columns:repeat(2,1fr)}}
+
 </style>
+<style>.info-box,.cliente-no-preview{display:none!important;}</style>
+
+<style id="pc-mobile-stability-dashboard-clicks">
+/* Cards com aparência clicável */
+.kpi-card,
+.grupo-summary-card,
+.dash-card .dl-row,
+#tipo-bars .hb-row,
+#date-chart .dc-col,
+#estado-bars .hb-row,
+#adv-chart .hb-row {
+  cursor: pointer !important;
+}
+
+/* Trava para celular não ficar “sambando” lateralmente */
+html, body {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: hidden !important;
+  overscroll-behavior-x: none !important;
+}
+
+#app, .main, .topbar, .nav, .bottom-nav {
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+}
+
+@media (max-width: 768px) {
+  html, body {
+    overflow-x: hidden !important;
+    touch-action: pan-y !important;
+  }
+
+  .main {
+    padding: 12px 10px 82px !important;
+    overflow-x: hidden !important;
+  }
+
+  .dash-header-row {
+    width: 100% !important;
+    display: block !important;
+  }
+
+  .kpi-row {
+    width: 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    overflow: visible !important;
+  }
+
+  .kpi-card {
+    min-width: 0 !important;
+    width: 100% !important;
+    flex: none !important;
+    padding: 13px 12px !important;
+  }
+
+  .dash-row-2col,
+  .modal-grid,
+  .grupos-overview {
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+  }
+
+  .dash-card,
+  .grupo-summary-card,
+  .modal,
+  .modal-body,
+  .table-wrap,
+  .filters,
+  .pos-filters {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  .date-chart-wrap {
+    width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-x: contain !important;
+  }
+
+  .dc-col {
+    flex: 0 0 34px !important;
+  }
+
+  select, input, textarea, .filter-input, .filter-select {
+    max-width: 100% !important;
+  }
+}
+</style>
+
 </head>
 <body>
-
 <!-- ══════════ LOGIN ══════════ -->
 <div id="login-screen">
-  <div class="login-box">
-
-    <div class="login-logo">
-      <img src="https://www.peixotoecury.com.br/assets/images/ui/logo-light.png" alt="Peixoto e Cury">
-    </div>
-    <div style="margin-bottom:24px;">
-      <div class="login-title">Pauta de Audiências</div>
-      <div class="login-sub2">Selecione seu perfil e entre com suas credenciais</div>
-    </div>
-    <div class="login-role">
-      <button class="role-btn" onclick="selectRole('admin',this)">⚙️ Admin</button>
-      <button class="role-btn" onclick="selectRole('editor',this)">✏️ Editor</button>
-      <button class="role-btn active" onclick="selectRole('visualizador',this)">👁️ Visualizador</button>
-    </div>
-    <input type="text" id="login-user" placeholder="E-mail (@peixotoecury.com.br)" autocomplete="username">
-    <div style="position:relative;display:flex;align-items:center;">
-      <input type="password" id="login-pass" placeholder="Senha" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()" style="width:100%;padding-right:40px;margin-bottom:0;">
-      <button type="button" id="btn-toggle-pass" class="toggle-password-premium" onclick="togglePasswordPremium()" aria-label="Mostrar senha" title="Mostrar senha">
-        <svg class="eye-on" width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12 18 18.75 12 18.75 2.25 12 2.25 12Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"/>
-        </svg>
-        <svg class="eye-off" width="19" height="19" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M3 3l18 18" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
-          <path d="M9.88 5.72A8.8 8.8 0 0 1 12 5.25c6 0 9.75 6.75 9.75 6.75a17.9 17.9 0 0 1-3.1 3.86" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M14.12 18.28A8.8 8.8 0 0 1 12 18.75C6 18.75 2.25 12 2.25 12a17.9 17.9 0 0 1 3.1-3.86" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-    </div>
-    <button class="login-btn" onclick="doLogin()">Entrar →</button>
-    <div class="login-error" id="login-error"></div>
-    <div id="login-hint" style="display:none;margin-top:8px;padding:9px 12px;background:rgba(0,174,239,.06);border:1px solid rgba(0,174,239,.12);border-radius:8px;font-size:11px;color:var(--muted);text-align:center;line-height:1.7;animation:fadeIn .3s">
-      💡 Use seu <strong style="color:var(--text)">e-mail @peixotoecury.com.br</strong> e sua senha.<br>
-      <span style="font-size:10px">Senha inicial: <strong style="color:var(--text)">123456</strong> &nbsp;·&nbsp; Selecione o perfil correto (Admin / Editor / Visualizador)<br>Admin geral: <strong style="color:var(--text)">admin / Admin@2026</strong></span>
-    </div>
-    <div class="login-divider">ou</div>
-    <button class="public-btn" onclick="doPublicAccess()">🔍 Consultar Pauta (sem login)</button>
-  </div>
+<div class="login-box">
+<div class="login-logo">
+<img alt="Peixoto e Cury" src="https://www.peixotoecury.com.br/assets/images/ui/logo-light.png"/>
 </div>
-
+<div style="margin-bottom:24px;">
+<div class="login-title">Pauta de Audiências</div>
+<div class="login-sub2">Selecione seu perfil e entre com suas credenciais</div>
+</div>
+<div class="login-role">
+<button class="role-btn" onclick="selectRole('admin',this)">⚙️ Admin</button>
+<button class="role-btn" onclick="selectRole('editor',this)">✏️ Editor</button>
+<button class="role-btn active" onclick="selectRole('visualizador',this)">👁️ Visualizador</button>
+</div>
+<input autocomplete="username" id="login-user" placeholder="E-mail (@peixotoecury.com.br)" type="text"/>
+<div style="position:relative;display:flex;align-items:center;">
+<input autocomplete="current-password" id="login-pass" onkeydown="if(event.key==='Enter')doLogin()" placeholder="Senha" style="width:100%;padding-right:40px;margin-bottom:0;" type="password"/>
+<button aria-label="Mostrar senha" class="toggle-password-premium" id="btn-toggle-pass" onclick="togglePasswordPremium()" title="Mostrar senha" type="button">
+<svg aria-hidden="true" class="eye-on" fill="none" height="19" viewbox="0 0 24 24" width="19">
+<path d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12 18 18.75 12 18.75 2.25 12 2.25 12Z" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"></path>
+<circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.7"></circle>
+</svg>
+<svg aria-hidden="true" class="eye-off" fill="none" height="19" viewbox="0 0 24 24" width="19">
+<path d="M3 3l18 18" stroke="currentColor" stroke-linecap="round" stroke-width="1.7"></path>
+<path d="M9.88 5.72A8.8 8.8 0 0 1 12 5.25c6 0 9.75 6.75 9.75 6.75a17.9 17.9 0 0 1-3.1 3.86" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"></path>
+<path d="M14.12 18.28A8.8 8.8 0 0 1 12 18.75C6 18.75 2.25 12 2.25 12a17.9 17.9 0 0 1 3.1-3.86" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.7"></path>
+</svg>
+</button>
+</div>
+<button class="login-btn" onclick="doLogin()">Entrar →</button>
+<div class="login-error" id="login-error"></div>
+<div id="login-hint" style="display:none;margin-top:8px;padding:9px 12px;background:rgba(0,174,239,.06);border:1px solid rgba(0,174,239,.12);border-radius:8px;font-size:11px;color:var(--muted);text-align:center;line-height:1.7;animation:fadeIn .3s">
+      💡 Use seu <strong style="color:var(--text)">e-mail @peixotoecury.com.br</strong> e sua senha.<br/>
+<span style="font-size:10px">Senha inicial: <strong style="color:var(--text)">123456</strong>  ·  Selecione o perfil correto (Admin / Editor / Visualizador)<br/>Admin geral: <strong style="color:var(--text)">admin / Admin@2026</strong></span>
+</div>
+<div class="login-divider">ou</div>
+<button class="public-btn" onclick="doPublicAccess()">🔍 Consultar Pauta (sem login)</button>
+</div>
+</div>
 <!-- ══════════ APP ══════════ -->
 <div id="app">
-  <div class="topbar">
-    <div class="topbar-left">
-      <div class="topbar-logo">
-        <img src="https://www.peixotoecury.com.br/assets/images/ui/logo-light.png" alt="Peixoto & Cury">
-      </div>
-      <div class="topbar-divider"></div>
-      <div class="topbar-title">Pauta de Audiências Trabalhistas — Controladoria Jurídica</div>
-    </div>
-    <div class="topbar-right">
-      <div class="user-badge">Logado como: <span id="user-label"></span></div>
-      <button class="logout-btn" onclick="showChangePasswordModal()" title="Alterar minha senha" style="border-color:rgba(0,174,239,.3);color:var(--cyan)">🔐 Senha</button>
-      <button class="logout-btn" onclick="logout()">Sair</button>
-    </div>
-  </div>
-
-  <div class="nav">
-    <button class="nav-btn active" onclick="showTab('dashboard',this)">📊 Dashboard</button>
-    <button class="nav-btn" onclick="showTab('pauta',this)">🎯 Pauta Completa</button>
-    <button class="nav-btn" id="btn-conflitos" onclick="showTab('conflitos',this)">⚠️ Conflitos <span id="conflict-badge" style="background:#c0392b;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;margin-left:4px">…</span></button>
-        <button class="nav-btn" id="btn-comarcas" onclick="showTab('comarcas',this)">🗺️ Comarcas</button>
-        <button class="nav-btn" id="btn-responsavel" onclick="showTab('responsavel',this)">👤 Responsáveis</button>
-        <button class="nav-btn" id="btn-pos" onclick="showTab('pos',this)">📝 Pós-Audiência</button>
-        <button class="nav-btn" id="btn-pericia" onclick="showTab('pericia',this)">🔬 Pós-Perícia</button>
-        <button class="nav-btn" id="btn-auditoria" style="display:none" onclick="showTab('auditoria',this)">📋 Auditoria</button>
-        <button class="nav-btn" id="admin-nav" style="display:none" onclick="showTab('admin',this)">⚙️ Admin</button>
-        <button class="nav-btn" id="historico-nav" style="display:none" onclick="showTab('historico',this)">📚 Histórico</button>
-        <button class="nav-btn" id="cliente-nav" onclick="showTab('cliente',this)">🏢 Banco Cliente</button>
-  </div>
-
-  <!-- BOTTOM NAV (mobile app style) -->
-  <div class="bottom-nav" id="bottom-nav">
-    <button class="bottom-nav-btn active" onclick="showTab('dashboard',this)" data-tab="dashboard">
-      <span class="bn-icon">📊</span>Dashboard
-    </button>
-    <button class="bottom-nav-btn" onclick="showTab('pauta',this)" data-tab="pauta">
-      <span class="bn-icon">🎯</span>Pauta
-    </button>
-    <button class="bottom-nav-btn" onclick="showTab('conflitos',this)" data-tab="conflitos">
-      <span class="bn-icon">⚠️</span>Conflitos
-    </button>
-    <button class="bottom-nav-btn" onclick="showTab('pos',this)" data-tab="pos">
-      <span class="bn-icon">📝</span>Pós-Aud.
-    </button>
-    <button class="bottom-nav-btn" onclick="toggleMobileMenu()" id="bn-mais">
-      <span class="bn-icon">☰</span>Mais
-    </button>
-  </div>
-
-  <!-- MOBILE EXTRA MENU (drawer) -->
-  <div id="mobile-menu-overlay" onclick="closeMobileMenu()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;"></div>
-  <div id="mobile-menu-drawer" style="display:none;position:fixed;bottom:62px;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);z-index:301;padding:8px 0;border-radius:16px 16px 0 0;">
-    <div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:8px auto 12px;"></div>
-    <button onclick="closeMobileMenu();showTab('comarcas',document.querySelector('.nav-btn'))" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
-      <span style="font-size:20px">🗺️</span> Comarcas
-    </button>
-    <button onclick="closeMobileMenu();showTab('responsavel',document.querySelector('.nav-btn'))" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
-      <span style="font-size:20px">👤</span> Responsáveis
-    </button>
-    <button onclick="closeMobileMenu();showTab('pericia',document.querySelector('.nav-btn'))" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
-      <span style="font-size:20px">🔬</span> Pós-Perícia
-    </button>
-    <button id="mn-auditoria" onclick="closeMobileMenu();showTab('auditoria',document.querySelector('.nav-btn'))" style="display:none;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
-      <span style="font-size:20px">📋</span> Auditoria
-    </button>
-    <button id="mn-admin" onclick="closeMobileMenu();showTab('admin',document.querySelector('.nav-btn'))" style="display:none;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
-      <span style="font-size:20px">⚙️</span> Admin
-    </button>
-    <button id="mn-historico" onclick="closeMobileMenu();showTab('historico',document.querySelector('.nav-btn'))" style="display:none;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
-      <span style="font-size:20px">📚</span> Histórico
-    </button>
-    <button onclick="closeMobileMenu();showChangePasswordModal()" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--cyan);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
-      <span style="font-size:20px">🔐</span> Alterar Senha
-    </button>
-    <button onclick="closeMobileMenu();logout()" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:#E57373;font-family:var(--font);font-size:14px;cursor:pointer;">
-      <span style="font-size:20px">🚪</span> Sair
-    </button>
-  </div>
-
-  <div class="main">
-
-    <!-- DASHBOARD -->
-    <div id="tab-dashboard">
-
-      <!-- KPIs + última atualização -->
-      <div class="dash-header-row">
-        <div class="kpi-row">
-          <div class="kpi-card kpi-total" style="cursor:pointer" onclick="showTab('pauta',document.querySelectorAll('.nav-btn')[1]);_filterStatus='';document.getElementById('filter-grupo').value='';updateClearBtn();renderTable();" title="Ver todas as audiências">
-            <div class="kpi-icon">📋</div>
-            <div class="kpi-body">
-              <div class="kpi-val" id="stat-total">—</div>
-              <div class="kpi-label">Total de Audiências</div>
-            </div>
-          </div>
-          <div class="kpi-card kpi-green" style="cursor:pointer" onclick="showTab('pauta',document.querySelectorAll('.nav-btn')[1]);_filterStatus='designado';document.getElementById('filter-grupo').value='';updateClearBtn();renderTable();" title="Ver audiências com advogado designado">
-            <div class="kpi-icon">✅</div>
-            <div class="kpi-body">
-              <div class="kpi-val" id="stat-designado">—</div>
-              <div class="kpi-label">Com Adv. Designado</div>
-            </div>
-          </div>
-          <div class="kpi-card kpi-red" style="cursor:pointer" onclick="showTab('pauta',document.querySelectorAll('.nav-btn')[1]);_filterStatus='indicar';document.getElementById('filter-grupo').value='';updateClearBtn();renderTable();" title="Ver todas pendentes de indicação">
-            <div class="kpi-icon">⚠️</div>
-            <div class="kpi-body">
-              <div class="kpi-val" id="stat-indicar">—</div>
-              <div class="kpi-label">A Indicar Advogado</div>
-            </div>
-          </div>
-          <div class="kpi-card kpi-orange" style="cursor:pointer" onclick="showTab('pauta',document.querySelectorAll('.nav-btn')[1]);_filterStatus='';document.getElementById('filter-grupo').value='';updateClearBtn();renderTable();" title="Ver pauta completa por dia">
-            <div class="kpi-icon">🗓️</div>
-            <div class="kpi-body">
-              <div class="kpi-val" id="stat-dias"></div>
-              <div class="kpi-label">Dias na Pauta</div>
-            </div>
-          </div>
-          <div class="kpi-card kpi-purple" style="cursor:pointer" onclick="showTab('comarcas',document.querySelectorAll('.nav-btn')[3]);" title="Ver mapa de comarcas">
-            <div class="kpi-icon">📍</div>
-            <div class="kpi-body">
-              <div class="kpi-val" id="stat-estados">—</div>
-              <div class="kpi-label">Comarcas</div>
-            </div>
-          </div>
-        </div>
-        <div id="last-update-badge" class="update-badge"></div>
-      </div>
-
-      <!-- ROW 1: Donut + Tipos -->
-      <div class="dash-row-2col">
-        <div class="dash-card">
-          <div class="dash-card-title">Distribuição por Grupo</div>
-          <div class="donut-wrap">
-            <div class="donut-svg-wrap">
-              <svg id="donut-svg" viewBox="0 0 200 200" width="190" height="190"></svg>
-            </div>
-            <div class="donut-legend" id="donut-legend"></div>
-          </div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-card-title">Por Tipo de Audiência</div>
-          <div id="tipo-bars" class="h-bars"></div>
-        </div>
-      </div>
-
-      <!-- ROW 2: por data + por advogado (compacto) -->
-      <div class="dash-row-2col" style="margin-bottom:16px;">
-        <div class="dash-card">
-          <div class="dash-card-title">Audiências por Data</div>
-          <div id="date-chart" class="date-chart-wrap"></div>
-        </div>
-        <div class="dash-card">
-          <div class="dash-card-title">Por Advogado — Audiências Designadas</div>
-          <div id="adv-chart" class="h-bars" style="max-height:320px;overflow-y:auto;"></div>
-        </div>
-      </div>
-
-      <!-- ROW 3: Por Comarca (full width, destaque) -->
-      <div class="dash-card" style="margin-bottom:20px;">
-        <div class="dash-card-title">Por Comarca</div>
-        <div id="estado-bars" style="display:grid;grid-template-columns:1fr 1fr;gap:10px 32px;align-items:start;"></div>
-      </div>
-
-      <!-- Grupos -->
-      <div class="section-title">Grupos — clique para detalhar</div>
-      <div class="grupos-overview" id="grupos-overview"></div>
-
-      <!-- PAINEL DETALHE -->
-      <div class="grupo-detail" id="grupo-detail">
-        <div class="gd-header">
-          <div>
-            <div class="gd-title" id="gd-title">Grupo</div>
-            <div class="gd-subtitle" id="gd-subtitle"></div>
-          </div>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <button class="gd-ver-pauta-btn" onclick="filterByGrupo(currentGrupoOpen)">📋 Ver pauta</button>
-            <button class="gd-close" onclick="closeGrupoDetail()">✕ Fechar</button>
-          </div>
-        </div>
-        <div class="gd-tabs">
-          <button class="gd-tab active" onclick="showGdTab('profissionais',this)">👤 Profissionais</button>
-          <button class="gd-tab" onclick="showGdTab('localidade',this)">📍 Localidade</button>
-        </div>
-        <div class="gd-body">
-          <div class="gd-panel active" id="gdp-profissionais">
-            <div class="prof-grid-inline" id="gd-prof-grid"></div>
-          </div>
-          <div class="gd-panel" id="gdp-localidade">
-            <div id="gd-local-content"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-
-    <!-- PAUTA COMPLETA -->
-    <div id="tab-pauta" style="display:none">
-      <div class="filters">
-        <input class="filter-input" type="text" id="search-main" placeholder="🔍 Buscar processo, parte, comarca, advogado...">
-        <select class="filter-select" id="filter-grupo">
-          <option value="">Todos os grupos</option>
-        </select>
-        <select class="filter-select" id="filter-data">
-          <option value="">Todas as datas</option>
-        </select>
-        <select class="filter-select" id="filter-tipo">
-          <option value="">Todos os tipos</option>
-          <option value="Audiência">Audiências</option>
-          <option value="Julgamento">Julgamentos</option>
-          <option value="Perícia">Perícias</option>
-        </select>
-        <select class="filter-select" id="filter-prof">
-          <option value="">Todos os profissionais</option>
-        </select>
-        <button class="filter-clear-btn" id="filter-clear-btn" onclick="clearFilters()" style="display:none">✕ Limpar filtros</button>
-        <span class="filter-count" id="filter-count"></span>
-        <button class="export-btn" onclick="exportarExcel()" title="Exportar pauta filtrada para Excel">📥 Excel</button>
-      </div>
-      <div class="table-wrap">
-        <table id="main-table">
-          <thead>
-            <tr>
-              <th>Data</th><th>Hora</th><th>Grupo</th><th>Processo</th>
-              <th>Parte Principal</th><th>Parte Contrária</th><th>Comarca</th><th>Vara/Turma</th><th>Tipo</th><th>Fase</th>
-              <th>Adv. Audiência <span id="edit-badge" class="edit-badge" style="display:none">✏️ editável</span></th><th>Adv. Preparo</th>
-              <th>Link/Obs.</th><th class="col-hide-mobile">📧 Convite</th>
-            </tr>
-          </thead>
-          <tbody id="main-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- ADMIN -->
-    <div id="tab-conflitos" class="tab-content" style="display:none;padding:20px 24px">
-  <h2 style="color:#e74c3c;margin-bottom:6px;font-size:16px;font-weight:700">⚠️ Conflitos de Comarca</h2>
-  <p style="color:var(--muted);font-size:12px;margin-bottom:18px">Mesmo advogado responsável · mesmo dia · comarcas diferentes · intervalo inferior a 2h.</p>
-  <div id="conflict-list"></div>
+<div class="topbar">
+<div class="topbar-left">
+<div class="topbar-logo">
+<img alt="Peixoto &amp; Cury" src="https://www.peixotoecury.com.br/assets/images/ui/logo-light.png"/>
 </div>
-<div id="tab-comarcas" class="tab-content" style="display:none;padding:20px 24px">
-  <h2 style="color:var(--cyan);margin-bottom:4px;font-size:16px;font-weight:700">🗺️ Dashboard por Comarca &amp; Vara</h2>
-  <p style="color:var(--muted);font-size:12px;margin-bottom:20px">Distribuição por dia, comarca e profissional responsável</p>
-
-  <!-- KPIs -->
-  <div id="comarca-kpis" style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap"></div>
-
-  <!-- Filter bar — selects + search -->
-  <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
-    <select id="comarca-filter-dia" onchange="renderComarcas()"
-      style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 12px;font-size:12px;font-family:inherit">
-      <option value="">Todos os dias</option>
-    </select>
-    <select id="comarca-filter-comarca" onchange="renderComarcas()"
-      style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 12px;font-size:12px;font-family:inherit">
-      <option value="">Todas as comarcas</option>
-    </select>
-    <select id="comarca-filter-grupo" onchange="renderComarcas()"
-      style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 12px;font-size:12px;font-family:inherit">
-      <option value="">Todos os grupos</option>
-    </select>
-    <select id="comarca-filter-tipo" onchange="renderComarcas()"
-      style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 12px;font-size:12px;font-family:inherit">
-      <option value="">Todos os tipos</option>
-      <option value="Sessão TST">Sessão TST</option>
-      <option value="Sessão TRT/TJ">Sessão TRT/TJ</option>
-      <option value="Julgamento Vara">Julgamento Vara</option>
-      <option value="Instrução">Instrução</option>
-      <option value="Inicial">Inicial</option>
-      <option value="Una">Una</option>
-      <option value="Conciliação">Conciliação</option>
-      <option value="Perícia">Perícia</option>
-    </select>
-    <input id="comarca-search" oninput="renderComarcas()" placeholder="🔍 Buscar advogado..."
-      style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 12px;font-size:12px;font-family:inherit;flex:1;min-width:180px">
-    <button onclick="clearComarcaFilters()" style="padding:6px 14px;background:rgba(255,255,255,.06);border:1px solid var(--border2);color:var(--muted);border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit">✕ Limpar</button>
-    <span id="comarca-count" style="font-size:11px;color:var(--muted);font-style:italic;white-space:nowrap"></span>
-  </div>
-
-  <!-- Cards grid -->
-  <div id="comarca-days-grid"></div>
+<div class="topbar-divider"></div>
+<div class="topbar-title">Pauta de Audiências Trabalhistas — Controladoria Jurídica</div>
 </div>
-
+<div class="topbar-right">
+<div class="user-badge">Logado como: <span id="user-label"></span></div>
+<button class="logout-btn" onclick="showChangePasswordModal()" style="border-color:rgba(0,174,239,.3);color:var(--cyan)" title="Alterar minha senha">🔐 Senha</button>
+<button class="logout-btn" onclick="logout()">Sair</button>
+</div>
+</div>
+<div class="nav">
+<button class="nav-btn active" onclick="showTab('dashboard',this)">📊 Dashboard</button>
+<button class="nav-btn" onclick="showTab('pauta',this)">🎯 Pauta Completa</button>
+<button class="nav-btn" id="btn-conflitos" onclick="showTab('conflitos',this)">⚠️ Conflitos <span id="conflict-badge" style="background:#c0392b;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;margin-left:4px">…</span></button>
+<button class="nav-btn" id="btn-comarcas" onclick="showTab('comarcas',this)">🗺️ Comarcas</button>
+<button class="nav-btn" id="btn-responsavel" onclick="showTab('responsavel',this)">👤 Responsáveis</button>
+<button class="nav-btn" id="btn-pos" onclick="showTab('pos',this)">📝 Pós-Audiência</button>
+<button class="nav-btn" id="btn-pericia" onclick="showTab('pericia',this)">🔬 Pós-Perícia</button>
+<button class="nav-btn" id="btn-auditoria" onclick="showTab('auditoria',this)" style="display:none">📋 Auditoria</button>
+<button class="nav-btn" id="admin-nav" onclick="showTab('admin',this)" style="display:none">⚙️ Admin</button>
+<button class="nav-btn" id="historico-nav" onclick="showTab('historico',this)" style="display:none">📚 Histórico</button>
+<button class="nav-btn" id="cliente-nav" onclick="showTab('cliente',this)">🏢 Banco Cliente</button>
+</div>
+<!-- BOTTOM NAV (mobile app style) -->
+<div class="bottom-nav" id="bottom-nav">
+<button class="bottom-nav-btn active" data-tab="dashboard" onclick="showTab('dashboard',this)">
+<span class="bn-icon">📊</span>Dashboard
+    </button>
+<button class="bottom-nav-btn" data-tab="pauta" onclick="showTab('pauta',this)">
+<span class="bn-icon">🎯</span>Pauta
+    </button>
+<button class="bottom-nav-btn" data-tab="conflitos" onclick="showTab('conflitos',this)">
+<span class="bn-icon">⚠️</span>Conflitos
+    </button>
+<button class="bottom-nav-btn" data-tab="pos" onclick="showTab('pos',this)">
+<span class="bn-icon">📝</span>Pós-Aud.
+    </button>
+<button class="bottom-nav-btn" id="bn-mais" onclick="toggleMobileMenu()">
+<span class="bn-icon">☰</span>Mais
+    </button>
+</div>
+<!-- MOBILE EXTRA MENU (drawer) -->
+<div id="mobile-menu-overlay" onclick="closeMobileMenu()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;"></div>
+<div id="mobile-menu-drawer" style="display:none;position:fixed;bottom:62px;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);z-index:301;padding:8px 0;border-radius:16px 16px 0 0;">
+<div style="width:40px;height:4px;background:var(--border2);border-radius:2px;margin:8px auto 12px;"></div>
+<button onclick="closeMobileMenu();showTab('comarcas',document.querySelector('.nav-btn'))" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
+<span style="font-size:20px">🗺️</span> Comarcas
+    </button>
+<button onclick="closeMobileMenu();showTab('responsavel',document.querySelector('.nav-btn'))" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
+<span style="font-size:20px">👤</span> Responsáveis
+    </button>
+<button onclick="closeMobileMenu();showTab('pericia',document.querySelector('.nav-btn'))" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
+<span style="font-size:20px">🔬</span> Pós-Perícia
+    </button>
+<button id="mn-auditoria" onclick="closeMobileMenu();showTab('auditoria',document.querySelector('.nav-btn'))" style="display:none;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
+<span style="font-size:20px">📋</span> Auditoria
+    </button>
+<button id="mn-admin" onclick="closeMobileMenu();showTab('admin',document.querySelector('.nav-btn'))" style="display:none;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
+<span style="font-size:20px">⚙️</span> Admin
+    </button>
+<button id="mn-historico" onclick="closeMobileMenu();showTab('historico',document.querySelector('.nav-btn'))" style="display:none;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
+<span style="font-size:20px">📚</span> Histórico
+    </button>
+<button onclick="closeMobileMenu();showChangePasswordModal()" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--cyan);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
+<span style="font-size:20px">🔐</span> Alterar Senha
+    </button>
+<button onclick="closeMobileMenu();logout()" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:#E57373;font-family:var(--font);font-size:14px;cursor:pointer;">
+<span style="font-size:20px">🚪</span> Sair
+    </button>
+</div>
+<div class="main">
+<!-- DASHBOARD -->
+<div id="tab-dashboard">
+<!-- KPIs + última atualização -->
+<div class="dash-header-row">
+<div class="kpi-row">
+<div class="kpi-card kpi-total" onclick="showTab('pauta',document.querySelectorAll('.nav-btn')[1]);_filterStatus='';document.getElementById('filter-grupo').value='';updateClearBtn();renderTable();" style="cursor:pointer" title="Ver todas as audiências">
+<div class="kpi-icon">📋</div>
+<div class="kpi-body">
+<div class="kpi-val" id="stat-total">—</div>
+<div class="kpi-label">Total de Audiências</div>
+</div>
+</div>
+<div class="kpi-card kpi-green" onclick="showTab('pauta',document.querySelectorAll('.nav-btn')[1]);_filterStatus='designado';document.getElementById('filter-grupo').value='';updateClearBtn();renderTable();" style="cursor:pointer" title="Ver audiências com advogado designado">
+<div class="kpi-icon">✅</div>
+<div class="kpi-body">
+<div class="kpi-val" id="stat-designado">—</div>
+<div class="kpi-label">Com Adv. Designado</div>
+</div>
+</div>
+<div class="kpi-card kpi-red" onclick="showTab('pauta',document.querySelectorAll('.nav-btn')[1]);_filterStatus='indicar';document.getElementById('filter-grupo').value='';updateClearBtn();renderTable();" style="cursor:pointer" title="Ver todas pendentes de indicação">
+<div class="kpi-icon">⚠️</div>
+<div class="kpi-body">
+<div class="kpi-val" id="stat-indicar">—</div>
+<div class="kpi-label">A Indicar Advogado</div>
+</div>
+</div>
+<div class="kpi-card kpi-orange" onclick="showTab('pauta',document.querySelectorAll('.nav-btn')[1]);_filterStatus='';document.getElementById('filter-grupo').value='';updateClearBtn();renderTable();" style="cursor:pointer" title="Ver pauta completa por dia">
+<div class="kpi-icon">🗓️</div>
+<div class="kpi-body">
+<div class="kpi-val" id="stat-dias"></div>
+<div class="kpi-label">Dias na Pauta</div>
+</div>
+</div>
+<div class="kpi-card kpi-purple" onclick="showTab('comarcas',document.querySelectorAll('.nav-btn')[3]);" style="cursor:pointer" title="Ver mapa de comarcas">
+<div class="kpi-icon">📍</div>
+<div class="kpi-body">
+<div class="kpi-val" id="stat-estados">—</div>
+<div class="kpi-label">Comarcas</div>
+</div>
+</div>
+</div>
+<div class="update-badge" id="last-update-badge"></div>
+</div>
+<!-- ROW 1: Donut + Tipos -->
+<div class="dash-row-2col">
+<div class="dash-card">
+<div class="dash-card-title">Distribuição por Grupo</div>
+<div class="donut-wrap">
+<div class="donut-svg-wrap">
+<svg height="190" id="donut-svg" viewbox="0 0 200 200" width="190"></svg>
+</div>
+<div class="donut-legend" id="donut-legend"></div>
+</div>
+</div>
+<div class="dash-card">
+<div class="dash-card-title">Por Tipo de Audiência</div>
+<div class="h-bars" id="tipo-bars"></div>
+</div>
+</div>
+<!-- ROW 2: por data + por advogado (compacto) -->
+<div class="dash-row-2col" style="margin-bottom:16px;">
+<div class="dash-card">
+<div class="dash-card-title">Audiências por Data</div>
+<div class="date-chart-wrap" id="date-chart"></div>
+</div>
+<div class="dash-card">
+<div class="dash-card-title">Por Advogado — Audiências Designadas</div>
+<div class="h-bars" id="adv-chart" style="max-height:320px;overflow-y:auto;"></div>
+</div>
+</div>
+<!-- ROW 3: Por Comarca (full width, destaque) -->
+<div class="dash-card" style="margin-bottom:20px;">
+<div class="dash-card-title">Por Comarca</div>
+<div id="estado-bars" style="display:grid;grid-template-columns:1fr 1fr;gap:10px 32px;align-items:start;"></div>
+</div>
+<!-- Grupos -->
+<div class="section-title">Grupos — clique para detalhar</div>
+<div class="grupos-overview" id="grupos-overview"></div>
+<!-- PAINEL DETALHE -->
+<div class="grupo-detail" id="grupo-detail">
+<div class="gd-header">
+<div>
+<div class="gd-title" id="gd-title">Grupo</div>
+<div class="gd-subtitle" id="gd-subtitle"></div>
+</div>
+<div style="display:flex;gap:8px;align-items:center;">
+<button class="gd-ver-pauta-btn" onclick="filterByGrupo(currentGrupoOpen)">📋 Ver pauta</button>
+<button class="gd-close" onclick="closeGrupoDetail()">✕ Fechar</button>
+</div>
+</div>
+<div class="gd-tabs">
+<button class="gd-tab active" onclick="showGdTab('profissionais',this)">👤 Profissionais</button>
+<button class="gd-tab" onclick="showGdTab('localidade',this)">📍 Localidade</button>
+</div>
+<div class="gd-body">
+<div class="gd-panel active" id="gdp-profissionais">
+<div class="prof-grid-inline" id="gd-prof-grid"></div>
+</div>
+<div class="gd-panel" id="gdp-localidade">
+<div id="gd-local-content"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- PAUTA COMPLETA -->
+<div id="tab-pauta" style="display:none">
+<div class="filters">
+<input class="filter-input" id="search-main" placeholder="🔍 Buscar processo, parte, comarca, advogado..." type="text"/>
+<select class="filter-select" id="filter-grupo">
+<option value="">Todos os grupos</option>
+</select>
+<select class="filter-select" id="filter-data">
+<option value="">Todas as datas</option>
+</select>
+<select class="filter-select" id="filter-tipo">
+<option value="">Todos os tipos</option>
+<option value="Audiência">Audiências</option>
+<option value="Julgamento">Julgamentos</option>
+<option value="Perícia">Perícias</option>
+</select>
+<select class="filter-select" id="filter-prof">
+<option value="">Todos os profissionais</option>
+</select>
+<button class="filter-clear-btn" id="filter-clear-btn" onclick="clearFilters()" style="display:none">✕ Limpar filtros</button>
+<span class="filter-count" id="filter-count"></span>
+<button class="export-btn" onclick="exportarExcel()" title="Exportar pauta filtrada para Excel (.xlsx)">📥 Excel (.xlsx)</button>
+</div>
+<div class="table-wrap">
+<table id="main-table">
+<thead>
+<tr>
+<th>Data</th><th>Hora</th><th>Grupo</th><th>Processo</th>
+<th>Parte Principal</th><th>Parte Contrária</th><th>Comarca</th><th>Vara/Turma</th><th>Tipo</th><th>Fase</th>
+<th>Adv. Audiência <span class="edit-badge" id="edit-badge" style="display:none">✏️ editável</span></th><th>Adv. Preparo</th>
+<th>Link/Obs.</th><th class="col-hide-mobile">📧 Convite</th>
+</tr>
+</thead>
+<tbody id="main-tbody"></tbody>
+</table>
+</div>
+</div>
+<!-- ADMIN -->
+<div class="tab-content" id="tab-conflitos" style="display:none;padding:20px 24px">
+<h2 style="color:#e74c3c;margin-bottom:6px;font-size:16px;font-weight:700">⚠️ Conflitos de Comarca</h2>
+<p style="color:var(--muted);font-size:12px;margin-bottom:18px">Mesmo advogado responsável · mesmo dia · comarcas diferentes · intervalo inferior a 2h.</p>
+<div id="conflict-list"></div>
+</div>
+<div class="tab-content" id="tab-comarcas" style="display:none;padding:20px 24px">
+<h2 style="color:var(--cyan);margin-bottom:4px;font-size:16px;font-weight:700">🗺️ Dashboard por Comarca &amp; Vara</h2>
+<p style="color:var(--muted);font-size:12px;margin-bottom:20px">Distribuição por dia, comarca e profissional responsável</p>
+<!-- KPIs -->
+<div id="comarca-kpis" style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap"></div>
+<!-- Filter bar — selects + search -->
+<div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
+<select id="comarca-filter-dia" onchange="renderComarcas()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 12px;font-size:12px;font-family:inherit">
+<option value="">Todos os dias</option>
+</select>
+<select id="comarca-filter-comarca" onchange="renderComarcas()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 12px;font-size:12px;font-family:inherit">
+<option value="">Todas as comarcas</option>
+</select>
+<select id="comarca-filter-grupo" onchange="renderComarcas()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 12px;font-size:12px;font-family:inherit">
+<option value="">Todos os grupos</option>
+</select>
+<select id="comarca-filter-tipo" onchange="renderComarcas()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 12px;font-size:12px;font-family:inherit">
+<option value="">Todos os tipos</option>
+<option value="Sessão TST">Sessão TST</option>
+<option value="Sessão TRT/TJ">Sessão TRT/TJ</option>
+<option value="Julgamento Vara">Julgamento Vara</option>
+<option value="Instrução">Instrução</option>
+<option value="Inicial">Inicial</option>
+<option value="Una">Una</option>
+<option value="Conciliação">Conciliação</option>
+<option value="Perícia">Perícia</option>
+</select>
+<input id="comarca-search" oninput="renderComarcas()" placeholder="🔍 Buscar advogado..." style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 12px;font-size:12px;font-family:inherit;flex:1;min-width:180px"/>
+<button onclick="clearComarcaFilters()" style="padding:6px 14px;background:rgba(255,255,255,.06);border:1px solid var(--border2);color:var(--muted);border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit">✕ Limpar</button>
+<span id="comarca-count" style="font-size:11px;color:var(--muted);font-style:italic;white-space:nowrap"></span>
+</div>
+<!-- Cards grid -->
+<div id="comarca-days-grid"></div>
+</div>
 <!-- RESPONSÁVEIS TAB -->
-<div id="tab-responsavel" class="tab-content" style="display:none;padding:20px 24px">
-  <h2 style="color:var(--cyan);margin-bottom:4px;font-size:16px;font-weight:700">👤 Dashboard por Responsável</h2>
-  <p style="color:var(--muted);font-size:12px;margin-bottom:20px">Visão consolidada de quem prepara e orienta cada audiência — advogado responsável pelo preparo e orientação do advogado que vai realizar.</p>
-
-  <!-- Filters -->
-  <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
-    <select id="resp-filter-dia" onchange="renderResponsavel()"
-      style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 12px;font-size:12px;font-family:inherit">
-      <option value="">Todos os dias</option>
-    </select>
-    <select id="resp-filter-grupo" onchange="renderResponsavel()"
-      style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 12px;font-size:12px;font-family:inherit">
-      <option value="">Todos os grupos</option>
-    </select>
-    <select id="resp-filter-tipo" onchange="renderResponsavel()"
-      style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 12px;font-size:12px;font-family:inherit">
-      <option value="">Todos os tipos</option>
-      <option value="Audiência">Audiências</option>
-      <option value="Julgamento">Julgamentos</option>
-      <option value="Perícia">Perícias</option>
-    </select>
-    <input id="resp-search" oninput="renderResponsavel()" placeholder="🔍 Buscar responsável ou processo..."
-      style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 12px;font-size:12px;font-family:inherit;flex:1;min-width:180px">
-    <button onclick="clearRespFilters()" style="padding:6px 14px;background:rgba(255,255,255,.06);border:1px solid var(--border2);color:var(--muted);border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit">✕ Limpar</button>
-    <span id="resp-count" style="font-size:11px;color:var(--muted);font-style:italic;white-space:nowrap"></span>
-  </div>
-
-  <!-- KPIs globais -->
-  <div id="resp-kpis" style="display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap"></div>
-
-  <!-- Cards por responsável -->
-  <div id="resp-cards-grid"></div>
+<div class="tab-content" id="tab-responsavel" style="display:none;padding:20px 24px">
+<h2 style="color:var(--cyan);margin-bottom:4px;font-size:16px;font-weight:700">👤 Dashboard por Responsável</h2>
+<p style="color:var(--muted);font-size:12px;margin-bottom:20px">Visão consolidada de quem prepara e orienta cada audiência — advogado responsável pelo preparo e orientação do advogado que vai realizar.</p>
+<!-- Filters -->
+<div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center">
+<select id="resp-filter-dia" onchange="renderResponsavel()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 12px;font-size:12px;font-family:inherit">
+<option value="">Todos os dias</option>
+</select>
+<select id="resp-filter-grupo" onchange="renderResponsavel()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 12px;font-size:12px;font-family:inherit">
+<option value="">Todos os grupos</option>
+</select>
+<select id="resp-filter-tipo" onchange="renderResponsavel()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 12px;font-size:12px;font-family:inherit">
+<option value="">Todos os tipos</option>
+<option value="Audiência">Audiências</option>
+<option value="Julgamento">Julgamentos</option>
+<option value="Perícia">Perícias</option>
+</select>
+<input id="resp-search" oninput="renderResponsavel()" placeholder="🔍 Buscar responsável ou processo..." style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 12px;font-size:12px;font-family:inherit;flex:1;min-width:180px"/>
+<button onclick="clearRespFilters()" style="padding:6px 14px;background:rgba(255,255,255,.06);border:1px solid var(--border2);color:var(--muted);border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit">✕ Limpar</button>
+<span id="resp-count" style="font-size:11px;color:var(--muted);font-style:italic;white-space:nowrap"></span>
 </div>
-
+<!-- KPIs globais -->
+<div id="resp-kpis" style="display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap"></div>
+<!-- Cards por responsável -->
+<div id="resp-cards-grid"></div>
+</div>
 <!-- AUDITORIA TAB -->
-<div id="tab-auditoria" class="tab-content" style="display:none;padding:20px 24px">
-  <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px">
-    <div>
-      <h2 style="color:var(--cyan);margin-bottom:4px;font-size:16px;font-weight:700">📋 Relatório de Auditoria</h2>
-      <p style="color:var(--muted);font-size:12px">Histórico completo de alterações, logins e ações na pauta — armazenado neste dispositivo.</p>
-    </div>
-    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-      <span id="audit-count" style="font-size:11px;color:var(--muted);font-style:italic"></span>
-      <button onclick="exportAuditLog()" style="display:inline-flex;align-items:center;gap:6px;background:var(--green);color:#fff;border:none;border-radius:var(--radius);padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">📥 Exportar CSV</button>
-      <button onclick="if(confirm('Limpar todo o log de auditoria?')){localStorage.removeItem('pauta_audit_log_v1');renderAuditLog();showToast('🗑 Log limpo.');}" style="display:inline-flex;align-items:center;gap:6px;background:var(--red-lt);border:1px solid rgba(192,57,43,.3);color:#E57373;border-radius:var(--radius);padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">🗑 Limpar</button>
-    </div>
-  </div>
-
-  <div style="margin-bottom:16px">
-    <input id="audit-search" oninput="renderAuditLog()" placeholder="🔍 Filtrar por usuário, ação ou detalhe..."
-      style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:8px 14px;font-size:13px;font-family:var(--font);width:100%;max-width:500px;outline:none">
-  </div>
-
-  <div style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);overflow:hidden">
-    <table style="width:100%;border-collapse:collapse;font-size:12px">
-      <thead>
-        <tr style="background:var(--surface2)">
-          <th style="text-align:left;padding:10px 14px;color:var(--muted);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;border-bottom:1px solid var(--border2)">Data/Hora</th>
-          <th style="text-align:left;padding:10px 14px;color:var(--muted);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border2)">Usuário</th>
-          <th style="text-align:left;padding:10px 14px;color:var(--muted);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border2)">Ação</th>
-          <th style="text-align:left;padding:10px 14px;color:var(--muted);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border2)">Detalhes</th>
-        </tr>
-      </thead>
-      <tbody id="audit-tbody">
-        <tr><td colspan="4" style="text-align:center;color:var(--muted);padding:40px">Nenhuma alteração registrada ainda.</td></tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div style="margin-top:14px;padding:12px 16px;background:var(--surface2);border-radius:var(--radius);border:1px solid var(--border2)">
-    <div style="font-size:10px;color:var(--muted);line-height:1.6">
+<div class="tab-content" id="tab-auditoria" style="display:none;padding:20px 24px">
+<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:20px">
+<div>
+<h2 style="color:var(--cyan);margin-bottom:4px;font-size:16px;font-weight:700">📋 Relatório de Auditoria</h2>
+<p style="color:var(--muted);font-size:12px">Histórico completo de alterações, logins e ações na pauta — armazenado neste dispositivo.</p>
+</div>
+<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+<span id="audit-count" style="font-size:11px;color:var(--muted);font-style:italic"></span>
+<button onclick="exportAuditLog()" style="display:inline-flex;align-items:center;gap:6px;background:var(--green);color:#fff;border:none;border-radius:var(--radius);padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">📥 Exportar CSV</button>
+<button onclick="if(confirm('Limpar todo o log de auditoria?')){localStorage.removeItem('pauta_audit_log_v1');renderAuditLog();showToast('🗑 Log limpo.');}" style="display:inline-flex;align-items:center;gap:6px;background:var(--red-lt);border:1px solid rgba(192,57,43,.3);color:#E57373;border-radius:var(--radius);padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">🗑 Limpar</button>
+</div>
+</div>
+<div style="margin-bottom:16px">
+<input id="audit-search" oninput="renderAuditLog()" placeholder="🔍 Filtrar por usuário, ação ou detalhe..." style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:8px 14px;font-size:13px;font-family:var(--font);width:100%;max-width:500px;outline:none"/>
+</div>
+<div style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);overflow:hidden">
+<table style="width:100%;border-collapse:collapse;font-size:12px">
+<thead>
+<tr style="background:var(--surface2)">
+<th style="text-align:left;padding:10px 14px;color:var(--muted);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;border-bottom:1px solid var(--border2)">Data/Hora</th>
+<th style="text-align:left;padding:10px 14px;color:var(--muted);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border2)">Usuário</th>
+<th style="text-align:left;padding:10px 14px;color:var(--muted);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border2)">Ação</th>
+<th style="text-align:left;padding:10px 14px;color:var(--muted);font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border2)">Detalhes</th>
+</tr>
+</thead>
+<tbody id="audit-tbody">
+<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:40px">Nenhuma alteração registrada ainda.</td></tr>
+</tbody>
+</table>
+</div>
+<div style="margin-top:14px;padding:12px 16px;background:var(--surface2);border-radius:var(--radius);border:1px solid var(--border2)">
+<div style="font-size:10px;color:var(--muted);line-height:1.6">
       ℹ️ <strong style="color:var(--text)">Sobre o log de auditoria:</strong> O log é armazenado localmente neste navegador/dispositivo. Para rastreamento centralizado entre dispositivos, exporte o CSV regularmente. Logins, edições de pauta, pós-audiências salvas e alterações de senha são registrados automaticamente.
     </div>
-  </div>
 </div>
-
+</div>
 <!-- PÓS-AUDIÊNCIA TAB -->
 <div id="tab-pos" style="display:none">
-  <!-- Summary KPIs -->
-  <div class="pos-summary-grid" id="pos-summary-grid">
-    <div class="pos-summary-card"><div class="pos-summary-val" id="pos-kpi-total">0</div><div class="pos-summary-label">Audiências Registradas</div></div>
-    <div class="pos-summary-card"><div class="pos-summary-val" id="pos-kpi-acordo" style="color:var(--green)">0</div><div class="pos-summary-label">Com Acordo</div></div>
-    <div class="pos-summary-card"><div class="pos-summary-val" id="pos-kpi-prazo" style="color:var(--orange)">0</div><div class="pos-summary-label">Com Prazo em Ata</div></div>
+<div class="pos-diretoria-wrap">
+  <div class="pos-diretoria-card">
+    <div class="pos-diretoria-title">📊 Controle Executivo do Pós-Audiência</div>
+    <div class="pos-kpi-diretoria-grid">
+      <div class="pos-kpi-dir"><div class="num" id="pos-dir-total">0</div><div class="label">Elegíveis até D+1</div></div>
+      <div class="pos-kpi-dir ok"><div class="num" id="pos-dir-concluido">0</div><div class="label">Concluídos</div></div>
+      <div class="pos-kpi-dir alerta"><div class="num" id="pos-dir-pendente">0</div><div class="label">Pendentes</div></div>
+      <div class="pos-kpi-dir warn"><div class="num" id="pos-dir-percentual">0%</div><div class="label">Aderência</div></div>
+    </div>
+    <div class="pos-progress"><div class="pos-progress-fill" id="pos-dir-progress" style="width:0%"></div></div>
   </div>
-
-  <!-- Filters + Export -->
-  <div class="pos-filters">
-    <select id="pos-filter-dia" class="filter-select" onchange="renderPos()" style="min-width:120px">
-      <option value="">Todos os dias</option>
-    </select>
-    <select id="pos-filter-grupo" class="filter-select" onchange="renderPos()" style="min-width:130px">
-      <option value="">Todos os grupos</option>
-    </select>
-    <select id="pos-filter-status" class="filter-select" onchange="renderPos()" style="min-width:130px">
-      <option value="">Todos</option>
-      <option value="done">✅ Preenchido</option>
-      <option value="pending">⏳ Pendente</option>
-    </select>
-    <input id="pos-search" class="filter-input" oninput="renderPos()" placeholder="🔍 Buscar processo, parte..." style="flex:1;min-width:200px">
-    <span id="pos-count" class="filter-count"></span>
-    <button onclick="exportarPosExcel()" class="pos-export-btn">📊 Exportar Excel</button>
-  </div>
-
-  <!-- List -->
-  <div id="pos-list">
-    <div class="pos-empty"><div class="pe-icon">📝</div><div class="pe-text">Carregando audiências...</div></div>
+  <div class="pos-diretoria-card">
+    <div class="pos-diretoria-title">🚨 Pendências por responsável</div>
+    <div class="pos-ranking-list" id="pos-dir-ranking"><div class="pos-empty-mini">Sem pendências no período.</div></div>
   </div>
 </div>
-
+<!-- Summary KPIs -->
+<div class="pos-summary-grid" id="pos-summary-grid">
+<div class="pos-summary-card"><div class="pos-summary-val" id="pos-kpi-total">0</div><div class="pos-summary-label">Audiências Registradas</div></div>
+<div class="pos-summary-card"><div class="pos-summary-val" id="pos-kpi-acordo" style="color:var(--green)">0</div><div class="pos-summary-label">Com Acordo</div></div>
+<div class="pos-summary-card"><div class="pos-summary-val" id="pos-kpi-prazo" style="color:var(--orange)">0</div><div class="pos-summary-label">Com Prazo em Ata</div></div>
+</div>
+<!-- Filters + Export -->
+<div class="pos-filters">
+<select class="filter-select" id="pos-filter-dia" onchange="renderPos()" style="min-width:120px">
+<option value="">Todos os dias</option>
+</select>
+<select class="filter-select" id="pos-filter-grupo" onchange="renderPos()" style="min-width:130px">
+<option value="">Todos os grupos</option>
+</select>
+<select class="filter-select" id="pos-filter-status" onchange="renderPos()" style="min-width:130px">
+<option value="">Todos</option>
+<option value="done">✅ Preenchido</option>
+<option value="pending">⏳ Pendente</option>
+</select>
+<input class="filter-input" id="pos-search" oninput="renderPos()" placeholder="🔍 Buscar processo, parte..." style="flex:1;min-width:200px"/>
+<span class="filter-count" id="pos-count"></span>
+<button class="pos-export-btn" onclick="exportarPosExcel()">📊 Exportar Excel</button>
+</div>
+<!-- List -->
+<div id="pos-list">
+<div class="pos-empty"><div class="pe-icon">📝</div><div class="pe-text">Carregando audiências...</div></div>
+</div>
+</div>
 <!-- PÓS-PERÍCIA TAB -->
 <div id="tab-pericia" style="display:none">
-  <div class="pos-summary-grid" id="pericia-summary-grid">
-    <div class="pos-summary-card"><div class="pos-summary-val" id="pericia-kpi-total">0</div><div class="pos-summary-label">Perícias Registradas</div></div>
-    <div class="pos-summary-card"><div class="pos-summary-val" id="pericia-kpi-medica" style="color:#9B59B6">0</div><div class="pos-summary-label">Ergonômicas</div></div>
-    <div class="pos-summary-card"><div class="pos-summary-val" id="pericia-kpi-tecnica" style="color:var(--orange)">0</div><div class="pos-summary-label">Técnicas</div></div>
-    <div class="pos-summary-card"><div class="pos-summary-val" id="pericia-kpi-pendente" style="color:var(--red)">0</div><div class="pos-summary-label">Pendentes</div></div>
+<div class="pos-diretoria-wrap">
+  <div class="pos-diretoria-card">
+    <div class="pos-diretoria-title">🔬 Controle Executivo do Pós-Perícia</div>
+    <div class="pos-kpi-diretoria-grid">
+      <div class="pos-kpi-dir"><div class="num" id="per-dir-total">0</div><div class="label">Elegíveis até D+1</div></div>
+      <div class="pos-kpi-dir ok"><div class="num" id="per-dir-concluido">0</div><div class="label">Concluídos</div></div>
+      <div class="pos-kpi-dir alerta"><div class="num" id="per-dir-pendente">0</div><div class="label">Pendentes</div></div>
+      <div class="pos-kpi-dir warn"><div class="num" id="per-dir-percentual">0%</div><div class="label">Aderência</div></div>
+    </div>
+    <div class="pos-progress"><div class="pos-progress-fill" id="per-dir-progress" style="width:0%"></div></div>
   </div>
-  <div class="pos-filters">
-    <select id="pericia-filter-dia" class="filter-select" onchange="renderPericia()" style="min-width:120px"><option value="">Todos os dias</option></select>
-    <select id="pericia-filter-grupo" class="filter-select" onchange="renderPericia()" style="min-width:130px"><option value="">Todos os grupos</option></select>
-    <select id="pericia-filter-status" class="filter-select" onchange="renderPericia()" style="min-width:130px">
-      <option value="">Todos</option><option value="done">✅ Preenchido</option><option value="pending">⏳ Pendente</option>
-    </select>
-    <input id="pericia-search" class="filter-input" oninput="renderPericia()" placeholder="🔍 Buscar processo, parte ou perito..." style="flex:1;min-width:200px">
-    <span id="pericia-count" class="filter-count"></span>
-    <button onclick="exportarPericiaExcel()" class="pos-export-btn">📊 Exportar Excel</button>
-  </div>
-  <div id="pericia-list">
-    <div class="pos-empty"><div class="pe-icon">🔬</div><div class="pe-text">Carregando perícias...</div></div>
+  <div class="pos-diretoria-card">
+    <div class="pos-diretoria-title">🚨 Pendências por responsável</div>
+    <div class="pos-ranking-list" id="per-dir-ranking"><div class="pos-empty-mini">Sem pendências no período.</div></div>
   </div>
 </div>
-
+<div class="pos-summary-grid" id="pericia-summary-grid">
+<div class="pos-summary-card"><div class="pos-summary-val" id="pericia-kpi-total">0</div><div class="pos-summary-label">Perícias Registradas</div></div>
+<div class="pos-summary-card"><div class="pos-summary-val" id="pericia-kpi-medica" style="color:#9B59B6">0</div><div class="pos-summary-label">Ergonômicas</div></div>
+<div class="pos-summary-card"><div class="pos-summary-val" id="pericia-kpi-tecnica" style="color:var(--orange)">0</div><div class="pos-summary-label">Técnicas</div></div>
+<div class="pos-summary-card"><div class="pos-summary-val" id="pericia-kpi-pendente" style="color:var(--red)">0</div><div class="pos-summary-label">Pendentes</div></div>
+</div>
+<div class="pos-filters">
+<select class="filter-select" id="pericia-filter-dia" onchange="renderPericia()" style="min-width:120px"><option value="">Todos os dias</option></select>
+<select class="filter-select" id="pericia-filter-grupo" onchange="renderPericia()" style="min-width:130px"><option value="">Todos os grupos</option></select>
+<select class="filter-select" id="pericia-filter-status" onchange="renderPericia()" style="min-width:130px">
+<option value="">Todos</option><option value="done">✅ Preenchido</option><option value="pending">⏳ Pendente</option>
+</select>
+<input class="filter-input" id="pericia-search" oninput="renderPericia()" placeholder="🔍 Buscar processo, parte ou perito..." style="flex:1;min-width:200px"/>
+<span class="filter-count" id="pericia-count"></span>
+<button class="pos-export-btn" onclick="exportarPericiaExcel()">📊 Exportar Excel</button>
+</div>
+<div id="pericia-list">
+<div class="pos-empty"><div class="pe-icon">🔬</div><div class="pe-text">Carregando perícias...</div></div>
+</div>
+</div>
 <div id="tab-admin" style="display:none">
-      <div class="admin-panel">
-        <h3>Gerenciamento de Acessos</h3>
-        <div class="admin-note">Defina usuários, senhas e perfis. Editores podem ter acesso restrito a grupos específicos.</div>
-        <div class="info-box">
-          <strong style="color:var(--text)">👁️ Visualizador</strong> — Acessa dashboard e pauta, sem edição.<br>
-          <strong style="color:var(--text)">✏️ Editor</strong> — Edita designações. Se tiver grupos atribuídos, só edita esses grupos.<br>
-          <strong style="color:var(--text)">⚙️ Admin</strong> — Acesso total, incluindo este painel.
-        </div>
-      </div>
-      <div class="admin-panel">
-        <h3>Usuários Cadastrados</h3>
-        <table class="credentials-table">
-          <thead><tr><th>Usuário</th><th>Sigla</th><th>Perfil</th><th>Grupos</th><th>Senha</th><th>Ação</th></tr></thead>
-          <tbody id="users-tbody"></tbody>
-        </table>
-      </div>
-      <div class="admin-panel">
-        <h3>Adicionar Usuário</h3>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
-          <input class="filter-input" id="new-user" placeholder="Nome do usuário" style="flex:1;min-width:150px">
-          <input class="filter-input" id="new-sigla" placeholder="Sigla (ex: MBF)" style="width:90px;text-transform:uppercase;" maxlength="5">
-          <input class="filter-input" id="new-pass" placeholder="Senha" type="password" style="flex:1;min-width:150px">
-          <select class="filter-select" id="new-role">
-            <option value="visualizador">Visualizador</option>
-            <option value="editor">Editor</option>
-            <option value="admin">Admin</option>
-          </select>
-          <button class="admin-add-btn" onclick="addUser()">+ Adicionar</button>
-        </div>
-        <div style="margin-top:12px;">
-          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Grupos permitidos para edição (somente para Editor — deixe em branco para todos)</div>
-          <div id="grupos-check" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
-        </div>
-        <div class="add-msg" id="add-msg"></div>
-      </div>
-    </div>
-
+<div class="admin-panel">
+<h3>Gerenciamento de Acessos</h3>
+<div class="admin-note">Defina usuários, senhas e perfis. Editores podem ter acesso restrito a grupos específicos.</div>
+</div>
+<div class="admin-panel">
+<h3>Usuários Cadastrados</h3>
+<table class="credentials-table">
+<thead><tr><th>Usuário</th><th>Sigla</th><th>Perfil</th><th>Grupos</th><th>Senha</th><th>Ação</th></tr></thead>
+<tbody id="users-tbody"></tbody>
+</table>
+</div>
+<div class="admin-panel">
+<h3>Adicionar Usuário</h3>
+<div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+<input class="filter-input" id="new-user" placeholder="Nome do usuário" style="flex:1;min-width:150px"/>
+<input class="filter-input" id="new-sigla" maxlength="5" placeholder="Sigla (ex: MBF)" style="width:90px;text-transform:uppercase;"/>
+<input class="filter-input" id="new-pass" placeholder="Senha" style="flex:1;min-width:150px" type="password"/>
+<select class="filter-select" id="new-role">
+<option value="visualizador">Visualizador</option>
+<option value="editor">Editor</option>
+<option value="admin">Admin</option>
+</select>
+<button class="admin-add-btn" onclick="addUser()">+ Adicionar</button>
+</div>
+<div style="margin-top:12px;">
+<div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Grupos permitidos para edição (somente para Editor — deixe em branco para todos)</div>
+<div id="grupos-check" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+</div>
+<div class="add-msg" id="add-msg"></div>
+</div>
+</div>
 <!-- HISTÓRICO ACUMULADO -->
 <div id="tab-historico" style="display:none;padding:20px 24px">
-  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
-    <div>
-      <div style="font-size:16px;font-weight:700;color:var(--white)">📚 Histórico Acumulado de Audiências</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:3px">Registro persistente de todas as pautas — os dados são mantidos mesmo após atualização do sistema.</div>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button onclick="importarPautaHistorico()" style="background:rgba(39,174,96,.15);border:1px solid rgba(39,174,96,.4);color:#4CAF70;border-radius:var(--radius);padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:6px">📥 Absorver Pauta Atual</button>
-      <button onclick="exportarHistoricoCSV()" style="background:rgba(0,174,239,.12);border:1px solid rgba(0,174,239,.3);color:var(--cyan);border-radius:var(--radius);padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:6px">📊 Exportar CSV</button>
-      <button onclick="importarJSONHistorico()" style="background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.35);color:var(--gold);border-radius:var(--radius);padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">📂 Importar JSON</button>
-      <button onclick="exportarJSONHistorico()" style="background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.35);color:var(--gold);border-radius:var(--radius);padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">💾 Backup JSON</button>
-      <button onclick="limparHistorico()" style="background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.3);color:#E57373;border-radius:var(--radius);padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">🗑 Limpar</button>
-    </div>
-  </div>
-
-  <!-- KPIs -->
-  <div id="hist-kpis" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px"></div>
-
-  <!-- Filtros -->
-  <div class="filters" style="margin-bottom:16px">
-    <input class="filter-input" id="hist-search" placeholder="🔍 Buscar processo, parte, comarca…" style="min-width:200px" oninput="renderHistorico()">
-    <select class="filter-select" id="hist-filter-grupo" onchange="renderHistorico()"><option value="">Todos os grupos</option></select>
-    <select class="filter-select" id="hist-filter-tipo" onchange="renderHistorico()">
-      <option value="">Todos os tipos</option>
-      <option value="Audiência">Audiência</option>
-      <option value="Julgamento">Julgamento</option>
-      <option value="Perícia">Perícia</option>
-    </select>
-    <select class="filter-select" id="hist-filter-pauta" onchange="renderHistorico()"><option value="">Todas as pautas</option></select>
-    <span class="filter-count" id="hist-count"></span>
-    <button class="filter-clear-btn" id="hist-clear-btn" style="display:none" onclick="clearHistoricoFilters()">✕ Limpar</button>
-  </div>
-
-  <!-- Tabela -->
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Pauta</th>
-          <th>Data</th>
-          <th>Hora</th>
-          <th>Grupo</th>
-          <th>Processo</th>
-          <th>Parte Principal</th>
-          <th>Tipo</th>
-          <th>Comarca</th>
-          <th>Adv. Audiência</th>
-          <th>Adv. Preparo</th>
-        </tr>
-      </thead>
-      <tbody id="hist-tbody">
-        <tr><td colspan="10" style="text-align:center;color:var(--muted);padding:40px">Nenhuma pauta absorvida ainda. Clique em "Absorver Pauta Atual" para começar.</td></tr>
-      </tbody>
-    </table>
-  </div>
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+<div>
+<div style="font-size:16px;font-weight:700;color:var(--white)">📚 Histórico Acumulado de Audiências</div>
+<div style="font-size:12px;color:var(--muted);margin-top:3px">Registro persistente de todas as pautas — os dados são mantidos mesmo após atualização do sistema.</div>
 </div>
-
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+<button onclick="importarPautaHistorico()" style="background:rgba(39,174,96,.15);border:1px solid rgba(39,174,96,.4);color:#4CAF70;border-radius:var(--radius);padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:6px">📥 Absorver Pauta Atual</button>
+<button onclick="exportarHistoricoCSV()" style="background:rgba(0,174,239,.12);border:1px solid rgba(0,174,239,.3);color:var(--cyan);border-radius:var(--radius);padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:6px">📊 Exportar CSV</button>
+<button onclick="importarJSONHistorico()" style="background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.35);color:var(--gold);border-radius:var(--radius);padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">📂 Importar JSON</button>
+<button onclick="exportarJSONHistorico()" style="background:rgba(212,168,67,.12);border:1px solid rgba(212,168,67,.35);color:var(--gold);border-radius:var(--radius);padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">💾 Backup JSON</button>
+<button onclick="limparHistorico()" style="background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.3);color:#E57373;border-radius:var(--radius);padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">🗑 Limpar</button>
+</div>
+</div>
+<!-- KPIs -->
+<div id="hist-kpis" style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:20px"></div>
+<!-- Filtros -->
+<div class="filters" style="margin-bottom:16px">
+<input class="filter-input" id="hist-search" oninput="renderHistorico()" placeholder="🔍 Buscar processo, parte, comarca…" style="min-width:200px"/>
+<select class="filter-select" id="hist-filter-grupo" onchange="renderHistorico()"><option value="">Todos os grupos</option></select>
+<select class="filter-select" id="hist-filter-tipo" onchange="renderHistorico()">
+<option value="">Todos os tipos</option>
+<option value="Audiência">Audiência</option>
+<option value="Julgamento">Julgamento</option>
+<option value="Perícia">Perícia</option>
+</select>
+<select class="filter-select" id="hist-filter-pauta" onchange="renderHistorico()"><option value="">Todas as pautas</option></select>
+<span class="filter-count" id="hist-count"></span>
+<button class="filter-clear-btn" id="hist-clear-btn" onclick="clearHistoricoFilters()" style="display:none">✕ Limpar</button>
+</div>
+<!-- Tabela -->
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>Pauta</th>
+<th>Data</th>
+<th>Hora</th>
+<th>Grupo</th>
+<th>Processo</th>
+<th>Parte Principal</th>
+<th>Tipo</th>
+<th>Comarca</th>
+<th>Adv. Audiência</th>
+<th>Adv. Preparo</th>
+</tr>
+</thead>
+<tbody id="hist-tbody">
+<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:40px">Nenhuma pauta absorvida ainda. Clique em "Absorver Pauta Atual" para começar.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
 <!-- BANCO CLIENTE -->
 <div id="tab-cliente" style="display:none;padding:20px 24px">
-  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px">
-    <div>
-      <div style="font-size:16px;font-weight:800;color:#003B5C">🏢 Banco de Dados do Cliente</div>
-      <div style="font-size:12px;color:#557487;margin-top:3px">Selecione o cliente e gere a base em formato Excel/CSV para envio externo, mantendo o padrão de colunas da pauta.</div>
-    </div>
-    <span class="cliente-pill" id="cliente-total-pill">0 registros</span>
-  </div>
-  <div class="cliente-layout">
-    <div class="cliente-panel">
-      <div class="cliente-panel-h">Parâmetros de exportação</div>
-      <div class="cliente-panel-b">
-        <label class="cliente-label">Cliente</label>
-        <select class="cliente-select" id="cliente-export-select" onchange="renderClienteBanco()">
-          <option value="">Todos os clientes</option>
-        </select>
-        <div style="height:12px"></div>
-        <label class="cliente-label">Período</label>
-        <select class="cliente-select" id="cliente-export-periodo" onchange="renderClienteBanco()">
-          <option value="pauta">Somente pauta atual</option>
-          <option value="todos">Todos os registros da base</option>
-        </select>
-        <div style="height:12px"></div>
-        <label class="cliente-label">Busca complementar</label>
-        <input class="cliente-input" id="cliente-export-search" placeholder="Processo, parte, comarca..." oninput="renderClienteBanco()">
-        <div class="cliente-actions">
-          <button class="cliente-primary" onclick="exportarBancoClienteExcel()">📥 Gerar Excel no Modelo</button>
-          <button class="cliente-secondary" onclick="limparBancoCliente()">Limpar</button>
-        </div>
-        <div class="cliente-hint">O arquivo é gerado em Excel (.xls, compatível com Microsoft Excel). Para Embraer, Ferrero, Bimbo e Bridgestone, o sistema exporta somente as audiências do cliente, no layout específico, com o período da extração da pauta.</div>
-      </div>
-    </div>
-    <div>
-      <div class="cliente-kpis" id="cliente-kpis"></div>
-      <div class="cliente-no-preview">📌 Prévia desativada para manter o arquivo leve. Selecione o cliente e clique em <strong>Gerar Excel</strong>; a exportação incluirá todos os registros filtrados.</div>
-      <div class="cliente-table-wrap">
-        <table class="cliente-table">
-          <thead><tr>
-            <th>Data</th><th>Hora</th><th>Tipo</th><th>Processo</th><th>Reclamante / Parte Contrária</th><th>Cliente</th><th>Comarca/UF</th><th>Vara/Turma</th><th>Adv. Audiência</th><th>Observações/Link</th>
-          </tr></thead>
-          <tbody id="cliente-banco-body"><tr><td colspan="10" style="text-align:center;padding:34px;color:#557487!important">Selecione um cliente para visualizar.</td></tr></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+<div>
+<div style="font-size:16px;font-weight:800;color:#003B5C">🏢 Banco de Dados do Cliente</div>
+<div style="font-size:12px;color:#557487;margin-top:3px">Selecione o cliente e gere a base em formato Excel/CSV para envio externo, mantendo o padrão de colunas da pauta.</div>
 </div>
-
-
-  </div>
+<span class="cliente-pill" id="cliente-total-pill">0 registros</span>
 </div>
-
+<div class="cliente-layout">
+<div class="cliente-panel">
+<div class="cliente-panel-h">Parâmetros de exportação</div>
+<div class="cliente-panel-b">
+<label class="cliente-label">Cliente</label>
+<select class="cliente-select" id="cliente-export-select" onchange="renderClienteBanco()">
+<option value="">Todos os clientes</option>
+</select>
+<div style="height:12px"></div>
+<label class="cliente-label">Período</label>
+<select class="cliente-select" id="cliente-export-periodo" onchange="renderClienteBanco()">
+<option value="pauta">Somente pauta atual</option>
+<option value="todos">Todos os registros da base</option>
+</select>
+<div style="height:12px"></div>
+<label class="cliente-label">Busca complementar</label>
+<input class="cliente-input" id="cliente-export-search" oninput="renderClienteBanco()" placeholder="Processo, parte, comarca..."/>
+<div class="cliente-actions">
+<button class="cliente-primary" onclick="exportarBancoClienteExcel()">📥 Gerar Excel no Modelo</button>
+<button class="cliente-secondary" onclick="limparBancoCliente()">Limpar</button>
+</div>
+</div>
+</div>
+<div>
+<div class="cliente-kpis" id="cliente-kpis"></div>
+<div class="cliente-no-preview" style="display:none!important"></div>
+<div class="cliente-table-wrap">
+<table class="cliente-table">
+<thead><tr>
+<th>Data</th><th>Hora</th><th>Tipo</th><th>Processo</th><th>Reclamante / Parte Contrária</th><th>Cliente</th><th>Comarca/UF</th><th>Vara/Turma</th><th>Adv. Audiência</th><th>Observações/Link</th>
+</tr></thead>
+<tbody id="cliente-banco-body"><tr><td colspan="10" style="text-align:center;padding:34px;color:#557487!important">Selecione um cliente para visualizar.</td></tr></tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
 <!-- MODAL -->
 <div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
-  <div class="modal">
-    <div class="modal-header">
-      <div>
-        <div class="modal-title" id="modal-title"></div>
-        <div class="modal-grupo" id="modal-grupo"></div>
-      </div>
-      <button class="modal-close" onclick="closeModal()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="modal-grid" id="modal-body"></div>
-    </div>
-  </div>
+<div class="modal">
+<div class="modal-header">
+<div>
+<div class="modal-title" id="modal-title"></div>
+<div class="modal-grupo" id="modal-grupo"></div>
 </div>
-
+<button class="modal-close" onclick="closeModal()">✕</button>
+</div>
+<div class="modal-body">
+<div class="modal-grid" id="modal-body"></div>
+</div>
+</div>
+</div>
 <script>
 
 const PROF = {"AAB": {"nome": "Angelo Antonio Cabral", "email": "angelo.cabral@peixotoecury.com.br"}, "AAO": {"nome": "Aline Amorim Oliveira", "email": "aline.oliveira@peixotoecury.com.br"}, "AAP": {"nome": "André Alessandro de Paula", "email": "andre.alessandro@peixotoecury.com.br"}, "ABC": {"nome": "Adriana Burghi Carvalho da Silva", "email": "adriana.silva@peixotorcury.com.br"}, "ABD": {"nome": "Ana Paula Pinheiro Brandão Dable", "email": "anapaula.dable@peixotoecury.com.br"}, "ABM": {"nome": "Alice Barbosa Mauricio", "email": "alice.barbosa@peixotoecury.com.br"}, "ABR": {"nome": "Aline Cunha de Oliveira Borges", "email": "aline.borges@peixotoecury.com.br"}, "ACA": {"nome": "Antonio Carlos Aguiar", "email": "antoniocarlos.aguiar@peixotoecury.com.br"}, "ACE": {"nome": "Amanda Cristina Leite Prado", "email": "amanda.prado@peixotoecury.com.br"}, "ACG": {"nome": "Ana Carolina Aguiar", "email": "anacarolina.aguiar@peixotoecury.com.br"}, "ACH": {"nome": "Ana Carolina Honório Martini", "email": "anacarolina.martini@peixotoecury.com.br"}, "ACL": {"nome": "Ana Claudia de Andrade Argenta", "email": "ana.andrade@peixotoecury.com.br"}, "ADR": {"nome": "Adriana Borges de Carvalho", "email": "adriana.carvalho@peixotoecury.com.br"}, "AES": {"nome": "Aline Errerias da Silva", "email": "aline.errerias@peixotoecury.com.br"}, "AFL": {"nome": "Adriana Fadul", "email": "adriana.fadul@peixotoecury.com.br"}, "AFM": {"nome": "Adriana Ferreira Miron Calsado", "email": "adriana.miron@peixotoecury.com.br"}, "AFS": {"nome": "Alberto Ferreira da Silva", "email": "alberto.ferreira@peixotoecury.com.br"}, "AGA": {"nome": "Aline Gonçalves de Almeida", "email": "aline.almeida@peixotoecury.com.br"}, "AGO": {"nome": "Andressa Aguilella de Oliveira", "email": "andressa.aguilella@peixotoecury.com.br"}, "AHA": {"nome": "Arthur Henrique Alves", "email": "arthur.alves@peixotoecury.com.br"}, "AKS": {"nome": "André Kahtalian Muradas Sanchez", "email": "andre.sanchez@peixotoecury.com.br"}, "ALF": {"nome": "Aline Ferreira Miron", "email": "aline.miron@peixotoecury.com.br"}, "ALH": {"nome": "Alícia Marcondes Hamati", "email": "alicia.hamati@peixotoecury.com.br"}, "ALI": {"nome": "Alice Chaves", "email": "alice.chaves@peixotoecury.com.br"}, "ALM": {"nome": "José Alcides Montes Filho", "email": "josealcides.montes@peixotoecury.com.br"}, "ALP": {"nome": "Ana Luisa Porto Borges", "email": "analuisa.borges@peixotoecury.com.br"}, "ALS": {"nome": "Ana Luisa de Carvalho Sanchez", "email": "analuisa.sanchez@peixotoecury.com.br"}, "ALU": {"nome": "Arthur Lungov Bugelli", "email": "arthur.bugelli@peixotoecury.com.br"}, "AME": {"nome": "Ana Cecília Barbosa Mesquita", "email": "anacecilia.mesquita@peixotoecury.com.br"}, "AMF": {"nome": "Ana Maria Ferdinando Pardini", "email": "anamaria.pardini@peixotoecury.com.br"}, "AMH": {"nome": "Adriana Marques Foganholi", "email": "adriana.foganholi@peixotoecury.com.br"}, "AML": {"nome": "Amanda Mesquita de Lima Araujo", "email": "amanda.araujo@peixotoecury.com.br"}, "AMO": {"nome": "Alexandra Maffra Monteiro", "email": "alexandra.monteiro@peixotoecury.com.br"}, "ANB": {"nome": "Anna Carolina Balbino Gatti Baani", "email": "annacarolina.baani@peixotoecury.com.br"}, "ANC": {"nome": "Ana Luiza Silva Cipriano", "email": "analuiza.cipriano@peixotoecury.com.br"}, "ANL": {"nome": "Andreza Nunes Lima", "email": "andreza.lima@peixotoecury.com.br"}, "AOS": {"nome": "Amanda Larissa de Oliveira Silva", "email": "amandalarissa.silva@peixotoecury.com.br"}, "APC": {"nome": "Antonia Aparecida Pinheiro Cavali", "email": "sectrab@peixotoecury.com.br"}, "APD": {"nome": "Ana Paula Zeferino de Andrade", "email": "anapaula.andrade@peixotoecury.com.br"}, "APF": {"nome": "Angela Pedreira de Freitas Joaquim de Carvalho", "email": "angela.pedreira@peixotoecury.com.br"}, "API": {"nome": "Adan Vinicius Ferreira de Pinho", "email": "adanvinicius.pinho@peixotoecury.com.br"}, "APN": {"nome": "Álvaro Porfirio do Nascimento Neto", "email": "estagiario.societario@peixotoecury.com.br"}, "ARB": {"nome": "Alini Ribeiro Borges", "email": "estagiario.propriedades@peixotoecury.com.br"}, "ARC": {"nome": "Arthur Rodrigues Rios Toledo de Castro", "email": "arthur.castro@peixotoecury.com.br"}, "ARE": {"nome": "Amanda Pereira Reis de Paula Cardoso", "email": "amanda.cardoso@peixotoecury.com.br"}, "ARS": {"nome": "Alexandra Rosman Scaramel", "email": "alexandra.scaramel@peixotoecury.com.br"}, "ASI": {"nome": "Ana Clara Silveira Amazonas", "email": "anaclara.amazonas@peixotoecury.com.br"}, "ASR": {"nome": "Andréa Souza dos Reis", "email": "andrea.reis@peixotoecury.com.br"}, "ATC": {"nome": "Ana Julia Thomaz Carmona", "email": "anajulia.carmona@peixotoecury.com.br"}, "AVA": {"nome": "Andrea Viviane dos Santos", "email": "andrea.santos@peixotoecury.com.br"}, "AVP": {"nome": "André Villac Polinesio", "email": "andre.polinesio@peixotoecury.com.br"}, "BAF": {"nome": "Beatriz Amorim Franchi", "email": "beatriz.franchi@peixotoecury.com.br"}, "BAN": {"nome": "Beatriz de Arruda Nogueira", "email": "beatriz.nogueira@peixotoecury.com.br"}, "BAO": {"nome": "Beatriz Alves da Silva Onça", "email": "beatriz.onca@peixotoecury.com.br"}, "BAP": {"nome": "Barbara Pugliesi", "email": "barbara.pugliesi@peixotoecury.com.br"}, "BBO": {"nome": "Bianca Bolanhi Camacho", "email": "bianca.camacho@peixotoecury.com.br"}, "BCF": {"nome": "Bruna Cembranelli Fazenda", "email": "bruna.fazenda@peixotoecury.com.br"}, "BCH": {"nome": "Bruno Chang Hwan Ji", "email": "esttra@peixotoecury.com.br"}, "BCO": {"nome": "Beatriz Caires de Oliveira", "email": "beatriz.oliveira@peixotoecury.com.br"}, "BCS": {"nome": "Bruna Caroline Custodio de Souza", "email": "bruna.souza@peixotoecury.com.br"}, "BCV": {"nome": "Bernardo Coelho Rezende Vieira", "email": "bernardo.vieira@peixotoecury.com.br"}, "BEA": {"nome": "Beatriz Augusto Bispo", "email": "beatriz.bispo@peixotoecury.com.br"}, "BFM": {"nome": "Brenna Braga Freitas Malta", "email": "brenna.malta@peixotoecury.com.br"}, "BHF": {"nome": "Beatriz Helena Maguetta Feitosa", "email": "beatriz.feitosa@peixotoecury.com.br"}, "BIM": {"nome": "Bianca Sayuri Matsunaga", "email": "bianca.matsunaga@peixotoecury.com.br"}, "BIT": {"nome": "Beatriz França de Azevedo Bittar", "email": "beatriz.bittar@peixotoecury.com.br"}, "BJS": {"nome": "Bruno Perin Junqueira Simões", "email": "bruno.simoes@peixotoecury.com.br"}, "BLF": {"nome": "Barbara Lima Ferreira", "email": "barbara.ferreira@peixotoecury.com.br"}, "BLU": {"nome": "Beatriz Rodrigues Luna", "email": "beatriz.rodrigues@peixotoecury.com.br"}, "BMB": {"nome": "Beatriz Melo Bresquiliari Florencio", "email": "beatriz.melo@peixotoecury.com.br"}, "BPM": {"nome": "Beatriz Pereira Monteiro Amaral", "email": "beatriz.amaral@peixotoecury.com.br"}, "BPP": {"nome": "Brenda Pinheiro de Oliveira Portella", "email": "brenda.portella@peixotoecury.com.br"}, "BRC": {"nome": "Beatriz Rodrigues Cordeiro", "email": "beatriz.cordeiro@peixotoecury.com.br"}, "BRL": {"nome": "Beatriz Rodrigues Luna", "email": "brl@peixotoecury.com.br"}, "BSM": {"nome": "Bruna da Silva Menezes", "email": "bruna.menezes@peixotoecury.com.br"}, "BSO": {"nome": "Beatriz Santiago de Souza", "email": "beatriz.souza@peixotoecury.com.br"}, "BSS": {"nome": "Brenda da Silva dos Santos", "email": "brenda.santos@peixotoecury.com.br"}, "BTP": {"nome": "Bruno Tiburcio Pagliarini", "email": "esttra@peixotoecury.com.br"}, "BYN": {"nome": "Bruno Minoru Yamamoto Nishimurota", "email": "bruno.nishimurota@peixotoecury.com.br"}, "CAL": {"nome": "Camila Alves Magalhães de Paula", "email": "camila.paula@peixotoecury.com.br"}, "CAR": {"nome": "Chris Carvalho", "email": "chris.carvalho@peixotoecury.com.br"}, "CAU": {"nome": "Camila de Souza Augusto Cruz", "email": "camila.cruz@peixotoecury.com.br"}, "CBA": {"nome": "Camila Barreto Marques", "email": "c_marques@dellteam.com"}, "CBM": {"nome": "Carolina Bruno Martins", "email": "carolina.martins@peixotoecury.com.br"}, "CDS": {"nome": "Carolina Duarte de Souza", "email": "carolina.souza@peixotoecury.com.br"}, "CED": {"nome": "Carlos Eduardo Dantas Costa", "email": "carloseduardo.dantas@peixotoecury.com.br"}, "CFD": {"nome": "Carolina Ferreira Dantas", "email": "carolina.dantas@peixotoecury.com.br"}, "CFS": {"nome": "Caroline Fogaça da Silva Santos", "email": "caroline.santos@peixotoecury.com.br"}, "CGV": {"nome": "Cícera Gabriela Ferreira Vicente", "email": "cicera.vicente@peixotoecury.com.br"}, "CHC": {"nome": "Carolynne Hipolito Dias Carvalho", "email": "carolynne.carvalho@peixotoecury.com.br"}, "CHS": {"nome": "Caio Henrique Freitas Silva", "email": "caiohenrique.silva@peixotoecury.com.br"}, "CLC": {"nome": "Claudia Procópio da Cunha", "email": "claudia.cunha@peixotoecury.com.br"}, "CLF": {"nome": "Carlos Leandro Frade Domingues", "email": "carlos.leandro@peixotoecury.com.br"}, "CLO": {"nome": "Cindy Livramento", "email": "cindy.livramento@peixotoecury.com.br"}, "CMA": {"nome": "Claudia Maria Moraes Guedes de Azevedo", "email": "traducao@peixotoecury.com.br"}, "CML": {"nome": "Camila Capobianco", "email": "camila.capobianco@peixotoecury.com.br"}, "COC": {"nome": "Camila de Oliveira Caires", "email": "camila.caires@peixotoecury.com.br"}, "COO": {"nome": "Claudia Olímpia de Oliveira Ribeiro", "email": "claudia.oliveira@peixotoecury.com.br"}, "CPA": {"nome": "Camilla Mendonça Passos", "email": "camilla.passos@peixotoecury.com.br"}, "CSO": {"nome": "Claudia Soares Garcia", "email": "claudia.soares@peixotoecury.com.br"}, "CSR": {"nome": "Christinne Silva Areco", "email": "christinne.areco@peixotoecury.com.br"}, "CVM": {"nome": "Catia Virginia Monteiro", "email": "catia.monteiro@peixotoecury.com.br"}, "DAC": {"nome": "Diogo Abílio da Costa Boga", "email": "prottrab@peixotoecury.com.br"}, "DBP": {"nome": "Daniel Bein Piccoli", "email": "daniel.piccoli@peixotoecury.com.br"}, "DCM": {"nome": "Douglas Coelho de Mattos", "email": "douglas.coelho@peixotoecury.com.br"}, "DCP": {"nome": "Daniela Camila Pacheco", "email": "daniela.pacheco@peixotoecury.com.br"}, "DCS": {"nome": "Daiane Carvalho de Sousa", "email": "daiane.sousa@peixotoecury.com.br"}, "DFB": {"nome": "Diana Freire de Queiroz Barros", "email": "diana.barros@peixotoecury.com.br"}, "DJE": {"nome": "Diana de Jesus Santos", "email": "diana.santos@peixotoecury.com.br"}, "DKO": {"nome": "Débora Karla Oliveira Costa", "email": "secretaria.societario@peixotoecury.com.br"}, "DPR": {"nome": "Daniela Prandi Pedro Ricca", "email": "daniela.ricca@peixotoecury.com.br"}, "DS": {"nome": "Décio Stamboni", "email": "paralegal@peixotoecury.com.br"}, "DSI": {"nome": "Débora Simão Barosi", "email": "debora.barosi@peixotoecury.com.br"}, "EAP": {"nome": "Evelyn Sa Aragon Pinheiro", "email": "secretaria.societario@peixotoecury.com.br"}, "EBF": {"nome": "Elisa Balthazar Ferrari", "email": "elisa.ferrari@peixotoecury.com.br"}, "ECO": {"nome": "Erik Mota Coppi", "email": "erik.coppi@peixotoecury.com.br"}, "EFS": {"nome": "Enzo Furlan Silva", "email": "enzo.silva@peixotoecury.com.br"}, "EGO": {"nome": "Elenice Gomes Oliveira", "email": "secretaria.trabalhista@peixotoecury.com.br"}, "EHS": {"nome": "Elissa Hiandra de Almeida Silva", "email": "elissa.silva@peixotoecury.com.br"}, "EJS": {"nome": "Evalmir José dos Santos", "email": "rh@peixotoecury.com.br"}, "EKS": {"nome": "Edvandro Oecs de Kerlan Castro da Silva", "email": "edvandro.silva@peixotoecury.com.br"}, "EMM": {"nome": "Ellen Mary Maciel Silva", "email": "ellenmary.silva@peixotoecury.com.br"}, "EOS": {"nome": "Eloá Oliveira dos Santos", "email": "eloa.santos@peixotoecury.com.br"}, "EPC": {"nome": "Emerson Andrey Pedroso Cardoso", "email": "emerson.cardoso@peixotoecury.com.br"}, "EPO": {"nome": "Eliane Pires de Oliveira", "email": "publicacao.trabalhista@peixotoecury.com.br"}, "ERE": {"nome": "Everton Rocha Emidio", "email": "everton.emidio@peixotoecury.com.br"}, "ESG": {"nome": "Erica Silva Oliveira Garrido", "email": "erica.oliveira@peixotoecury.com.br"}, "ESI": {"nome": "Eliana de Souza Silva", "email": "secretaria.civel@peixotoecury.com.br"}, "ETF": {"nome": "Eduardo Toledo Filho", "email": "eduardo.toledo@peixotoecury.com.br"}, "ETL": {"nome": "Eryda Tavares de Lyra", "email": "esttra@peixotoecury.com.br"}, "ETY": {"nome": "Elen Tyffane Cardoso Lopes", "email": "elen.tyffane@peixotoecury.com.br"}, "EVM": {"nome": "Erique Vieira Miguel", "email": "estagiario.tributario@peixotoecury.com.br"}, "EVR": {"nome": "Everton Moreira Seguro", "email": "everton.seguro@peixotoecury.com.br"}, "EVV": {"nome": "Evandro Vecchio Vessoni", "email": "evandro.vessoni@peixotoecury.com.br"}, "EYN": {"nome": "Erick Yuji Nakama", "email": "erick.nakama@peixotoecury.com.br"}, "FAS": {"nome": "Francisco Augusto Stancioli de Oliveira", "email": "francisco.oliveira@peixotoecury.com.br"}, "FBB": {"nome": "Felipe Berton Badari", "email": "felipe.badari@peixotoecury.com.br"}, "FBD": {"nome": "Felipe Brandão Dalla Torre", "email": "felipe.dallatorre@peixotoecury.com.br"}, "FES": {"nome": "Fernanda da Silva", "email": "fernanda.silva@peixotoecury.com.br"}, "FFA": {"nome": "Fernanda Faria de Aquino Zanini", "email": "fernanda.zanini@peixotoecury.com.br"}, "FFC": {"nome": "Fernanda Ferreira Casaroti", "email": "estagiario.civel@peixotoecury.com.br"}, "FFD": {"nome": "Fabiana Fonseca Dicezare", "email": "fabiana.dicezare@peixotoecury.com.br"}, "FFI": {"nome": "Fabiano Fritz Ferreira Filho", "email": "fabiano.filho@peixotoecury.com.br"}, "FFO": {"nome": "Fabiana Froes de Oliveira", "email": "fabiana.froes@peixotoecury.com.br"}, "FFV": {"nome": "Flavia Ferreira Favini", "email": "flavia.favini@peixotoecury.com.br"}, "FGM": {"nome": "Fábio Garuti Marques", "email": "fabio.garuti@peixotoecury.com.br"}, "FGP": {"nome": "Fernando Giannini Palazzi", "email": "fernando.palazzi@peixotoecury.com.br"}, "FLJ": {"nome": "Filipe Jorf", "email": "filipe.jorf@peixotoecury.com.br"}, "FLP": {"nome": "Flávia Luizianne Alonso Polo", "email": "flavia.polo@peixotoecury.com.br"}, "FLS": {"nome": "Fabrício Lima da Silva", "email": "fabricio.silva@peixotoecury.com.br"}, "FMF": {"nome": "Fátima Malveis Ferreira", "email": "fatima.ferreira@peixotoecury.com.br"}, "FTI": {"nome": "Fernanda Tonderys Infanti", "email": "fernanda.infanti@peixotoecury.com.br"}, "GAG": {"nome": "Gabriela Aranha Godoy", "email": "gabriela.godoy@peixotoecury.com.br"}, "GAL": {"nome": "Geovanna Almeida Silva", "email": "geovanna.silva@peixotoecury.com.br"}, "GAZ": {"nome": "Guilherme de Almeida Souza", "email": "guilherme.almeida@peixotoecury.com.br"}, "GBM": {"nome": "Giuliana Borriello Marino", "email": "giuliana.marino@peixotoecury.com.br"}, "GBS": {"nome": "Getúlio Bernardo Flora da Silva", "email": "getulio.silva@peixotoecury.com.br"}, "GCE": {"nome": "Glauco Celeghin", "email": "prottrab@peixotoecury.com.br"}, "GCG": {"nome": "Gabriel Cristian Geraldo Curti", "email": "expedicao@peixotoecury.com.br"}, "GDI": {"nome": "Gislaine Monção Dias", "email": "gislaine.dias@peixotoecury.com.br"}, "GES": {"nome": "Guilherme Souza", "email": "guilherme.souza@peixotoecury.com.br"}, "GFG": {"nome": "Gabriela Freire Guedes da Silva", "email": "gabriela.freire@peixotoecury.com.br"}, "GFO": {"nome": "Gabriel Fretas de Oliveira", "email": "gabriel.oliveira@peixotoecury.com.br"}, "GGC": {"nome": "Giovanna Gallego Cucchiara", "email": "giovanna.cucchiara@peixotoecury.com.br"}, "GIF": {"nome": "Giovanna Teixeira Franco", "email": "giovanna.teixeira@peixotoecury.com.br"}, "GIM": {"nome": "Guilherme Ílexis Martínez Aravena", "email": "guilherme.aravena@peixotoecury.com.br"}, "GIO": {"nome": "Giovanni Comunale Oliveira", "email": "giovanni.oliveira@peixotoecury.com.br"}, "GLB": {"nome": "Guilherme Lima Borges", "email": "guilherme.borges@peixotoecury.com.br"}, "GLC": {"nome": "Geovana Lazara Cezar", "email": "geovanna.lazara@peixotoecury.com.br"}, "GLE": {"nome": "Geovanna Leite Cavalcanti", "email": "geovanna.cavalcanti@peixotoecury.com.br"}, "GLO": {"nome": "Gustavo Luís de Oliveira", "email": "gustavo.oliviera@peixotoecury.com.br"}, "GLP": {"nome": "Guilherme Lima de Paula", "email": "guilherme.lima@peixotoecury.com.br"}, "GMB": {"nome": "Giulia Mota Bacarini", "email": "giulia.bacarini@peixotoecury.com.br"}, "GMD": {"nome": "Gian Marco Donatelli", "email": "gian.donatelli@peixotoecury.com.br"}, "GMF": {"nome": "Giovanna Mengar Federico", "email": "giovanna.federico@peixotoecury.com.br"}, "GMG": {"nome": "Giovanna Malheiros Gatto", "email": "giovanna.gatto@peixotoecury.com.br"}, "GMO": {"nome": "Gustavo Menezes De Macedo", "email": "expedicao@peixotoecury.com.br"}, "GNC": {"nome": "Gabriel Nogueira Camargo Pinto", "email": "gabriel.nogueira@peixotoecury.com.br"}, "GND": {"nome": "Gabriel Neder De Donato", "email": "gabriel.donato@peixotoecury.com.br"}, "GOV": {"nome": "Geovanni Otílio Vasconcelos", "email": "geovanni.vasconcelos@peixotoecury.com.br"}, "GPG": {"nome": "Glaucio Pellegrino Grottoli", "email": "glaucio.grottoli@peixotoecury.com.br"}, "GPL": {"nome": "Giullia Peleje Leme", "email": "giullia.leme@peixotoecury.com.br"}, "GPM": {"nome": "Gabriélli Paz Muniz", "email": "gabrielli.muniz@peixotoecury.com.br"}, "GPS": {"nome": "Gabriela Pereira Sousa", "email": "gabriela.sousa@peixotoecury.com.br"}, "GRA": {"nome": "Guilherme Augusto de Oliveira Drigo", "email": "guilherme.oliveira@peixotoecury.com.br"}, "GRO": {"nome": "Guilherme Rodrigues de Oliveira", "email": "guilherme.oliveira@peixotoecury.com.br"}, "GRS": {"nome": "Guilherme Roxo Staingel", "email": "guilherme.staingel@peixotoecury.com.br"}, "GSA": {"nome": "Geisa Silva dos Santos", "email": "geisa.silva@peixotoecury.com.br"}, "GSF": {"nome": "Gisela da Silva Freire", "email": "gisela.freire@peixotoecury.com.br"}, "GSI": {"nome": "Geovanna Rodrigues Silva", "email": "geovanna.rodrigues@peixotoecury.com.br"}, "GSM": {"nome": "Guilherme Silva Morimoto", "email": "guilherme.morimoto@peixotoecury.com.br"}, "GSN": {"nome": "Giselle Scavasin", "email": "giselle.scavasin@peixotoecury.com.br"}, "GSP": {"nome": "Gabriela de Souza Pedroso", "email": "gabriela.pedroso@peixotoecury.com.br"}, "GTF": {"nome": "Giovanna Teixeira Franco", "email": "giovanna.franco@peixotoecury.com.br"}, "GUI": {"nome": "Guilherme Estevam de Souza", "email": "guilherme.estevam@peixotoecury.com.br"}, "GVC": {"nome": "Gabriela Vitoria Claudino Santos Cunha", "email": "gabriela.cunha@peixotoecury.com.br"}, "GVM": {"nome": "Giulia Vendramini Milani", "email": "giulia.milani@peixotoecury.com.br"}, "HAS": {"nome": "Hanyelle Alves da Silva", "email": "hanyelle.silva@peixotoecury.com.br"}, "HCL": {"nome": "Heleno Carlos de Lucena Junior", "email": "esttra@peixotoecury.com.br"}, "HFF": {"nome": "Hellen Fonseca Fantato", "email": "hellen.fantato@peixotoecury.com.br"}, "HKK": {"nome": "Hannetie Kiyono Koyama Sato", "email": "hannetie.kiyono@peixotoecury.com.br"}, "HPF": {"nome": "Higor Paraiso Fonseca", "email": "higor.fonseca@peixotoecury.com.br"}, "HRP": {"nome": "Henrique Remorini Pantuzo", "email": "henrique.pantuzo@peixotoecury.com.br"}, "HSP": {"nome": "Hisa Shibayama Patrizzi Prospero", "email": "hisa.patrizzi@peixotoecury.com.br"}, "IBE": {"nome": "Ilson Bresquiliari", "email": "arquivo@peixotoecury.com.br"}, "IBN": {"nome": "Isabela Silva Belido Neves", "email": "isabela.belido@peixotoecury.com.br"}, "IBO": {"nome": "Isabela Bertolli Ortiz", "email": "isabela.ortiz@peixotoecury.com.br"}, "IBR": {"nome": "Isabella Bachega Rodrigues", "email": "isabella.rodrigues@peixotoecury.com.br"}, "ICG": {"nome": "Ingrid de Cássia Lopes Gaitanis", "email": "ingrid.gaitanis@peixotoecury.com.br"}, "ICR": {"nome": "Isabella Coccinello Rodrigues", "email": "isabella.coccinello@peixotoecury.com.br"}, "IEF": {"nome": "Isadora Elias Felipozzi", "email": "isadora.felipozzi@peixotoecury.com.br"}, "IGA": {"nome": "Isadora Silva Gagliardi", "email": "isadora.gagliardi@peixotoecury.com.br"}, "IGB": {"nome": "Igor Guimaraes Brandão", "email": "cadastro.trabalhista@peixotoecury.com.br"}, "IMV": {"nome": "Isabela Moraes Novo Do Val", "email": "isabela.doval@peixotoecury.com.br"}, "IOS": {"nome": "Igor de Oliveira dos Santos", "email": "igor.santos@peixotoecury.com.br"}, "IRM": {"nome": "Isadora Ramos Prata", "email": "isadora.prata@peixotoecury.com.br"}, "IRS": {"nome": "Ítalo Ribeiro dos Santos", "email": "italo.santos@peixotoecury.com.br"}, "ISA": {"nome": "Isabela Soares do Amaral", "email": "isabela.soares@peixotoecury.com.br"}, "ISG": {"nome": "Ivanilson dos Santos Gomes", "email": "ata.trabalhista@peixotoecury.com.br"}, "JAN": {"nome": "Janaine Cruz Souza", "email": "publicacao.trabalhista@peixotoecury.com.br"}, "JBC": {"nome": "Janete Bonfim Carvalho", "email": "janete.carvalho@peixotoecury.com.br"}, "JBP": {"nome": "Júlia de Brito Pereira", "email": "julia.pereira@peixotoecury.com.br"}, "JCO": {"nome": "Jocely Correia dos Santos", "email": "jocely.santos@peixotoecury.com.br"}, "JEN": {"nome": "Júlia Emanuelle Nogueira", "email": "julia.nogueira@peixotoecury.com.br"}, "JFA": {"nome": "Juliana Francisco Fagundes de Almeida", "email": "juliana.almeida@peixotoecury.com.br"}, "JGM": {"nome": "João Gabriel Souza Medeiros", "email": "joaogabriel.medeiros@peixotoecury.com.br"}, "JJM": {"nome": "Jaqueline Jahel Moraes", "email": "jaqueline.moraes@peixotoecury.com.br"}, "JJS": {"nome": "Jenifer de Jesus Silva", "email": "jenifer.silva@peixotoecury.com.br"}, "JLM": {"nome": "Juan Leonardo Ikier Moraes", "email": "juanleonardo.moraes@peixotoecury.com.br"}, "JMO": {"nome": "Juliana Silva de Moraes", "email": "juliana.moraes@peixotoecury.com.br"}, "JNB": {"nome": "Jose Nantala Badue Freire", "email": "josenantala.freire@peixotoecury.com.br"}, "JNG": {"nome": "Juliana Neves Garcia", "email": "juliana.garcia@peixotoecury.com.br"}, "JNO": {"nome": "Jennifer de Andrade Nogueira", "email": "jennifer.nogueira@peixotoecury.com.br"}, "JNS": {"nome": "João Pedro Nascimento Silva", "email": "joaopedro.silva@peixotoecury.com.br"}, "JPA": {"nome": "Juliana Pereira Nascimento", "email": "juliana.nascimento@peixotoecury.com.br"}, "JPB": {"nome": "Jennifer Pinheiro Bitencourt", "email": "jennifer.bitencourt@peixotoecury.com.br"}, "JPE": {"nome": "Juliana Perucci", "email": "juliana.perucci@peixotoecury.com.br"}, "JPL": {"nome": "Júlia Priego Lopes da Silva", "email": "julia.priego@peixotoecury.com.br"}, "JPP": {"nome": "João Pedro Pardini Domingos Silva", "email": "joaopedro.pardini@peixotoecury.com.br"}, "JQS": {"nome": "Jessica Cerqueira Silva", "email": "jessica.cerqueira@peixotoecury.com.br"}, "JRB": {"nome": "José Ricardo de Bastos Martins", "email": "josericardo.martins@peixotoecury.com.br"}, "JRI": {"nome": "João Ricardo Galdieri Martino", "email": "joaoricardo.martino@peixotoecury.com.br"}, "JRM": {"nome": "Joice Ramos Miranda", "email": "joice.miranda@peixotoecury.com.br"}, "JRT": {"nome": "Jackeline Romeu Torres", "email": "jackeline.torres@peixotoecury.com.br"}, "JSN": {"nome": "Juliana Sena Souza", "email": "juliana.souza@peixotoecury.com.br"}, "JSO": {"nome": "Juliana da Silva Oliveira", "email": "publicacao.trabalhista@peixotoecury.com.br"}, "JTT": {"nome": "Jéssica de Oliveira Terzian Teixeira", "email": "jessica.teixeira@peixotoecury.com.br"}, "JXS": {"nome": "Jessica Xavier Santana", "email": "jessica.santana@peixotoecury.com.br"}, "JZH": {"nome": "Jessica Zapata Hayashi", "email": "jzh@peixotoecury.com.br"}, "KAT": {"nome": "Kamylla de Andrade Teixeira", "email": "kamylla.teixeira@peixotoecury.com.br"}, "KBM": {"nome": "Keyla Maria Barbosa Silva Moraes", "email": "keyla.moraes@peixotoecury.com.br"}, "KBZ": {"nome": "Karina Barradas Zanatta", "email": "prazos.trabalhista@peixotoecury.com.br"}, "KCL": {"nome": "Kelen Carla Lima", "email": "recepcao@peixotoecury.com.br"}, "KKK": {"nome": "Kleber Kajiro Kikuchi", "email": "kleber.kikuchi@peixotoecury.com.br"}, "KML": {"nome": "Kauê Di Mori Luciano da Silva", "email": "kaue.dimori@peixotoecury.com.br"}, "KOB": {"nome": "Katia Orselli Bronsztein", "email": "katia.orselli@peixotoecury.com.br"}, "KPM": {"nome": "Kizzy de Paula Mota", "email": "kizzy.mota@peixotoecury.com.br"}, "KTO": {"nome": "Karoline de Castro Torres", "email": "karoline.torres@peixotoecury.com.br"}, "KTP": {"nome": "Kelly Trevisan", "email": "kelly.trevisan@peixotoecury.com.br"}, "KVL": {"nome": "Karine Vasconcelos O. Loschiavo", "email": "karine.loschiavo@peixotoecury.com.br"}, "LAR": {"nome": "Luana Areta Rezende", "email": "luana.rezende@peixotoecury.com.br"}, "LAZ": {"nome": "Larissa Azevedo Rocha", "email": "larissa.azevedo@peixotoecury.com.br"}, "LBO": {"nome": "Leticia Bezerra de Souza Silva", "email": "leticia.silva@peixotoecury.com.br"}, "LCA": {"nome": "Luiz Carlos Alves da Silva", "email": "luizcarlos.silva@peixotoecury.com.br"}, "LCC": {"nome": "Luiz Carlos Calfat Nami Haddad Coelho Silva", "email": "luiz.calfat@peixotoecury.com.br"}, "LCF": {"nome": "Laura Carolina Monteiro Fontolan e Silva", "email": "laura.fontolan@peixotoecury.com.br"}, "LCG": {"nome": "Lorena Rodrigues Costa Gonçalves", "email": "lorena.goncalves@peixotoecury.com.br"}, "LDA": {"nome": "Lais Damaceno Camargo de Anchieta", "email": "lais.anchieta@peixotoecury.com.br"}, "LDI": {"nome": "Lucas Diniz Almeida", "email": "lucas.almeida@peixotoecury.com.br"}, "LEM": {"nome": "Leonel Maschietto", "email": "leonel.maschietto@peixotoecury.com.br"}, "LFF": {"nome": "Larissa Fernanda dos Santos Ferraz", "email": "larissa.ferraz@peixotoecury.com.br"}, "LGA": {"nome": "Lais Gattai André", "email": "lais.andre@peixotoecury.com.br"}, "LGC": {"nome": "Luis Gustavo Carvalho de Nobre", "email": "luisgustavo.souza@peixotoecury.com.br"}, "LGO": {"nome": "Leandro Gonçalves de Oliveira", "email": "leandro.oliveira@peixotoecury.com.br"}, "LLC": {"nome": "Letícia Lucas", "email": "leticia.lucas@peixotoecury.com.br"}, "LLI": {"nome": "Letícia Santos Licht", "email": "leticia.licht@peixotoecury.com.br"}, "LLL": {"nome": "Larissa Lekich Lobenwein", "email": "larissa.lekich@peixotoecury.com.br"}, "LLO": {"nome": "Lindsay Liege de Oliveira", "email": "lindsay.oliveira@peixotoecury.com.br"}, "LMH": {"nome": "Laís Marighetti", "email": "lais.marighetti@peixotoecury.com.br"}, "LMI": {"nome": "Letícia Meneghini Fontes", "email": "leticia.fontes@peixotoecury.com.br"}, "LMR": {"nome": "Letícia de Moraes Ravagnani", "email": "leticia.ravagnani@peixotoecury.com.br"}, "LMS": {"nome": "Lisandra Melo Alves", "email": "lisandra.souza@peixotoecury.com.br"}, "LMU": {"nome": "Lais Martucheli Murta", "email": "lais.murta@peixotoecury.com.br"}, "LNO": {"nome": "Lorena Nascimento de Oliveira", "email": "lorena.oliveira@peixotoecury.com.br"}, "LOS": {"nome": "Leticia Serrão Santos", "email": "leticia.santos@peixotoecury.com.br"}, "LPJ": {"nome": "Leonardo Pereira de Jesus", "email": "leonardo.jesus@peixotoecury.com.br"}, "LPV": {"nome": "Luciana Paula Vaz de Carvalho", "email": "luciana.carvalho@peixotoecury.com.br"}, "LRH": {"nome": "Luana Ribau Henrique Gonçalves", "email": "luana.goncalves@peixotoecury.com.br"}, "LRL": {"nome": "Liliane Freire Oliveira", "email": "estagiario.civel@peixotoecury.com.br"}, "LSA": {"nome": "Laís da Silva Lopes", "email": "lais.lopes@peixotoecury.com.br"}, "LTL": {"nome": "Lais Tripiquia Lemes", "email": "lais.lemes@peixotoecury.com.br"}, "LUF": {"nome": "Lucca Marques Ferreira", "email": "lucca.ferreira@peixotoecury.com.br"}, "LUS": {"nome": "Luciane Fernandes de Souza", "email": "luciane.souza@peixotoecury.com.br"}, "LVB": {"nome": "Lucas Valverde Bernardes", "email": "expedicao@peixotoecury.com.br"}, "LVC": {"nome": "Luiz Vicente de Carvalho", "email": "luizvicente.carvalho@peixotoecury.com.br"}, "LVL": {"nome": "Larissa Vieira Lima Assis", "email": "larissa.assis@peixotoecury.com.br"}, "LYM": {"nome": "Letícia Yumi Marques", "email": "leticia.marques@peixotoecury.com.br"}, "MAF": {"nome": "Marcos Antonio Esmerini Filho", "email": "marcos.esmerini@peixotoecury.com.br"}, "MAO": {"nome": "Maria Eduarda Oliveira Aquino", "email": "mariaeduarda.aquino@peixotoecury.com.br"}, "MAT": {"nome": "Maria Eduarda de Araujo Trevisan", "email": "maria.trevisan@peixotoecury.com.br"}, "MBF": {"nome": "Mariana Borges de Menezes Fávaro", "email": "mariana.favaro@peixotoecury.com.br"}, "MBK": {"nome": "Mayara Blikstein", "email": "mayara.blikstein@peixotoecury.com.br"}, "MBR": {"nome": "Monique de Lima Barbosa", "email": "monique.barbosa@peixotoecury.com.br"}, "MCD": {"nome": "Maria Carolina Silva Santos Dias", "email": "mariacarolina.dias@peixotoecury.com.br"}, "MCE": {"nome": "Marina Carvalho Menarim", "email": "marinacarvalho.menarim@peixotoecury.com.br"}, "MCH": {"nome": "Maria Madalena Nobrega Chagas", "email": "mariamadalena.chagas@peixotoecury.com.br"}, "MCI": {"nome": "Mateus Costa da Silva", "email": "expedicacao@peixotoecury.com.br"}, "MCM": {"nome": "Maria Carolina Martins Nakagawa", "email": "maria.carolina@peixotoecury.com.br"}, "MCN": {"nome": "Mariana Cassiolato Nascimento", "email": "mariana.nascimento@peixotoecury.com.br"}, "MDC": {"nome": "Manoela da Cruz Silva", "email": "manoela.silva@peixotoecury.com.br"}, "MDU": {"nome": "Maria Eduarda Agostinho de Castro", "email": "mariaeduarda.castro@peixotoecury.com.br"}, "MED": {"nome": "Maria Eduarda Salva Asensão", "email": "maria.salva@peixotoecury.com.br"}, "MEN": {"nome": "Marina Carvalho Menarim", "email": "marina.menarim@peixotoecury.com.br"}, "MF": {"nome": "Milton Fontes", "email": "milton.fontes@peixotoecury.com.br"}, "MFA": {"nome": "Marcos Filipe Aleixo de Araújo", "email": "marcosfilipe.araujo@peixotoecury.com.br"}, "MFE": {"nome": "Marcelo Feitosa Esvicero", "email": "marcelo.esvicero@peixotoecury.com.br"}, "MFX": {"nome": "Murillo Ferreira Xavier", "email": "estagiario.civel@peixotoecury.com.br"}, "MGC": {"nome": "Maria Gabriela Cesar Villac", "email": "mariagabriela.villac@peixotoecury.com.br"}, "MGS": {"nome": "Marilia Gabriela Spadaccia", "email": "marilia.spadaccia@peixotoecury.com.br"}, "MGT": {"nome": "Marina Gonçales Tavares", "email": "marina.tavares@peixotoecury.com.br"}, "MIA": {"nome": "Maria Isabela Encinas Anganuzzi", "email": "maria.anganuzzi@peixotoecury.com.br"}, "MIM": {"nome": "Maria Imperatriz Mignone Pires Galante", "email": "mariaimperatriz.galante@peixotoecury.com.br"}, "MIS": {"nome": "Michele Aparecida Souza Costa", "email": "michele.costa@peixotoecury.com.br"}, "MJT": {"nome": "Matheus de Jesus Trindade", "email": "matheus.trindade@peixotoecury.com.br"}, "MLB": {"nome": "Marcela Lopes Barbanti", "email": "marcela.lopes@peixotoecury.com.br"}, "MLS": {"nome": "Mariana Araujo Lopes Silva", "email": "mariana.silva@peixotoecury.com.br"}, "MMB": {"nome": "Mariana Martina Biazzi", "email": "mariana.biazzi@peixotoecury.com.br"}, "MME": {"nome": "Matheus Muniz Benite", "email": "matheus.benite@peixotoecury.com.br"}, "MMG": {"nome": "Maria do Carmo Marcondes Correia Guimarães", "email": "maria.guimaraes@peixotoecury.com.br"}, "MML": {"nome": "Marcela Magalhães de Lima", "email": "marcela.lima@peixotoecury.com.br"}, "MMP": {"nome": "Matheus de Matos Pereira", "email": "matheus.pereira@peixotoecury.com.br"}, "MNB": {"nome": "Marina de Novaes Brechiani", "email": "marina.brechiani@peixotoecury.com.br"}, "MOC": {"nome": "Michael Oliveira Coqueiro", "email": "michael.coqueiro@peixotoecury.com.br"}, "MOL": {"nome": "Mariana Santos de Oliveira", "email": "mariana.oliveira@peixotoecury.com.br"}, "MOS": {"nome": "Mirelly Martins Galdino da Silva", "email": "mirelly.martins@peixoecury.com.br"}, "MRL": {"nome": "Marcella Souza Oliveira", "email": "marcella.oliveira@peixotoecury.com.br"}, "MRO": {"nome": "Mariana Rodrigues da Silva", "email": "mariana.rodrigues@peixotoecury.com.br"}, "MRS": {"nome": "Mahara Ramos da Silva", "email": "mahara.silva@peixotoecury.com.br"}, "MSJ": {"nome": "Missilene Silva de Jesus", "email": "missilene.silva@peixotoecury.com.br"}, "MSO": {"nome": "Matheus Salustiano de Oliveira", "email": "estagiario.civel@peixotoecury.com.br"}, "MTA": {"nome": "Milena Costa Silva", "email": "milena.costa@peixotoecury.com.br"}, "MTM": {"nome": "Marcel Tadeu Matos Alves da Silva", "email": "marcel.alves@peixotoecury.com.br"}, "MVC": {"nome": "Marcus Vinicius Cordeiro Ananias", "email": "calc@peixotoecury.com.br"}, "NBB": {"nome": "Natalia Bezerra Baliero", "email": "natalia.baliero@peixotoecury.com.br"}, "NBG": {"nome": "Natália Biondi Gaggini Robles", "email": "natalia.gaggini@peixotoecury.com.br"}, "NBN": {"nome": "Natali Batista Nascimento de Oliveira", "email": "esttra@peixotoecury.com.br"}, "NBR": {"nome": "Nicole Basilio Rickmann", "email": "nicole.rickmann@peixotoecury.com.br"}, "NCA": {"nome": "Nathalia Cruz Barbosa", "email": "nathalia.barbosa@peixotoecury.com.br"}, "NDL": {"nome": "Nathalia de Moraes Lages", "email": "nathalia.lages@peixotoecury.com.br"}, "NFD": {"nome": "Nelson Felipe Rodrigues Duarte", "email": "nelson.duarte@peixotoecury.com.br"}, "NLD": {"nome": "Nathalie Louise dos Santos Rodrigues Dias", "email": "nathalielouise.dias@peixotoecury.com.br"}, "NLO": {"nome": "Nathalie Louise dos Santos Rodrigues Dias", "email": "nathalie.louise@peixotoecury.com.br"}, "NOE": {"nome": "Natalia Ostorero Egydio", "email": "natalia.egydio@peixotoecury.com.br"}, "NRG": {"nome": "Nicolau Rafael Guimarães Coelho", "email": "nicolau.coelho@peixotoecury.com.br"}, "NRO": {"nome": "Naiani Rodrigues de Lima", "email": "naiani.lima@peixotoecury.com.br"}, "NSL": {"nome": "Nathaly da Silva Ferreira Lima", "email": "nathaly.lima@peixotoecury.com.br"}, "PAS": {"nome": "Paulo Augusto Mendonça Souza", "email": "paulo.augusto@peixotoecury.com.br"}, "PBS": {"nome": "Poliana Banqueri da Silva Guimarães", "email": "poliana.banqueri@peixotoecury.com.br"}, "PGP": {"nome": "Pedro Gimenez Pfeifer", "email": "pedro.pfeifer@peixotoecury.com.br"}, "PHP": {"nome": "Pedro Henrique Pancioni Parada", "email": "pedro.parada@peixotoecury.com.br"}, "PIN": {"nome": "Paloma Iannuzzi", "email": "paloma.iannuzzi@peixotoecury.com.br"}, "PIO": {"nome": "Pedro Ivo Oliveira Nasser", "email": "pedro.nasser@peixotoecury.com.br"}, "PJC": {"nome": "Pedro Jorge da Costa Nassar Cury", "email": "pedro.cury@peixotoecury.com.br"}, "PJG": {"nome": "Patrícia Jamelli Guimaraes", "email": "patricia.guimaraes@peixotoecury.com.br"}, "PLT": {"nome": "Pedro Felipe Leite", "email": "adm-plt@peixotoecury.com.br"}, "PNM": {"nome": "Philipe Noronha de Melo", "email": "philipe.melo@peixotoecury.com.br"}, "PPF": {"nome": "Pedro Paterlini Fernandes", "email": "pedro.fernandes@peixotoecury.com.br"}, "PPM": {"nome": "Pâmela Peraçoli Martins", "email": "pamela.martins@peixotoecury.com.br"}, "PPR": {"nome": "Paloma Perez Ramalheiro", "email": "paloma.ramalheiro@peixotoecury.com.br"}, "PRC": {"nome": "Pedro Ract Carbonés", "email": "pedro.carbones@peixotoecury.com.br"}, "PSI": {"nome": "Paloma da Silva Santos", "email": "paloma.santos@peixotoecury.com.br"}, "PVG": {"nome": "Patricia Verderosi da Gama", "email": "recepcao@peixotoecury.com.br"}, "PVS": {"nome": "Paulo Vinicius de Santi", "email": "caixa@peixotoecury.com.br"}, "RAE": {"nome": "Renata Alves Mendes", "email": "renata.mendes@peixotoecury.com.br"}, "RAO": {"nome": "Raquel de Azevedo", "email": "raquel.azevedo@peixotoecury.com.br"}, "RAQ": {"nome": "Raquel Bossan", "email": "raquel.bossan@peixotoecury.com.br"}, "RBA": {"nome": "Rafael Presotto Barbosa Silveira", "email": "rafael.presotto@peixotoecury.com.br"}, "RCF": {"nome": "Rafael Camargo Felisbino", "email": "rafael.camargo@peixotoecury.com.br"}, "RCN": {"nome": "Rebeca Cristina Soares Andrili", "email": "rebeca.andrili@peixotoecury.com.br"}, "RCR": {"nome": "Ricardo Coelho de Ramos", "email": "ricardo.coelho@peixotoecury.com.br"}, "RCZ": {"nome": "Ricardo Cleber Zangirolami", "email": "ricardo.zangirolami@peixotoecury.com.br"}, "RFE": {"nome": "Rafael Rocha Ferreira", "email": "rafael.ferreira@peixotoecury.com.br"}, "RFK": {"nome": "Raica Fernandes Kwok", "email": "raica.kwok@peixotoecury.com.br"}, "RFS": {"nome": "Rafael Firmino da Silva", "email": "paralegal@peixotoecury.com.br"}, "RGC": {"nome": "Rodrigo Giordano de Castro", "email": "rodrigo.castro@peixotoecury.com.br"}, "RGH": {"nome": "Rafael Gueto Hernandez Boscolo da Cunha", "email": "esttra@peixotoecury.com.br"}, "RGR": {"nome": "Raphael Gustavo Franco da Silva", "email": "expedicacao@peixotoecury.com.br"}, "RIC": {"nome": "Rita de Cassia Assunção Moscatelli", "email": "rita.cassia@peixotoecury.com.br"}, "RJS": {"nome": "Ricardo José Sabaraense", "email": "ricardo.sabaraense@peixotoecury.com.br"}, "RMC": {"nome": "Rodrigo Meni Reis Calovi Fagundes", "email": "esttra@peixotoecury.com.br"}, "RME": {"nome": "Rafael Moraes Penafiel", "email": "rafael.penafiel@peixotoecury.com.br"}, "ROL": {"nome": "Renato Omelczuk Loschiavo", "email": "renato.loschiavo@peixotoecury.com.br"}, "ROM": {"nome": "Rodrigo Moreira", "email": "rodrigo.moreira@peixotoecury.com.br"}, "ROP": {"nome": "Roberta de Oliveira Penteado", "email": "roberta.penteado@peixotoecury.com.br"}, "ROS": {"nome": "Rodrigo dos Santos", "email": "rodrigo.santos@peixotoecury.com.br"}, "ROV": {"nome": "Renato de Oliveira Valença", "email": "renato.valenca@peixotoecury.com.br"}, "RPA": {"nome": "Renato do Prado Araújo Ribeiro", "email": "renato.ribeiro@peixotoecury.com.br"}, "RPF": {"nome": "Renato Pau Ferro da Silva", "email": "renato.pauferro@peixotoecury.com.br"}, "RPP": {"nome": "Rosa Pezato Paes Manso", "email": "rosa.pezato@peixotoecury.com.br"}, "RRD": {"nome": "Renata Raciope Dagnese", "email": "renata.dagnese@peixotoecury.com.br"}, "RRF": {"nome": "Renan Rodrigues Fortes", "email": "renan.fortes@peixotoecury.com.br"}, "RRM": {"nome": "Rafaela Rodrigues de Morais", "email": "rafaela.morais@peixotoecury.com.br"}, "RRU": {"nome": "Richard Ruan Leo da Silva", "email": "richard.silva@peixotoecury.com.br"}, "RSF": {"nome": "Rogério Silva Fonseca", "email": "rogerio.fonseca@peixotoecury.com.br"}, "RSG": {"nome": "Raquel Sayeg", "email": "estagiario.societario@peixotoecury.com.br"}, "RSN": {"nome": "Rodrigo Souichi Nishijima", "email": "rodrigo.nishijima@peixotoecury.com.br"}, "RVC": {"nome": "Rafael Villac Vicente de Carvalho", "email": "rafael.villac@peixotoecury.com.br"}, "RVF": {"nome": "Renato Vilela Faria", "email": "renato.faria@peixotoecury.com.br"}, "RWD": {"nome": "Rafaella Wittmann Domenicis", "email": "rafaella.domenicis@peixotoecury.com.br"}, "RYL": {"nome": "Rafael Yepez do Lago", "email": "rafael.lago@peixotoecury.com.br"}, "RYM": {"nome": "Ricardo Yamamoto", "email": "ricardo.yamamoto@peixotoecury.com.br"}, "SAG": {"nome": "Sandra Aparecida Geraldo", "email": "sandra.geraldo@peixotoecury.com.br"}, "SAS": {"nome": "Suellen Alves dos Santos Garcia", "email": "suellen.alves@peixotoecury.com.br"}, "SCF": {"nome": "Sergio Cricca Filho", "email": "sergio.filho@peixotoecury.com.br"}, "SCQ": {"nome": "Sarah de Carvalho Queiroz", "email": "sarah.carvalho@peixotoecury.com.br"}, "SGC": {"nome": "Stefany Guardino Caseiro", "email": "stefany.caseiro@peixotoecury.com.br"}, "SME": {"nome": "Sofia Sakuraba Medeiros", "email": "sofia.medeiros@peixotoecury.com.br"}, "SMG": {"nome": "Suziane Martins Gonçalves Favero", "email": "suziane.goncalves@peixotoecury.com.br"}, "SOF": {"nome": "Sofia Freire", "email": "sofia.freire@peixotoecury.com.br"}, "SSA": {"nome": "Saulo Stefanone Alle", "email": "saulo.alle@peixotoecury.com.br"}, "SSC": {"nome": "Sarah dos Santos Costa", "email": "sarah.costa@peixotoecury.com.br"}, "SSM": {"nome": "Sarah Silva Martins", "email": "sarah.silva@peixotoecury.com.br"}, "STS": {"nome": "Samanta Tereza Araujo da Silva", "email": "samanta.silva@peixotoecury.com.br"}, "TAS": {"nome": "Thais Amaral Rocca", "email": "thais.silva@peixotoecury.com.br"}, "TBC": {"nome": "Thiago Batista Coelho da Cunha", "email": "thiago.cunha@peixotoecury.com.br"}, "TCE": {"nome": "Thais Catharine Cardozo Esteves", "email": "thais.esteves@peixotoecury.com.br"}, "TCO": {"nome": "Tamires Lins Costa", "email": "tamireslins.costa@peixotoecury.com.br"}, "TDS": {"nome": "Thays Dantas da Silva", "email": "thays.silva@peixotoecury.com.br"}, "TEM": {"nome": "Telma Freitas Mathias", "email": "telma.mathias@peixotoecury.com.br"}, "TEQ": {"nome": "Tiffanye Esteves de Queiroz", "email": "tiffanye.esteves@peixotoecury.com.br"}, "TFM": {"nome": "Thamiris Cristiane Fico Mansano", "email": "thamiris.mansano@peixotoecury.com.br"}, "TFR": {"nome": "Thiago Frid Figueiredo Rossi", "email": "thiago.rossi@peixotoecury.com.br"}, "TFS": {"nome": "Thais Ferreira dos Santos", "email": "thais.santos@peixotoecury.com.br"}, "TGV": {"nome": "Thais Garcia Vieira", "email": "thais.garcia@peixotoecury.com.br"}, "TJT": {"nome": "Tiago José Tartilas", "email": "tiago.tartilas@peixotoecury.com.br"}, "TLC": {"nome": "Tamires Lins Costa", "email": "tamires.costa@peixotoecury.com.br"}, "TMT": {"nome": "Thays Maria Costa Teixeira", "email": "thays.teixeira@peixotoecury.com.br"}, "TNE": {"nome": "Tabata Neves Caramelli", "email": "tabata.caramelli@peixotoecury.com.br"}, "TPV": {"nome": "Thais Parente Vieira", "email": "thais.vieira@peixotoecury.com.br"}, "TSF": {"nome": "Tiago Stefani Fonseca", "email": "estagiario.trabalhista@peixotoecury.com.br"}, "TSI": {"nome": "Thales Stamboni", "email": "esttra@peixotoecury.com.br"}, "TSO": {"nome": "Thalia Santos de Morais Oliveira", "email": "thalia.oliveira@peixotoecury.com.br"}, "TTM": {"nome": "Thalissy Tolentino Moreira", "email": "thalissy.moreira@peixotoecury.com.br"}, "VAC": {"nome": "Vinicius de Aquino Curti", "email": "vinicius.curti@peixotoecury.com.br"}, "VAN": {"nome": "Vania Ferreira Santos", "email": "van@peixotoecury.com.br"}, "VAR": {"nome": "Vitoria Araujo Carvalho", "email": "vitoria.carvalho@peixotoecury.com.br"}, "VBM": {"nome": "Valquiria Batista Vieira Mendes", "email": "diligencia.trabalhista@peixotoecury.com.br"}, "VBS": {"nome": "Vanessa Lopes Baroncelli dos Santos", "email": "vanessa.santos@peixotoecury.com.br"}, "VBT": {"nome": "Victoria Bandeira Tavares da Costa", "email": "victoria.bandeira@peixotoecury.com.br"}, "VCG": {"nome": "Valéria Cristina Guerretta", "email": "valeria.guerretta@peixotoecury.com.br"}, "VCR": {"nome": "Vanessa de Cassia Castrequini Rosa", "email": "vanessa.rosa@peixotoecury.com.br"}, "VCS": {"nome": "Vitória Cristina dos Santos", "email": "vitoria.cristina@peixotoecury.com.br"}, "VDG": {"nome": "Vitória Eduarda Duarte de Goes", "email": "eduarda.goes@peixotoecury.com.br"}, "VDO": {"nome": "Viviane de Oliveira", "email": "publicacao.trabalhista@peixotoecury.com.br"}, "VFM": {"nome": "Victória Flauzino Moretti de Mello", "email": "victoria.mello@peixotoecury.com.br"}, "VGA": {"nome": "Vinicius Ferreira Garcia", "email": "vinicius.garcia@peixotoecury.com.br"}, "VGC": {"nome": "Vinicius Gonçalves Campagnone", "email": "vinicius.campagnone@peixotoecury.com.br"}, "VIF": {"nome": "Victória dos Reis Freitas", "email": "victoria.freitas@peixotoecury.com.br"}, "VIG": {"nome": "Victor Ignacio", "email": "victor.ignacio@peixotoecury.com.br"}, "VLP": {"nome": "Vera Lucia de Paiva Cicarino", "email": "vera.cicarino@peixotoecury.com.br"}, "VNA": {"nome": "Vanessa Alves de Almeida", "email": "vanessa.alves@peixotoecury.com.br"}, "VRF": {"nome": "Vanessa Regina Fonseca Vieira", "email": "vanessa.vieira@peixotoecury.com.br"}, "VRO": {"nome": "Vinícius Ronchi Arruda", "email": "vinicius.ronchi@peixotoecury.com.br"}, "VSI": {"nome": "Vinicius da Silva Cerqueira", "email": "vinicius.dasilva@peixotoecury.com.br"}, "VTR": {"nome": "Vitória Trigolo Camargo", "email": "vitoria.trigolo@peixotoecury.com.br"}, "VTS": {"nome": "Vanessa Tavares Spedo", "email": "vanessa.spedo@peixotoecury.com.br"}, "VVC": {"nome": "Viviane de Almeida Ceolin", "email": "viviane.ceolin@peixotoecury.com.br"}, "WDP": {"nome": "Walter Duarte Peixoto", "email": "walter.peixoto@peixotoecury.com.br"}, "WGJ": {"nome": "Wagner Geyer Junior", "email": "wagner.junior@peixotoecury.com.br"}, "WSF": {"nome": "Washington Soares Silva Filho", "email": "washington.soares@peixotoecury.com.br"}, "YCV": {"nome": "Yuri Cavalliere Vieira", "email": "estagiario.civel@peixotoecury.com.br"}, "YLC": {"nome": "Yasmin Lucena da Cruz", "email": "yasmin.cruz@peixotoecury.com.br"}};
@@ -2531,68 +2653,32 @@ function selectRole(r, el){
 function doPublicAccess(){
   currentRole = 'publico';
   currentUserGrupos = [];
+  currentUserSigla = null;
+  currentUserEmail = null;
+
+  document.body.classList.add('public-mode');
   document.getElementById('login-screen').style.display='none';
   const app = document.getElementById('app');
   app.style.display='flex';
   app.classList.add('visible');
   document.getElementById('user-label').textContent = 'Consulta Pública';
-  if(document.getElementById('admin-nav')) document.getElementById('admin-nav').style.display='none';
-  if(document.getElementById('historico-nav')) document.getElementById('historico-nav').style.display='none';
-  // Oculta a aba Dashboard para consulta pública
-  document.getElementById('tab-dashboard').style.display='none';
-  document.querySelectorAll('.nav-btn').forEach(b=>{
-    if(b.textContent.includes('Dashboard')) { b.style.visibility='hidden'; b.style.pointerEvents='none'; }
-  });
-  document.querySelectorAll('.bottom-nav-btn').forEach(b=>{
-    if(b.dataset.tab==='dashboard') { b.style.visibility='hidden'; b.style.pointerEvents='none'; }
-  });
-  initApp();
-  // Força tab-pauta visível
-  document.getElementById('tab-pauta').style.display='';
-  document.querySelectorAll('.nav-btn').forEach(b=>{
-    b.classList.remove('active');
-    if(b.textContent.includes('Pauta')) b.classList.add('active');
-  });
-}
 
-function exportarExcel(){
-  const rows = getFiltered();
-  const headers = ['Código P&C','Data','Horário','Tipo Agendamento','Processo','Parte Principal','Parte Contrária','Comarca','Estado','Vara/Turma','Fase','Ação','Foro','Valor da Causa','Grupo','Adv. Audiência','Adv. Preparo','Link/Observações'];
-  const csvRows = [headers];
-  rows.forEach(r=>{
-    csvRows.push([
-      r.codigo||'',
-      r.data||'',
-      r.horario||'',
-      r.tipo||'',
-      r.processo||'',
-      r.parte_principal||'',
-      r.parte_contraria||'',
-      r.comarca||'',
-      r.estado||'',
-      r.vara||'',
-      r.fase||'',
-      r.acao||'',
-      r.foro||'',
-      r.valor||'',
-      r.grupo||'',
-      r.adv_audiencia||'',
-      r.adv_preparo||'',
-      r.link||''
-    ].map(v=>'"'+String(v).replace(/"/g,'""')+'"'));
+  // Permite somente Pauta Completa no acesso sem senha
+  document.querySelectorAll('.nav-btn').forEach(btn=>{
+    const isPauta = btn.textContent.includes('Pauta Completa');
+    btn.classList.toggle('public-allowed', isPauta);
+    btn.style.display = isPauta ? '' : 'none';
+    btn.classList.toggle('active', isPauta);
   });
-  const bom = '\uFEFF';
-  const csv = bom + csvRows.map(r=>r.join(';')).join('\n');
-  const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  const dateStr = new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');
-  a.download = 'Pauta_Audiencias_'+dateStr+'.csv';
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
+  document.querySelectorAll('.bottom-nav-btn').forEach(btn=>{
+    const isPauta = btn.dataset && btn.dataset.tab === 'pauta';
+    btn.classList.toggle('public-allowed', isPauta);
+    btn.style.display = isPauta ? '' : 'none';
+    btn.classList.toggle('active', isPauta);
+  });
+
+  initApp();
+  showTab('pauta', document.querySelector('.nav-btn.public-allowed') || document.querySelectorAll('.nav-btn')[1]);
 }
 
 function doLogin(){
@@ -2605,6 +2691,7 @@ function doLogin(){
     document.getElementById('login-hint').style.display = 'block';
     return;
   }
+  document.body.classList.remove('public-mode');
   currentRole = found.role;
   currentUserGrupos = found.grupos || [];
   currentUserSigla = found.sigla || null;
@@ -2673,6 +2760,7 @@ function closeMobileMenu(){
 }
 
 function logout(){
+  document.body.classList.remove('public-mode');
   currentUserSigla = null;
   closeMobileMenu();
   document.getElementById('login-screen').style.display='flex';
@@ -2694,6 +2782,8 @@ function logout(){
 
 // ---- TABS ----
 function showTab(id, el){
+  if(currentRole === 'publico' && id !== 'pauta'){ id = 'pauta'; el = document.querySelector('.nav-btn.public-allowed') || document.querySelectorAll('.nav-btn')[1]; }
+
   ['dashboard','pauta','conflitos','comarcas','responsavel','auditoria','pos','pericia','admin','historico','cliente'].forEach(t=>{
     const _el=document.getElementById('tab-'+t);
     if(_el) _el.style.display = t===id?'':'none';
@@ -2936,18 +3026,9 @@ function openGrupoDetail(grupo, card){
 const PAUTA_GENERATION_DATE = '29/04/2026';
 
 function updateLastUpdateBadge(){
-  const ts = localStorage.getItem(LAST_UPDATE_KEY);
   const el = document.getElementById('last-update-badge');
   if(!el) return;
-  if(ts){
-    const d = new Date(ts);
-    const fmt = d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'}) + ' às ' +
-          d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-    el.textContent = '🕐 Última atualização: '+fmt;
-  } else {
-    el.textContent = '🕐 Última atualização: '+PAUTA_GENERATION_DATE+' às 21:39';
-  }
-  el.style.display='';
+  el.style.display='none';
 }
 
 function initApp(){
@@ -3618,7 +3699,8 @@ function openModal(idx){
   const anexoSalvo = (() => { try { return JSON.parse(localStorage.getItem(anexoKey)); } catch { return null; } })();
 
   const blocoPainel = document.createElement('div');
-  blocoPainel.style.cssText = 'margin-top:16px;display:flex;flex-direction:column;gap:12px;';
+  blocoPainel.className = 'modal-wide controladoria-panel';
+  blocoPainel.style.cssText = 'grid-column:1/-1;width:100%;margin-top:16px;display:flex;flex-direction:column;gap:12px;';
 
   // ── Notas ──
   const notaDiv = document.createElement('div');
@@ -3675,6 +3757,64 @@ function openModal(idx){
     <div id="anexo-wrap-${cod}">${anexoConteudo}</div>`;
   blocoPainel.appendChild(anexoDiv);
 
+  // ── Anexo de Petição Inicial ──
+  const inicialKey = 'inicial_' + cod;
+  const inicialSalvo = (() => { try { return JSON.parse(localStorage.getItem(inicialKey)); } catch { return null; } })();
+  const inicialDiv = document.createElement('div');
+  inicialDiv.style.cssText = 'background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:14px;';
+  const inicialConteudo = inicialSalvo
+    ? `<div id="inicial-salvo-${cod}" style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;">
+         <span style="font-size:18px;">📋</span>
+         <div style="flex:1;min-width:0;">
+           <div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${inicialSalvo.nome}</div>
+           <div style="font-size:10px;color:var(--muted);">${inicialSalvo.tamanho} · salvo em ${inicialSalvo.data}</div>
+         </div>
+         <a href="${inicialSalvo.url}" download="${inicialSalvo.nome}"
+            style="padding:4px 12px;background:rgba(39,174,96,.15);border:1px solid rgba(39,174,96,.35);color:#27AE60;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;text-decoration:none;">
+           ⬇ Baixar
+         </a>
+         <button onclick="removerInicial('${cod}')"
+            style="padding:4px 10px;background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.25);color:#e74c3c;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;">
+           ✕
+         </button>
+       </div>`
+    : `<label for="file-inicial-${cod}" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface);border:1px dashed var(--border);border-radius:8px;cursor:pointer;transition:border-color .2s;"
+           onmouseover="this.style.borderColor='var(--cyan)'" onmouseout="this.style.borderColor='var(--border)'">
+         <span style="font-size:20px;">📋</span>
+         <span style="font-size:12px;color:var(--muted);">Clique para anexar a petição inicial (PDF, DOCX…)</span>
+         <input type="file" id="file-inicial-${cod}" accept=".pdf,.doc,.docx,.txt,.odt" style="display:none" onchange="anexarInicial('${cod}',this)">
+       </label>
+       <div id="inicial-progress-${cod}" style="display:none;margin-top:8px;font-size:11px;color:var(--muted);">Processando…</div>`;
+  inicialDiv.innerHTML = `
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--cyan);margin-bottom:8px;">
+      📋 Petição Inicial
+    </div>
+    <div id="inicial-wrap-${cod}">${inicialConteudo}</div>`;
+  blocoPainel.appendChild(inicialDiv);
+
+  // ── Informações do Preparo ──
+  const preInfoKey = 'preparo_info_' + cod;
+  const preInfoSalvo = localStorage.getItem(preInfoKey) || '';
+  const preInfoDiv = document.createElement('div');
+  preInfoDiv.style.cssText = 'background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:14px;';
+  preInfoDiv.innerHTML = `
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--cyan);margin-bottom:8px;">
+      📌 Informações do Preparo
+    </div>
+    <textarea id="preparo-info-${cod}" placeholder="Registre aqui informações relevantes para o preparo desta audiência: estratégia, pontos de atenção, documentos necessários, orientações especiais…"
+      style="width:100%;min-height:100px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:10px;
+             color:var(--text);font-size:12px;font-family:var(--font);resize:vertical;line-height:1.5;outline:none;box-sizing:border-box;"
+    >${preInfoSalvo}</textarea>
+    <div style="display:flex;justify-content:flex-end;margin-top:6px;gap:8px;align-items:center;">
+      <span id="preparo-info-status-${cod}" style="font-size:10px;color:var(--muted);"></span>
+      <button onclick="salvarPreparoInfo('${cod}')"
+        style="padding:5px 14px;background:rgba(0,174,239,.15);border:1px solid rgba(0,174,239,.4);color:var(--cyan);
+               border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">
+        Salvar
+      </button>
+    </div>`;
+  blocoPainel.appendChild(preInfoDiv);
+
   // ── Preposto & Testemunhas ──
   const ptKey = 'pt_' + cod;
   const ptSalvo = (() => { try { return JSON.parse(localStorage.getItem(ptKey)); } catch { return {}; } })() || {};
@@ -3714,6 +3854,51 @@ function openModal(idx){
       </button>
     </div>`;
   blocoPainel.appendChild(ptDiv);
+
+  // ── Informações para a Controladoria ──
+  const ctrlKey = 'ctrl_aud_' + cod;
+  const ctrlSalvo = (() => { try { return JSON.parse(localStorage.getItem(ctrlKey)); } catch { return {}; } })() || {};
+  const selectedCtrl = (campo, valor) => (ctrlSalvo[campo] === valor ? 'selected' : '');
+  const ctrlDiv = document.createElement('div');
+  ctrlDiv.style.cssText = 'background:var(--surface2);border:1px solid var(--border2);border-radius:10px;padding:14px;';
+  ctrlDiv.innerHTML = `
+    <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--cyan);margin-bottom:8px;">
+      📩 Informações para a Controladoria
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.5;">
+      Use este campo para avisar se a audiência foi cancelada, se houve alteração de modalidade, mudança de responsável ou qualquer observação relevante.
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;">
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Situação</label>
+        <select id="ctrl-situacao-${cod}" style="background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:8px 10px;color:var(--text);font-size:12px;font-family:var(--font);outline:none;">
+          <option value="Sem alteração" ${selectedCtrl('situacao','Sem alteração')}>Sem alteração</option>
+          <option value="Audiência cancelada" ${selectedCtrl('situacao','Audiência cancelada')}>Audiência cancelada</option>
+          <option value="Audiência redesignada" ${selectedCtrl('situacao','Audiência redesignada')}>Audiência redesignada</option>
+          <option value="Aguardando confirmação" ${selectedCtrl('situacao','Aguardando confirmação')}>Aguardando confirmação</option>
+        </select>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Modalidade</label>
+        <select id="ctrl-modalidade-${cod}" style="background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:8px 10px;color:var(--text);font-size:12px;font-family:var(--font);outline:none;">
+          <option value="Sem ajuste" ${selectedCtrl('modalidade','Sem ajuste')}>Sem ajuste</option>
+          <option value="Alterar para presencial" ${selectedCtrl('modalidade','Alterar para presencial')}>Alterar para presencial</option>
+          <option value="Alterar para telepresencial" ${selectedCtrl('modalidade','Alterar para telepresencial')}>Alterar para telepresencial</option>
+          <option value="Confirmar modalidade" ${selectedCtrl('modalidade','Confirmar modalidade')}>Confirmar modalidade</option>
+        </select>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <label style="font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;">Novo responsável</label>
+        <input id="ctrl-responsavel-${cod}" type="text" value="${escapeHtml(ctrlSalvo.responsavel || '')}" placeholder="Se houve alteração" style="background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:8px 10px;color:var(--text);font-size:12px;font-family:var(--font);outline:none;">
+      </div>
+    </div>
+    <textarea id="ctrl-obs-${cod}" placeholder="Observações para a Controladoria: cancelamento, ajuste de modalidade, alteração de responsável, orientações adicionais..." style="width:100%;min-height:90px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:10px;color:var(--text);font-size:12px;font-family:var(--font);resize:vertical;line-height:1.5;outline:none;box-sizing:border-box;">${escapeHtml(ctrlSalvo.obs || '')}</textarea>
+    <div style="display:flex;justify-content:flex-end;margin-top:8px;gap:8px;align-items:center;flex-wrap:wrap;">
+      <span id="ctrl-status-${cod}" style="font-size:10px;color:var(--muted);"></span>
+      <button onclick="salvarInfoControladoria('${cod}')" style="padding:6px 14px;background:rgba(0,174,239,.15);border:1px solid rgba(0,174,239,.4);color:var(--cyan);border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">Salvar</button>
+      <button onclick="enviarEmailControladoria('${cod}', ${idx})" style="padding:6px 14px;background:#006B8F;border:1px solid #006B8F;color:#fff;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">✉️ Enviar e-mail para Audiências Trabalhistas</button>
+    </div>`;
+  blocoPainel.appendChild(ctrlDiv);
 
   document.getElementById('modal-body').appendChild(blocoPainel);
 
@@ -3858,6 +4043,44 @@ function makeConviteLink(r) {
 }
 function closeModal(){ document.getElementById('modal').classList.remove('open'); }
 
+function salvarInfoControladoria(cod){
+  const dados = {
+    situacao: document.getElementById('ctrl-situacao-' + cod)?.value || 'Sem alteração',
+    modalidade: document.getElementById('ctrl-modalidade-' + cod)?.value || 'Sem ajuste',
+    responsavel: document.getElementById('ctrl-responsavel-' + cod)?.value || '',
+    obs: document.getElementById('ctrl-obs-' + cod)?.value || '',
+    atualizadoEm: new Date().toLocaleString('pt-BR')
+  };
+  localStorage.setItem('ctrl_aud_' + cod, JSON.stringify(dados));
+  const st = document.getElementById('ctrl-status-' + cod);
+  if(st){ st.textContent = 'Salvo em ' + dados.atualizadoEm; setTimeout(()=>st.textContent='',2200); }
+}
+
+function enviarEmailControladoria(cod, idx){
+  salvarInfoControladoria(cod);
+  const r = DATA.main[idx] || {};
+  const dados = (() => { try { return JSON.parse(localStorage.getItem('ctrl_aud_' + cod)); } catch { return {}; } })() || {};
+  const destinatario = 'audiencia.trabalhista@peixotoecury.com.br';
+  const assunto = `Informações da audiência - ${r.processo || ''} - ${r.parte_principal || ''}`;
+  const corpo = `Prezados,\n\nEncaminho informações/observações sobre a audiência abaixo:\n\n` +
+    `Processo: ${r.processo || ''}\n` +
+    `Parte principal: ${r.parte_principal || ''}\n` +
+    `Parte contrária: ${r.parte_contraria || ''}\n` +
+    `Data/Horário: ${r.data || ''} ${r.horario || ''}\n` +
+    `Comarca/UF: ${r.comarca || ''}/${r.estado || ''}\n` +
+    `Vara/Turma: ${r.vara || ''}\n` +
+    `Grupo: ${r.grupo || ''}\n` +
+    `Advogado audiência: ${r.adv_audiencia || ''}\n` +
+    `Advogado preparo: ${r.adv_preparo || ''}\n\n` +
+    `Situação: ${dados.situacao || 'Sem alteração'}\n` +
+    `Modalidade: ${dados.modalidade || 'Sem ajuste'}\n` +
+    `Novo responsável: ${dados.responsavel || 'Não informado'}\n\n` +
+    `Observações:\n${dados.obs || 'Sem observações adicionais.'}\n\n` +
+    `Obrigada.`;
+  const url = `mailto:${destinatario}?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
+  window.location.href = url;
+}
+
 // ── Notas por audiência ──────────────────────────────────────
 function salvarNota(cod){
   const ta = document.getElementById('modal-nota-'+cod);
@@ -3942,7 +4165,77 @@ function removerAnexo(cod){
     </label>`;
 }
 
-// ---- ADMIN ----
+// ── Anexo de Petição Inicial ──
+function anexarInicial(cod, input){
+  const file = input.files[0];
+  if(!file) return;
+  const maxMB = 5;
+  if(file.size > maxMB * 1024 * 1024){
+    alert('Arquivo muito grande. Limite: '+maxMB+'MB');
+    input.value='';
+    return;
+  }
+  const prog = document.getElementById('inicial-progress-'+cod);
+  if(prog){ prog.style.display='block'; prog.textContent='Processando…'; }
+  const reader = new FileReader();
+  reader.onload = function(e){
+    const data = {
+      nome: file.name,
+      tipo: file.type,
+      tamanho: file.size < 1024*1024 ? Math.round(file.size/1024)+'KB' : (file.size/1024/1024).toFixed(1)+'MB',
+      data: new Date().toLocaleDateString('pt-BR'),
+      url: e.target.result
+    };
+    try {
+      localStorage.setItem('inicial_'+cod, JSON.stringify(data));
+    } catch(ex) {
+      alert('Arquivo muito grande para armazenar (localStorage cheio). Tente um arquivo menor.');
+      if(prog) prog.style.display='none';
+      return;
+    }
+    const wrap = document.getElementById('inicial-wrap-'+cod);
+    if(wrap) wrap.innerHTML = `
+      <div style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;">
+        <span style="font-size:18px;">📋</span>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${data.nome}</div>
+          <div style="font-size:10px;color:var(--muted);">${data.tamanho} · salvo em ${data.data}</div>
+        </div>
+        <a href="${data.url}" download="${data.nome}"
+           style="padding:4px 12px;background:rgba(39,174,96,.15);border:1px solid rgba(39,174,96,.35);color:#27AE60;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;text-decoration:none;">
+          ⬇ Baixar
+        </a>
+        <button onclick="removerInicial('${cod}')"
+           style="padding:4px 10px;background:rgba(192,57,43,.1);border:1px solid rgba(192,57,43,.25);color:#e74c3c;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;">
+          ✕
+        </button>
+      </div>`;
+  };
+  reader.readAsDataURL(file);
+}
+
+function removerInicial(cod){
+  if(!confirm('Remover a petição inicial anexada?')) return;
+  localStorage.removeItem('inicial_'+cod);
+  const wrap = document.getElementById('inicial-wrap-'+cod);
+  if(wrap) wrap.innerHTML = `
+    <label for="file-inicial2-${cod}" style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:var(--surface);border:1px dashed var(--border);border-radius:8px;cursor:pointer;"
+        onmouseover="this.style.borderColor='var(--cyan)'" onmouseout="this.style.borderColor='var(--border)'">
+      <span style="font-size:20px;">📋</span>
+      <span style="font-size:12px;color:var(--muted);">Clique para anexar a petição inicial (PDF, DOCX…)</span>
+      <input type="file" id="file-inicial2-${cod}" accept=".pdf,.doc,.docx,.txt,.odt" style="display:none" onchange="anexarInicial('${cod}',this)">
+    </label>`;
+}
+
+function salvarPreparoInfo(cod){
+  const ta = document.getElementById('preparo-info-'+cod);
+  if(!ta) return;
+  localStorage.setItem('preparo_info_'+cod, ta.value);
+  const st = document.getElementById('preparo-info-status-'+cod);
+  if(st){ st.textContent = '✓ Salvo'; setTimeout(()=>{ st.textContent=''; },2000); }
+}
+
+
 function renderUsers(){
   const users = getUsers();
   document.getElementById('users-tbody').innerHTML = users.map((u,i)=>{
@@ -4201,8 +4494,17 @@ function renderComarcas(){
         const advRows=Object.entries(byAdv).map(([adv,advRecs])=>{
           const isIndicar=adv.includes('Indicar');
           const isCorr=adv.startsWith('Correspondente');
-          const advColor=isIndicar?'#e74c3c':isCorr?'var(--orange)':'var(--text)';
-          const icon=isIndicar?'⚠ ':isCorr?'👤 ':'👩‍⚖️ ';
+          const isNA=adv==='N/A';
+          const isInterno=!isIndicar&&!isCorr&&!isNA&&PROF[adv.trim()];
+          const advColor=isIndicar?'#e74c3c':isCorr?'var(--orange)':isNA?'var(--muted)':'var(--text)';
+          const icon=isIndicar?'⚠ ':isCorr?'© ':'👩‍⚖️ ';
+          const tipoTag=isIndicar
+            ? '<span style="background:rgba(231,76,60,.15);color:#e74c3c;border-radius:4px;padding:1px 6px;font-size:9px;font-weight:700;margin-left:4px">PENDENTE</span>'
+            : isCorr
+              ? '<span style="background:rgba(230,126,34,.12);color:var(--orange);border-radius:4px;padding:1px 6px;font-size:9px;font-weight:700;margin-left:4px">CORR.</span>'
+              : isNA
+                ? '<span style="background:rgba(106,139,165,.12);color:var(--muted);border-radius:4px;padding:1px 6px;font-size:9px;font-weight:700;margin-left:4px">N/A</span>'
+                : '<span style="background:rgba(0,174,239,.12);color:var(--cyan);border-radius:4px;padding:1px 6px;font-size:9px;font-weight:700;margin-left:4px">INTERNO</span>';
           const rows=advRecs.map(r=>{
             const[bg,tc]=tipoColor(r.tipo);
             return `<div style="display:flex;gap:6px;align-items:center;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.04)">
@@ -4211,7 +4513,7 @@ function renderComarcas(){
             </div>`;
           }).join('');
           return `<div style="margin-bottom:6px;padding:8px 10px;background:rgba(0,0,0,.15);border-radius:6px">
-            <div style="font-size:11px;font-weight:700;color:${advColor};margin-bottom:4px">${icon}${adv}</div>
+            <div style="font-size:11px;font-weight:700;color:${advColor};margin-bottom:4px;display:flex;align-items:center;flex-wrap:wrap;gap:2px">${icon}${adv}${tipoTag}</div>
             ${rows}
           </div>`;
         }).join('');
@@ -4400,16 +4702,29 @@ function savePosCodigo(codigo, record) {
 }
 
 // Audiências passadas (data <= today) with adv_audiencia != N/A or valid
+function parsePtDateForPost(dataStr){
+  if(!dataStr) return null;
+  const parts = String(dataStr).split('/');
+  if(parts.length !== 3) return null;
+  const [dd, mm, yy] = parts;
+  return new Date(+yy, +mm - 1, +dd);
+}
+function isWithinD1Window(dataStr){
+  const d = parsePtDateForPost(dataStr);
+  if(!d || isNaN(d)) return false;
+  const start = new Date(d); start.setHours(0,0,0,0);
+  const limite = new Date(d); limite.setDate(limite.getDate() + 1); limite.setHours(23,59,59,999);
+  const hoje = new Date();
+  return hoje >= start && hoje <= limite;
+}
+
 function getPastAudiencias() {
-  // Mostra audiências da pauta com data <= hoje (data real do sistema)
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
+  // Controle de pós: exibe somente audiências elegíveis do dia até D+1.
+  // Assim o advogado tem o dia da audiência e o dia seguinte para preencher.
   return DATA.main.filter(r => {
     if (!r.data) return false;
-    const [dd, mm, yy] = r.data.split('/');
-    const d = new Date(+yy, +mm - 1, +dd);
-    const isAudiencia = !r.tipo.startsWith('Perícia') && !r.tipo.includes('Julgamento - Vara') && !r.tipo.includes('Julgamento - Vara do Trabalho - Súmula');
-    return d <= today && isAudiencia;
+    const isAudiencia = !String(r.tipo||'').startsWith('Perícia') && !String(r.tipo||'').toLowerCase().includes('perícia') && !String(r.tipo||'').toLowerCase().includes('pericia') && !String(r.tipo||'').includes('Julgamento - Vara') && !String(r.tipo||'').includes('Julgamento - Vara do Trabalho - Súmula');
+    return isAudiencia && isWithinD1Window(r.data);
   });
 }
 
@@ -4428,6 +4743,38 @@ function initPosFilters() {
   const grupoEl = document.getElementById('pos-filter-grupo');
   if (grupoEl && grupoEl.options.length <= 1) {
     grupos.forEach(g => { const o = new Option(g, g); grupoEl.add(o); });
+  }
+}
+
+
+function getResponsibleNameForPost(r){
+  const sigla = r.adv_audiencia || r.adv_preparo || 'Sem responsável';
+  if(PROF && PROF[sigla] && PROF[sigla].nome) return PROF[sigla].nome;
+  return sigla || 'Sem responsável';
+}
+function updatePostDiretoria(prefix, rows, dataStore){
+  const total = rows.length;
+  const concluidos = rows.filter(r => dataStore[r.codigo]).length;
+  const pendentes = Math.max(total - concluidos, 0);
+  const pct = total ? Math.round((concluidos / total) * 100) : 0;
+  const setText = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+  setText(prefix+'-dir-total', total);
+  setText(prefix+'-dir-concluido', concluidos);
+  setText(prefix+'-dir-pendente', pendentes);
+  setText(prefix+'-dir-percentual', pct + '%');
+  const bar = document.getElementById(prefix+'-dir-progress');
+  if(bar) bar.style.width = pct + '%';
+  const ranking = {};
+  rows.filter(r => !dataStore[r.codigo]).forEach(r => {
+    const nome = getResponsibleNameForPost(r);
+    ranking[nome] = (ranking[nome] || 0) + 1;
+  });
+  const list = document.getElementById(prefix+'-dir-ranking');
+  if(list){
+    const entries = Object.entries(ranking).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    list.innerHTML = entries.length
+      ? entries.map(([nome,qtd]) => `<div class="pos-ranking-row"><b title="${nome}">${nome}</b><span>${qtd}</span></div>`).join('')
+      : '<div class="pos-empty-mini">Sem pendências no período.</div>';
   }
 }
 
@@ -4450,6 +4797,7 @@ function renderPos() {
   );
   
   const posData = getPosData();
+  updatePostDiretoria('pos', getPastAudiencias(), posData);
   
   if (statusF === 'done') rows = rows.filter(r => posData[r.codigo]);
   if (statusF === 'pending') rows = rows.filter(r => !posData[r.codigo]);
@@ -4817,11 +5165,10 @@ function savePericiaData(d){ localStorage.setItem(PERICIA_KEY, JSON.stringify(d)
 function savePericiaCodigo(codigo, record){ const d=getPericiaData(); d[codigo]=record; savePericiaData(d); }
 function isPericiaRow(r){ return String(r.tipo||'').toLowerCase().includes('perícia') || String(r.tipo||'').toLowerCase().includes('pericia'); }
 function getPastPericias(){
-  const today=new Date(); today.setHours(23,59,59,999);
+  // Controle de pós-perícia: exibe somente perícias elegíveis do dia até D+1.
   return DATA.main.filter(r=>{
     if(!r.data || !isPericiaRow(r)) return false;
-    const [dd,mm,yy]=r.data.split('/'); const d=new Date(+yy,+mm-1,+dd);
-    return d<=today;
+    return isWithinD1Window(r.data);
   });
 }
 function initPericiaFilters(){
@@ -4838,6 +5185,7 @@ function renderPericia(){
   const statusF=document.getElementById('pericia-filter-status')?.value||'';
   const search=(document.getElementById('pericia-search')?.value||'').toLowerCase();
   let rows=getPastPericias(); const data=getPericiaData();
+  updatePostDiretoria('per', getPastPericias(), data);
   if(diaF) rows=rows.filter(r=>r.data===diaF);
   if(grupoF) rows=rows.filter(r=>r.grupo===grupoF);
   if(search) rows=rows.filter(r=>[r.processo,r.parte_principal,r.parte_contraria,r.adv_audiencia,r.comarca,data[r.codigo]?.perito_nome,data[r.codigo]?.local_pericia,data[r.codigo]?.area_vistoriada,data[r.codigo]?.advogado_compareceu].join(' ').toLowerCase().includes(search));
@@ -5312,6 +5660,9 @@ function normalizarCliente(nome) {
 const CLIENTE_CANONICO = {
   'embraer': 'Embraer S.A.',
   'embraersa': 'Embraer S.A.',
+  'yabora': 'Embraer S.A.',
+  'yaboraindustriaaeronautica': 'Embraer S.A.',
+  'yaboraindustriaaeronauticasa': 'Embraer S.A.',
   'ferrero': 'Ferrero do Brasil',
   'ferrerodobrasil': 'Ferrero do Brasil',
   'ferrerobrasil': 'Ferrero do Brasil',
@@ -5325,7 +5676,7 @@ const CLIENTE_CANONICO = {
 function clienteCanonico(nome){
   const k = normalizarCliente(nome);
   if(CLIENTE_CANONICO[k]) return CLIENTE_CANONICO[k];
-  if(k.includes('embraer')) return 'Embraer S.A.';
+  if(k.includes('embraer') || k.includes('yabora') || k.includes('yabor') || k.includes('industriaaeronautica')) return 'Embraer S.A.';
   if(k.includes('ferrero')) return 'Ferrero do Brasil';
   if(k.includes('bimbo')) return 'Bimbo';
   if(k.includes('bridgestone')) return 'Bridgestone';
@@ -5606,6 +5957,7 @@ function baixarArquivoExcelHtml(cfg, clienteNome, rowsPeriodo){
 }
 
 </style>
+<style>.info-box,.cliente-no-preview{display:none!important;}</style>
 </head>
 <body>
 <table>
@@ -5956,7 +6308,97 @@ setTimeout(() => {
     document.body.appendChild(banner);
   }
 }, 3000);
+
+
+// AJUSTE CONTROLADORIA: manter pós até D+1
+function isWithinPostWindow(dataAudiencia){
+    const hoje = new Date();
+    const audiencia = new Date(dataAudiencia);
+    const limite = new Date(audiencia);
+    limite.setDate(limite.getDate() + 1);
+    return hoje <= limite;
+}
 </script>
 <div class="save-indicator" id="save-indicator">✓ Salvo</div>
+
+<script id="pc-dashboard-click-actions-safe">
+(function(){
+  function safeShowPauta(){
+    try {
+      if (typeof showTab === "function") {
+        const navs = document.querySelectorAll(".nav-btn");
+        showTab("pauta", navs && navs[1] ? navs[1] : null);
+      }
+    } catch(e) {}
+  }
+
+  function wireDashboardClicks(){
+    try {
+      document.querySelectorAll("#tipo-bars .hb-row").forEach(function(row){
+        if(row.dataset.pcClickOk) return;
+        row.dataset.pcClickOk = "1";
+        row.addEventListener("click", function(){
+          const label = row.querySelector(".hb-label")?.textContent?.trim();
+          safeShowPauta();
+          setTimeout(function(){
+            const sel = document.getElementById("filter-tipo");
+            if(sel && label){
+              let value = label === "Sessão" ? "Julgamento" : label;
+              if(!Array.from(sel.options).some(o => o.value === value)){
+                const opt = document.createElement("option");
+                opt.value = value;
+                opt.textContent = value;
+                sel.appendChild(opt);
+              }
+              sel.value = value;
+              if(typeof renderTable === "function") renderTable();
+            }
+          }, 80);
+        });
+      });
+
+      document.querySelectorAll("#date-chart .dc-col").forEach(function(col){
+        if(col.dataset.pcClickOk) return;
+        col.dataset.pcClickOk = "1";
+        col.addEventListener("click", function(){
+          const tip = col.querySelector(".dc-bar")?.dataset?.tip || "";
+          const data = tip.split(":")[0]?.trim();
+          safeShowPauta();
+          setTimeout(function(){
+            const sel = document.getElementById("filter-data");
+            if(sel && data){
+              if(!Array.from(sel.options).some(o => o.value === data)){
+                const opt = document.createElement("option");
+                opt.value = data;
+                opt.textContent = data;
+                sel.appendChild(opt);
+              }
+              sel.value = data;
+              if(typeof renderTable === "function") renderTable();
+            }
+          }, 80);
+        });
+      });
+
+      document.querySelectorAll(".kpi-card, .grupo-summary-card, .dash-card .dl-row, #estado-bars .hb-row, #adv-chart .hb-row").forEach(function(el){
+        el.setAttribute("tabindex", "0");
+        el.setAttribute("role", "button");
+      });
+    } catch(e) {}
+  }
+
+  document.addEventListener("DOMContentLoaded", function(){
+    setTimeout(wireDashboardClicks, 600);
+    setTimeout(wireDashboardClicks, 1400);
+  });
+
+  document.addEventListener("click", function(ev){
+    if(ev.target && ev.target.closest && ev.target.closest(".nav-btn")){
+      setTimeout(wireDashboardClicks, 300);
+    }
+  });
+})();
+</script>
+
 </body>
 </html>
