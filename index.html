@@ -5581,6 +5581,56 @@ Enviado pelo sistema de Pós-Audiência — Peixoto & Cury Advogados`;
   showToast('📧 Abrindo cliente de e-mail...');
 }
 
+
+function pautaCompletaOficialConfig(rows){
+  const headers = [
+    'Código P&C','Data','Horário','Tipo Agendamento','Processo','Parte Principal','Parte Contrária','Comarca','Estado','Vara/Turma','Fase','Ação','Foro','Valor da Causa','Equipe responsável','Advogado Responsável Audiência/SO','Advogado Responsável Preparo/Análise','Link/Observações'
+  ];
+  const widths = [14.71,10,11.71,37.57,22.86,58.71,84.29,21.57,11,40.29,18,28,16,16,20,28,28,55];
+  const dataRows = (rows || []).map(r=>[
+    r.codigo || '', r.data || '', r.horario || '', r.tipo || '', r.processo || '', r.parte_principal || '', r.parte_contraria || '',
+    r.comarca || '', r.estado || '', r.vara || '', r.fase || '', r.acao || '', r.foro || '',
+    (r.valor === null || r.valor === undefined || r.valor === '') ? '' : Number(r.valor),
+    r.grupo || '', r.adv_audiencia || '', r.adv_preparo || '', r.link || ''
+  ]);
+  return {
+    sheet: '04.05.2026 a 15.05.2026',
+    filename: 'Pauta_de_Audiencias_OFICIAL',
+    headers,
+    widths,
+    rows: dataRows,
+    includeCountRow: true,
+    countValue: dataRows.length,
+    headerRow: 2,
+    startCol: 1
+  };
+}
+
+function baixarXlsx(cfg, nomeArquivo){
+  const blobBytes = zipStore(workbookFiles(cfg));
+  const blob = new Blob([blobBytes], {type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const data = new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');
+  a.href = url;
+  a.download = (nomeArquivo || cfg.filename || 'Pauta') + '_' + data + '.xlsx';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function exportarExcel(){
+  const rows = (typeof getFiltered === 'function') ? getFiltered() : getPautaRecords();
+  if(!rows || !rows.length){
+    (typeof showToast === 'function') ? showToast('Nenhum registro encontrado para exportar.') : alert('Nenhum registro encontrado para exportar.');
+    return;
+  }
+  const cfg = pautaCompletaOficialConfig(rows);
+  baixarXlsx(cfg, 'Pauta_de_Audiencias_04.05.2026_a_15.05.2026_OFICIAL');
+  if(typeof showToast === 'function') showToast('📥 Pauta Completa exportada em Excel no padrão oficial!');
+}
+
 function exportarPosExcel() {
   const rows = getPastAudiencias();
   const posData = getPosData();
@@ -5846,17 +5896,31 @@ function makeCell(ref, value, style){
   return `<c r="${ref}" t="inlineStr" s="${style||0}"><is><t>${xmlEscape(value)}</t></is></c>`;
 }
 function stylesXml(){
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="3"><font><sz val="10"/><color rgb="FF050403"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><sz val="10"/><color rgb="FF050403"/><name val="Arial"/></font></fonts><fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF006080"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEAF7FB"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFD9EAF2"/></left><right style="thin"><color rgb="FFD9EAF2"/></right><top style="thin"><color rgb="FFD9EAF2"/></top><bottom style="thin"><color rgb="FFD9EAF2"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="5"><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFill="1" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="14" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/><xf numFmtId="20" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><fonts count="3"><font><sz val="10"/><color rgb="FF050403"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><sz val="10"/><color rgb="FF050403"/><name val="Arial"/></font></fonts><fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF006080"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEAF7FB"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color rgb="FFD9EAF2"/></left><right style="thin"><color rgb="FFD9EAF2"/></right><top style="thin"><color rgb="FFD9EAF2"/></top><bottom style="thin"><color rgb="FFD9EAF2"/></bottom><diagonal/></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="6"><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFill="1" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf><xf numFmtId="14" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/><xf numFmtId="20" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf><xf numFmtId="4" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1"/></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
 }
 function sheetXml(cfg){
   const totalCols = cfg.headers.length;
   const start = cfg.startCol || 1;
-  const row1 = [];
+  const headerRow = cfg.headerRow || (cfg.includeCountRow ? 2 : 1);
+  const dataStartRow = headerRow + 1;
   const headerStyle = 1;
-  for(let c=0;c<totalCols;c++) row1.push(makeCell(colName(start+c)+'1', cfg.headers[c], headerStyle));
-  let rowsXml = `<row r="1" ht="28" customHeight="1">${row1.join('')}</row>`;
+  let rowsXml = '';
+
+  if(cfg.includeCountRow){
+    const countCells = [];
+    for(let c=0;c<totalCols;c++){
+      const val = c === 0 ? (cfg.countValue ?? (cfg.rows || []).length) : '';
+      countCells.push(makeCell(colName(start+c)+'1', val, 4));
+    }
+    rowsXml += `<row r="1" ht="18" customHeight="1">${countCells.join('')}</row>`;
+  }
+
+  const headerCells = [];
+  for(let c=0;c<totalCols;c++) headerCells.push(makeCell(colName(start+c)+headerRow, cfg.headers[c], headerStyle));
+  rowsXml += `<row r="${headerRow}" ht="30" customHeight="1">${headerCells.join('')}</row>`;
+
   cfg.rows.forEach((row, idx)=>{
-    const rnum = idx + 2;
+    const rnum = dataStartRow + idx;
     const cells = [];
     for(let c=0;c<totalCols;c++){
       const col = colName(start+c); const val = row[c]; const h = cfg.headers[c] || '';
@@ -5864,14 +5928,16 @@ function sheetXml(cfg){
       let st = 4;
       if(hn.includes('DATA') && !hn.includes('REDESIGN') && !hn.includes('DEPART')) st=2;
       if(hn.includes('HORA')) st=3;
+      if(hn.includes('VALOR')) st=5;
       cells.push(makeCell(col+rnum, val, st));
     }
     rowsXml += `<row r="${rnum}">${cells.join('')}</row>`;
   });
   const endCol = colName(start + totalCols - 1);
-  const endRow = Math.max(1, cfg.rows.length + 1);
+  const endRow = Math.max(headerRow, cfg.rows.length + dataStartRow - 1);
   const cols = (cfg.widths||[]).map((w,i)=>`<col min="${start+i}" max="${start+i}" width="${w}" customWidth="1"/>`).join('');
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><dimension ref="${colName(start)}1:${endCol}${endRow}"/><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="16"/><cols>${cols}</cols><sheetData>${rowsXml}</sheetData><autoFilter ref="${colName(start)}1:${endCol}${endRow}"/><pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3"/></worksheet>`;
+  const freezeTop = dataStartRow;
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><dimension ref="${colName(start)}1:${endCol}${endRow}"/><sheetViews><sheetView workbookViewId="0"><pane ySplit="${headerRow}" topLeftCell="A${freezeTop}" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="16"/><cols>${cols}</cols><sheetData>${rowsXml}</sheetData><autoFilter ref="${colName(start)}${headerRow}:${endCol}${endRow}"/><pageMargins left="0.7" right="0.7" top="0.75" bottom="0.75" header="0.3" footer="0.3"/></worksheet>`;
 }
 function crc32(input){
   const data = input instanceof Uint8Array ? input : new TextEncoder().encode(String(input||''));
