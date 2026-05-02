@@ -1329,7 +1329,7 @@ tbody tr,tbody td{color:var(--preto-pc)!important;}
 body,#app,.main{background:#F4F9FC!important;color:var(--pc-black)!important;}
 .topbar{background:linear-gradient(90deg,#003B5C 0%,#006080 76%,#00A9E0 100%)!important;border-bottom:4px solid #00A9E0!important;}
 .topbar-logo img{filter:none!important;mix-blend-mode:normal!important;}
-.nav{background:#fff!important;border-bottom:1px solid var(--pc-line)!important;box-shadow:0 5px 16px rgba(0,59,92,.06)!important;}
+.nav{background:#003B5C!important;border-bottom:1px solid rgba(0,174,239,.25)!important;box-shadow:0 5px 16px rgba(0,0,0,.18)!important;}
 .nav-btn{color:#3D5A6E!important;font-weight:600!important;}
 .nav-btn.active{color:#fff!important;background:#006080!important;border-bottom-color:#00A9E0!important;border-radius:4px 4px 0 0!important;}
 .nav-btn:hover:not(.active){color:#003B5C!important;background:#E8F4FA!important;}
@@ -1791,6 +1791,11 @@ tr.alerta-sem-designacao{
 .modal-overlay:not(.open){pointer-events:none!important;}
 .modal-overlay.open{pointer-events:auto!important;}
 #login-screen, #app, .topbar, .nav, .main, button, a, input, select, textarea{pointer-events:auto!important;}
+
+/* ── NAV BRANCO P&C ── */
+.nav-btn{color:rgba(255,255,255,.70)!important;background:transparent!important;}
+.nav-btn:hover:not(.active){color:#fff!important;background:rgba(255,255,255,.08)!important;}
+.nav-btn.active{color:#fff!important;border-bottom-color:#00AEEF!important;background:rgba(0,174,239,.15)!important;font-weight:700!important;}
 </style>
 </head>
 <body>
@@ -2652,7 +2657,7 @@ function saveCustomPass(email, pass){
   localStorage.setItem(PASS_KEY, JSON.stringify(p));
 }
 
-const PAUTA_GENERATION_DATE = '29/04/2026';
+const PAUTA_GENERATION_DATE = '03/05/2026';
 
 // Primeiro dia da pauta oficial — exclui dias anteriores (29/04, 30/04) da pauta principal
 // Dias <= PAUTA_GENERATION_DATE são exclusivos do pós-audiência/pós-perícia e acumulado
@@ -3085,13 +3090,16 @@ function updateLastUpdateBadge(){
 }
 
 function initApp(){
-  applyEdits();
+  applyEdits().then(()=>{
+    try{ renderTable(); }catch(e){}
+  });
   updateLastUpdateBadge();
   try{ popularClientesBanco(); }catch(e){ console.warn('Banco Cliente init ignorado:', e); }
   const main = getPautaRecords();
 
   // Update conflict badge excluding N/A
   const validConflictCount = (CONFLICTS||[]).filter(c=>{
+    if(c.data){ const [dd,mm,yy]=c.data.split('/'); if(new Date(+yy,+mm-1,+dd).getTime()<PAUTA_START) return false; }
     const r1=DATA.main.find(r=>r.codigo===c.cod1);
     const r2=DATA.main.find(r=>r.codigo===c.cod2);
     return r1&&r2&&r1.adv_audiencia&&r1.adv_audiencia!=='N/A'&&r2.adv_audiencia&&r2.adv_audiencia!=='N/A';
@@ -3468,7 +3476,13 @@ function renderTable(){
   tbody.innerHTML = rows.map((r,i)=>{
     const realIdx = DATA.main.indexOf(r);
     const advAud = r.adv_audiencia || '';
-    const hasConflict = typeof CONFLICTS!=='undefined' && r.adv_audiencia && r.adv_audiencia !== 'N/A' && CONFLICTS.some(c=>c.cod1===r.codigo||c.cod2===r.codigo);
+    const hasConflict = typeof CONFLICTS!=='undefined'
+      && r.adv_audiencia && r.adv_audiencia !== 'N/A'
+      && r.adv_audiencia !== 'Indicar Advogado'
+      && !r.adv_audiencia.startsWith('Correspondente')
+      && (()=>{ if(!r.data) return false; const [dd,mm,yy]=r.data.split('/'); return new Date(+yy,+mm-1,+dd).getTime()>=PAUTA_START; })()
+      && CONFLICTS.some(c=>(c.cod1===r.codigo||c.cod2===r.codigo)
+          && (()=>{ if(!c.data) return false; const [dd,mm,yy]=c.data.split('/'); return new Date(+yy,+mm-1,+dd).getTime()>=PAUTA_START; })());
     const conflictBadge = hasConflict ? ' <span style="display:inline-block;background:#c0392b;color:#fff;border-radius:3px;padding:1px 5px;font-size:9px;font-weight:700;margin-left:4px;vertical-align:middle">⚠ CONFLITO</span>' : '';
     const advPre = r.adv_preparo || '';
     const semDesignacaoAlerta = isSemDesignacao(r);
@@ -3484,7 +3498,7 @@ function renderTable(){
 
     const linkCell = r.link ? linkRender(r.link) : '—';
 
-    // Botão convite inline
+    // Botão convite inline — verde se invite já enviado, azul se pendente
     const conviteInline = (()=>{
       const mat = r.adv_audiencia||'';
       const isReal = mat && mat!=='N/A' && mat!=='Indicar Advogado'
@@ -3492,8 +3506,12 @@ function renderTable(){
       if(!isReal) return '<span style="color:var(--muted2);font-size:11px">—</span>';
       const c = makeConviteLink(r);
       if(!c) return '<span style="color:var(--muted2);font-size:11px">—</span>';
+      const inviteSent = !!localStorage.getItem('invite_sent_'+r.codigo);
       if(c.email){
-        return '<button onclick="enviarConvite('+realIdx+',event)" title="Baixar convite .ics para '+c.nome+'" style="display:inline-flex;align-items:center;gap:4px;background:#0078d4;color:#fff;border:none;border-radius:5px;padding:4px 9px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit">📅 Agendar</button>';
+        if(inviteSent){
+          return '<button onclick="enviarConvite('+realIdx+',event)" title="Reenviar invite para '+c.nome+'" style="display:inline-flex;align-items:center;gap:4px;background:rgba(39,174,96,.15);color:#27AE60;border:1px solid rgba(39,174,96,.4);border-radius:5px;padding:4px 9px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit">✅ Enviado</button>';
+        }
+        return '<button onclick="enviarConvite('+realIdx+',event)" title="Enviar invite para '+c.nome+'" style="display:inline-flex;align-items:center;gap:4px;background:#0078d4;color:#fff;border:none;border-radius:5px;padding:4px 9px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit">📅 Invite</button>';
       } else {
         return '<span title="'+c.nome+' sem e-mail" style="color:var(--orange);font-size:11px;cursor:default">⚠️ s/ e-mail</span>';
       }
@@ -3573,25 +3591,172 @@ function renderRedesig(){
 }
 
 
-// ---- INLINE EDIT ----
-const EDITS_KEY = 'pauta_edits_v1';
+// ═══════════════════════════════════════════════════════════════
+// SYNC ENGINE — JSONBin
+// Sincroniza: designações + pós-audiência + pós-perícia
+//             + notas + preposto + info controladoria
+// Não sincroniza: anexos PDF (limite de tamanho)
+// ═══════════════════════════════════════════════════════════════
+const EDITS_KEY           = 'pauta_edits_v1';
+const JSONBIN_ID          = '69f62134856a6821899aea5f';
+const JSONBIN_KEY_STOR    = 'pc_jsonbin_masterkey';
+const JSONBIN_KEY_DEFAULT = '$2a$10$p4npPjyCH7lkIETkFhDwDe45pAgYy2u6hcPIM9lM/nLoNtoJLNchm';
+let   _syncTimer          = null;
 
-function getEdits(){
-  const s = localStorage.getItem(EDITS_KEY);
-  return s ? JSON.parse(s) : {};
-}
-function saveEdits(edits){
-  localStorage.setItem(EDITS_KEY, JSON.stringify(edits));
+function getJSONBinKey(){
+  return localStorage.getItem(JSONBIN_KEY_STOR) || JSONBIN_KEY_DEFAULT;
 }
 
-// Apply saved edits to DATA on load
-function applyEdits(){
-  const edits = getEdits();
-  Object.entries(edits).forEach(([key, val])=>{
-    const [idx, field] = key.split('__');
-    const i = parseInt(idx);
-    if(DATA.main[i]) DATA.main[i][field] = val;
+function _showSyncInd(msg, color){
+  const ind = document.getElementById('save-indicator');
+  if(!ind) return;
+  ind.textContent = msg; ind.style.background = color||'';
+  ind.classList.add('show');
+}
+function _hideSyncInd(delay){
+  setTimeout(()=>{
+    const ind = document.getElementById('save-indicator');
+    if(ind){ ind.classList.remove('show'); ind.textContent='✓ Salvo'; ind.style.background=''; }
+  }, delay||2000);
+}
+
+async function _binGet(){
+  try{
+    const r = await fetch('https://api.jsonbin.io/v3/b/'+JSONBIN_ID+'/latest',{
+      headers:{'X-Master-Key':getJSONBinKey(),'X-Bin-Meta':'false'}
+    });
+    if(!r.ok) return null;
+    const d = await r.json();
+    return d.record||d;
+  }catch{ return null; }
+}
+
+async function _binPut(data){
+  try{
+    const r = await fetch('https://api.jsonbin.io/v3/b/'+JSONBIN_ID,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':getJSONBinKey()},
+      body:JSON.stringify(data)
+    });
+    return r.ok;
+  }catch{ return false; }
+}
+
+function _buildLocalSnapshot(){
+  let desig={};
+  try{ desig=JSON.parse(localStorage.getItem(EDITS_KEY)||'{}'); }catch{}
+
+  let posAud={};
+  try{
+    const raw=JSON.parse(localStorage.getItem('pos_audiencia_v1')||'{}');
+    Object.entries(raw).forEach(([cod,rec])=>{
+      const c=Object.assign({},rec);
+      delete c.ata_base64; delete c.ata_url;
+      posAud[cod]=c;
+    });
+  }catch{}
+
+  let posPericia={};
+  try{ posPericia=JSON.parse(localStorage.getItem('pos_pericia_v1')||'{}'); }catch{}
+
+  const notas={},pt={},ctrl={},prepInfo={};
+  try{
+    for(const k of Object.keys(localStorage)){
+      if(k.startsWith('nota_'))         notas[k.replace('nota_','')]=localStorage.getItem(k);
+      if(k.startsWith('pt_'))           pt[k.replace('pt_','')]=JSON.parse(localStorage.getItem(k)||'{}');
+      if(k.startsWith('ctrl_aud_'))     ctrl[k.replace('ctrl_aud_','')]=JSON.parse(localStorage.getItem(k)||'{}');
+      if(k.startsWith('preparo_info_')) prepInfo[k.replace('preparo_info_','')]=localStorage.getItem(k);
+    }
+  }catch{}
+
+  return {designacoes:desig,pos_audiencia:posAud,pos_pericia:posPericia,
+          notas,pt,ctrl,preparo_info:prepInfo};
+}
+
+function _applySnapshot(snap){
+  if(!snap) return;
+
+  const desig=snap.designacoes||{};
+  try{ localStorage.setItem(EDITS_KEY,JSON.stringify(desig)); }catch{}
+  Object.entries(desig).forEach(([key,val])=>{
+    if(key.includes('::')){
+      const [cod,field]=key.split('::');
+      const row=DATA.main.find(r=>String(r.codigo)===String(cod));
+      if(row) row[field]=val;
+    } else if(key.includes('__')){
+      const [idx,field]=key.split('__');
+      const i=parseInt(idx);
+      if(DATA.main[i]) DATA.main[i][field]=val;
+    }
   });
+
+  if(snap.pos_audiencia){
+    try{
+      const loc=JSON.parse(localStorage.getItem('pos_audiencia_v1')||'{}');
+      const merged=Object.assign({},snap.pos_audiencia);
+      Object.entries(loc).forEach(([cod,rec])=>{
+        if(rec.ata_base64||rec.ata_url)
+          merged[cod]=Object.assign({},merged[cod]||{},{ata_base64:rec.ata_base64,ata_url:rec.ata_url,ata_filename:rec.ata_filename});
+      });
+      localStorage.setItem('pos_audiencia_v1',JSON.stringify(merged));
+    }catch{}
+  }
+
+  if(snap.pos_pericia){
+    try{ localStorage.setItem('pos_pericia_v1',JSON.stringify(snap.pos_pericia)); }catch{}
+  }
+
+  if(snap.notas)      Object.entries(snap.notas).forEach(([c,v])=>{ try{localStorage.setItem('nota_'+c,v);}catch{} });
+  if(snap.pt)         Object.entries(snap.pt).forEach(([c,v])=>{ try{localStorage.setItem('pt_'+c,JSON.stringify(v));}catch{} });
+  if(snap.ctrl)       Object.entries(snap.ctrl).forEach(([c,v])=>{ try{localStorage.setItem('ctrl_aud_'+c,JSON.stringify(v));}catch{} });
+  if(snap.preparo_info) Object.entries(snap.preparo_info).forEach(([c,v])=>{ try{localStorage.setItem('preparo_info_'+c,v);}catch{} });
+}
+
+function _scheduleSave(){
+  if(_syncTimer) clearTimeout(_syncTimer);
+  _syncTimer=setTimeout(async()=>{
+    const ok=await _binPut(_buildLocalSnapshot());
+    _showSyncInd(ok?'✓ Sincronizado':'✓ Salvo localmente', ok?'var(--green)':'var(--orange)');
+    _hideSyncInd(2200);
+  },800);
+}
+
+function getEditsLocal(){ try{ return JSON.parse(localStorage.getItem(EDITS_KEY)||'{}'); }catch{ return {}; } }
+function saveEditsLocal(e){ try{ localStorage.setItem(EDITS_KEY,JSON.stringify(e)); }catch{} }
+function getEdits(){ return getEditsLocal(); }
+
+async function saveEdits(edits){
+  saveEditsLocal(edits);
+  _scheduleSave();
+}
+
+async function applyEdits(){
+  _showSyncInd('↻ Sincronizando...','var(--blue)');
+  const snap=await _binGet();
+  if(snap){
+    const loc=_buildLocalSnapshot();
+    _applySnapshot({
+      designacoes:  Object.assign({},loc.designacoes,  snap.designacoes||{}),
+      pos_audiencia:Object.assign({},loc.pos_audiencia, snap.pos_audiencia||{}),
+      pos_pericia:  Object.assign({},loc.pos_pericia,   snap.pos_pericia||{}),
+      notas:        Object.assign({},loc.notas,         snap.notas||{}),
+      pt:           Object.assign({},loc.pt,            snap.pt||{}),
+      ctrl:         Object.assign({},loc.ctrl,          snap.ctrl||{}),
+      preparo_info: Object.assign({},loc.preparo_info,  snap.preparo_info||{})
+    });
+  } else {
+    _applySnapshot(_buildLocalSnapshot());
+  }
+  _hideSyncInd(300);
+}
+
+async function recarregarDesignacoes(){
+  showToast('↻ Sincronizando tudo...');
+  await applyEdits();
+  renderTable();
+  try{ renderPos(); }catch{}
+  try{ renderPericia(); }catch{}
+  showToast('✅ Tudo atualizado!');
 }
 
 function startEdit(e, idx, field){
@@ -3618,10 +3783,14 @@ function startEdit(e, idx, field){
     const newVal = input.value.trim();
     DATA.main[idx][field] = newVal;
 
-    // Persist
+    // Persist — salva por índice E por código do processo
     const edits = getEdits();
     edits[idx + '__' + field] = newVal;
-    saveEdits(edits);
+    // Formato resiliente: código::campo (sobrevive à troca da pauta)
+    const cod = DATA.main[idx]?.codigo;
+    if(cod) edits[cod + '::' + field] = newVal;
+    saveEdits(edits); // async — salva local + JSONBin
+
     if(currentRole==='admin'||currentRole==='editor'){
       localStorage.setItem(LAST_UPDATE_KEY, new Date().toISOString());
       updateLastUpdateBadge();
@@ -3632,12 +3801,14 @@ function startEdit(e, idx, field){
       addAuditEntry('Edição de pauta', `${fieldLabel} alterado: "${prevVal}" → "${newVal || '(vazio)'}" | Processo: ${r?.processo || ''} | ${r?.parte_principal || ''} · ${r?.data || ''}`);
     }
 
-    // Show save indicator
-    const ind = document.getElementById('save-indicator');
-    ind.classList.add('show');
-    setTimeout(()=>ind.classList.remove('show'), 1800);
-
     renderTable();
+    // Dica de invite após designar adv_audiencia com e-mail cadastrado
+    if(field === 'adv_audiencia' && newVal && newVal !== 'N/A' && newVal !== 'Indicar Advogado' && !newVal.startsWith('Correspondente')){
+      const advInfo = advEmailFromMatricula(newVal);
+      if(advInfo && advInfo.email && !localStorage.getItem('invite_sent_'+DATA.main[idx]?.codigo)){
+        setTimeout(()=> showToast('📅 Designação salva! Clique em "Invite" na linha para enviar o convite ao Outlook.'), 900);
+      }
+    }
   }
 
   input.addEventListener('blur', commit);
@@ -4037,8 +4208,12 @@ Advogado(a): ${nome} <${email}>`;
 
   const url = `https://outlook.office.com/calendar/action/compose?${params.toString()}`;
   window.open(url, '_blank');
+  // Marca invite como enviado e atualiza tabela
+  localStorage.setItem('invite_sent_'+r.codigo, '1');
   // Also offer .ics download for Outlook Desktop
   downloadICS(r, titulo, corpo, local, startdt, enddt, email, nome);
+  // Refresh only the invite cell visually
+  setTimeout(()=>{ try{ renderTable(); }catch(e){} }, 600);
 }
 
 function downloadICS(r, titulo, corpo, local, startdt, enddt, email, nome) {
@@ -4106,6 +4281,7 @@ function salvarInfoControladoria(cod){
     atualizadoEm: new Date().toLocaleString('pt-BR')
   };
   localStorage.setItem('ctrl_aud_' + cod, JSON.stringify(dados));
+  _scheduleSave();
   const st = document.getElementById('ctrl-status-' + cod);
   if(st){ st.textContent = 'Salvo em ' + dados.atualizadoEm; setTimeout(()=>st.textContent='',2200); }
 }
@@ -4140,6 +4316,7 @@ function salvarNota(cod){
   const ta = document.getElementById('modal-nota-'+cod);
   if(!ta) return;
   localStorage.setItem('nota_'+cod, ta.value);
+  _scheduleSave();
   const st = document.getElementById('nota-status-'+cod);
   if(st){ st.textContent = '✓ Salvo'; setTimeout(()=>{ st.textContent=''; },2000); }
 }
@@ -4152,6 +4329,7 @@ function salvarPT(cod){
     if(el) data[c] = el.value.trim();
   });
   localStorage.setItem('pt_'+cod, JSON.stringify(data));
+  _scheduleSave();
   const st = document.getElementById('pt-status-'+cod);
   if(st){ st.textContent = '✓ Salvo'; setTimeout(()=>{ st.textContent=''; },2000); }
 }
@@ -4400,8 +4578,13 @@ function removeUser(i){
 function renderConflitos(){
   const el=document.getElementById('conflict-list');
   if(!el) return;
-  // Filter out conflicts where adv_audiencia is N/A
+  // Filter: only from PAUTA_START onward, and only when adv_audiencia is set
   const validConflicts = (CONFLICTS||[]).filter(c => {
+    // Date filter — same cutoff as getPautaRecords
+    if(c.data){
+      const [dd,mm,yy] = c.data.split('/');
+      if(new Date(+yy,+mm-1,+dd).getTime() < PAUTA_START) return false;
+    }
     const r1 = DATA.main.find(r=>r.codigo===c.cod1);
     const r2 = DATA.main.find(r=>r.codigo===c.cod2);
     return r1 && r2 && r1.adv_audiencia && r1.adv_audiencia !== 'N/A' && r2.adv_audiencia && r2.adv_audiencia !== 'N/A';
@@ -4742,7 +4925,7 @@ const POS_KEY = 'pos_audiencia_v1';
 function getPosData() {
   try { return JSON.parse(localStorage.getItem(POS_KEY) || '{}'); } catch { return {}; }
 }
-function savePosData(d) { localStorage.setItem(POS_KEY, JSON.stringify(d)); }
+function savePosData(d) { localStorage.setItem(POS_KEY, JSON.stringify(d)); _scheduleSave(); }
 
 function getPosRecord(codigo) {
   const d = getPosData();
@@ -5219,7 +5402,7 @@ function limparPos(codigo) {
 // ═══════════════════════════════════════════════════════
 const PERICIA_KEY = 'pos_pericia_v1';
 function getPericiaData(){ try { return JSON.parse(localStorage.getItem(PERICIA_KEY) || '{}'); } catch { return {}; } }
-function savePericiaData(d){ localStorage.setItem(PERICIA_KEY, JSON.stringify(d)); }
+function savePericiaData(d){ localStorage.setItem(PERICIA_KEY, JSON.stringify(d)); _scheduleSave(); }
 function savePericiaCodigo(codigo, record){ const d=getPericiaData(); d[codigo]=record; savePericiaData(d); }
 function isPericiaRow(r){ return String(r.tipo||'').toLowerCase().includes('perícia') || String(r.tipo||'').toLowerCase().includes('pericia'); }
 function getPastPericias(){
@@ -6090,7 +6273,28 @@ function baixarArquivoExcelHtml(cfg, clienteNome, rowsPeriodo){
 }
 
 </style>
-<style>.info-box,.cliente-no-preview{display:none!important;}</style>
+<style>.info-box,.cliente-no-preview{display:none!important;}
+/* ═══ NAV FINAL OVERRIDE — texto branco fundo azul escuro ═══ */
+.nav,nav,.nav-bar{background:#003B5C!important;border-bottom:2px solid rgba(0,174,239,.3)!important;}
+.nav .nav-btn,
+nav .nav-btn{
+  color:rgba(255,255,255,.72)!important;
+  background:transparent!important;
+  font-weight:500!important;
+}
+.nav .nav-btn:hover:not(.active),
+nav .nav-btn:hover:not(.active){
+  color:#fff!important;
+  background:rgba(255,255,255,.10)!important;
+}
+.nav .nav-btn.active,
+nav .nav-btn.active{
+  color:#fff!important;
+  font-weight:700!important;
+  background:rgba(0,174,239,.18)!important;
+  border-bottom:2px solid #00AEEF!important;
+}
+</style>
 </head>
 <body>
 <table>
@@ -6453,6 +6657,21 @@ function isWithinPostWindow(dataAudiencia){
 }
 </script>
 <div class="save-indicator" id="save-indicator">✓ Salvo</div>
+<script>
+// Botão de refresh de designações — adicionado dinamicamente na topbar
+document.addEventListener('DOMContentLoaded', function(){
+  const topbarRight = document.querySelector('.topbar-right');
+  if(topbarRight){
+    const btn = document.createElement('button');
+    btn.id = 'btn-sync-designacoes';
+    btn.title = 'Recarregar designações de todos os grupos';
+    btn.style.cssText = 'background:rgba(0,174,239,.15);border:1px solid rgba(0,174,239,.3);color:var(--cyan);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:5px;';
+    btn.innerHTML = '↻ Sync';
+    btn.onclick = function(){ recarregarDesignacoes(); };
+    topbarRight.insertBefore(btn, topbarRight.firstChild);
+  }
+});
+</script>
 
 <script id="pc-dashboard-click-actions-safe">
 (function(){
