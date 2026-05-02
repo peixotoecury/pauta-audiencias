@@ -1268,9 +1268,9 @@ body,#app,.main{background:var(--bg)!important;color:var(--preto-pc)!important;}
 /* Topo padronizado */
 .topbar{background:linear-gradient(90deg,#003B5C 0%,#006080 78%,#00A9E0 100%)!important;border-bottom:4px solid #00A9E0!important;}
 .nav{background:#FFFFFF!important;border-bottom:1px solid var(--border2)!important;box-shadow:0 6px 18px rgba(0,59,92,.06)!important;}
-.nav-btn{color:#557487!important;font-weight:700!important;}
-.nav-btn.active{color:#003B5C!important;background:#F3FAFE!important;border-bottom-color:#00A9E0!important;}
-.nav-btn:hover{color:#003B5C!important;background:#F7FCFF!important;}
+.nav-btn{color:#3D5A6E!important;font-weight:600!important;}
+.nav-btn.active{color:#fff!important;background:#006080!important;border-bottom-color:#00A9E0!important;border-radius:4px 4px 0 0!important;}
+.nav-btn:hover:not(.active){color:#003B5C!important;background:#E8F4FA!important;}
 /* Cards/tabelas */
 .kpi-card,.stat-card,.dash-card,.grupo-summary-card,.rank-block,.admin-panel,.filters,.pos-card,.pos-summary-card,.table-wrap,.modal,.grupo-detail{background:#fff!important;border:1px solid var(--border2)!important;box-shadow:0 8px 22px rgba(0,59,92,.07)!important;color:var(--preto-pc)!important;}
 .kpi-val,.stat-val,.grupo-count,.gsc-big,.pos-summary-val{color:#006080!important;}
@@ -1330,9 +1330,9 @@ body,#app,.main{background:#F4F9FC!important;color:var(--pc-black)!important;}
 .topbar{background:linear-gradient(90deg,#003B5C 0%,#006080 76%,#00A9E0 100%)!important;border-bottom:4px solid #00A9E0!important;}
 .topbar-logo img{filter:none!important;mix-blend-mode:normal!important;}
 .nav{background:#fff!important;border-bottom:1px solid var(--pc-line)!important;box-shadow:0 5px 16px rgba(0,59,92,.06)!important;}
-.nav-btn{color:#587487!important;font-weight:700!important;}
-.nav-btn.active{background:#F3FAFE!important;color:var(--pc-dark)!important;border-bottom-color:var(--pc-cyan)!important;}
-.nav-btn:hover{background:#F7FCFF!important;color:var(--pc-dark)!important;}
+.nav-btn{color:#3D5A6E!important;font-weight:600!important;}
+.nav-btn.active{color:#fff!important;background:#006080!important;border-bottom-color:#00A9E0!important;border-radius:4px 4px 0 0!important;}
+.nav-btn:hover:not(.active){color:#003B5C!important;background:#E8F4FA!important;}
 /* Login: logo sempre legível */
 .login-logo{background:linear-gradient(90deg,#003B5C,#006080)!important;border-radius:14px!important;padding:16px 20px!important;margin-bottom:24px!important;box-shadow:0 10px 22px rgba(0,59,92,.18)!important;}
 .login-logo img{height:42px!important;filter:none!important;mix-blend-mode:normal!important;}
@@ -1758,6 +1758,40 @@ html, body {
 }
 </style>
 
+
+<style id="alertas-designacao-css">
+/* ===== Alertas de designação - seguro, sem bloquear cliques ===== */
+#btn-alertas-designacao{
+  background:#C0392B!important;
+  color:#fff!important;
+  border:none!important;
+}
+#btn-alertas-designacao:hover{
+  background:#A93226!important;
+  transform:translateY(-1px);
+}
+tr.alerta-sem-designacao{
+  background:rgba(192,57,43,.07)!important;
+  border-left:3px solid #C0392B!important;
+}
+.badge-sem-designacao{
+  display:inline-block;
+  margin-top:4px;
+  background:rgba(192,57,43,.12);
+  color:#C0392B;
+  border:1px solid rgba(192,57,43,.28);
+  border-radius:12px;
+  padding:2px 7px;
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.3px;
+  white-space:nowrap;
+}
+/* overlays só capturam clique quando realmente abertos */
+.modal-overlay:not(.open){pointer-events:none!important;}
+.modal-overlay.open{pointer-events:auto!important;}
+#login-screen, #app, .topbar, .nav, .main, button, a, input, select, textarea{pointer-events:auto!important;}
+</style>
 </head>
 <body>
 <!-- ══════════ LOGIN ══════════ -->
@@ -1770,10 +1804,10 @@ html, body {
 <div class="login-title">Pauta de Audiências</div>
 <div class="login-sub2">Selecione seu perfil e entre com suas credenciais</div>
 </div>
-<div class="login-role">
-<button class="role-btn" onclick="selectRole('admin',this)">⚙️ Admin</button>
-<button class="role-btn" onclick="selectRole('editor',this)">✏️ Editor</button>
-<button class="role-btn active" onclick="selectRole('visualizador',this)">👁️ Visualizador</button>
+<div class="login-role" id="login-role-group">
+<button class="role-btn" data-role="admin">⚙️ Admin</button>
+<button class="role-btn" data-role="editor">✏️ Editor</button>
+<button class="role-btn active" data-role="visualizador">👁️ Visualizador</button>
 </div>
 <input autocomplete="username" id="login-user" placeholder="E-mail (@peixotoecury.com.br)" type="text"/>
 <div style="position:relative;display:flex;align-items:center;">
@@ -2003,6 +2037,7 @@ html, body {
 <button class="filter-clear-btn" id="filter-clear-btn" onclick="clearFilters()" style="display:none">✕ Limpar filtros</button>
 <span class="filter-count" id="filter-count"></span>
 <button class="export-btn" onclick="exportarExcel()" title="Exportar pauta filtrada para Excel (.xlsx)">📥 Excel (.xlsx)</button>
+<button class="export-btn" id="btn-alertas-designacao" onclick="dispararAlertasDesignacao(event)" title="Enviar alertas das audiências sem designação por grupo" style="background:#C0392B">🚨 Alertas Designação</button>
 </div>
 <div class="table-wrap">
 <table id="main-table">
@@ -2617,19 +2652,24 @@ function saveCustomPass(email, pass){
   localStorage.setItem(PASS_KEY, JSON.stringify(p));
 }
 
-// Primeiro dia da pauta oficial (30/04) — separa registros de pós-audiência dos da pauta atual
+const PAUTA_GENERATION_DATE = '29/04/2026';
+
+// Primeiro dia da pauta oficial — exclui dias anteriores (29/04, 30/04) da pauta principal
+// Dias <= PAUTA_GENERATION_DATE são exclusivos do pós-audiência/pós-perícia e acumulado
 const PAUTA_START = (() => {
-  const dates = DATA.main.map(r => { 
-    if(!r.data) return null; 
-    const [dd,mm,yy] = r.data.split('/'); 
-    return new Date(+yy,+mm-1,+dd).getTime(); 
+  const [dd,mm,yy] = PAUTA_GENERATION_DATE.split('/');
+  const cutoff = new Date(+yy,+mm-1,+dd).getTime();
+  // Retorna a primeira data dos dados estritamente APÓS a data de geração
+  const dates = DATA.main.map(r => {
+    if(!r.data) return null;
+    const [d,m,y] = r.data.split('/');
+    return new Date(+y,+m-1,+d).getTime();
   }).filter(Boolean);
-  // Pega a segunda data mais antiga (a mais antiga são os do dia 29 injetados)
   const sorted = [...new Set(dates)].sort((a,b)=>a-b);
-  return sorted.length > 1 ? sorted[1] : sorted[0];
+  return sorted.find(t => t > cutoff) || sorted[0];
 })();
 
-// Registros apenas da pauta atual (>= PAUTA_START)
+// Registros apenas da pauta atual (estritamente após PAUTA_GENERATION_DATE)
 function getPautaRecords() {
   return DATA.main.filter(r => {
     if(!r.data) return false;
@@ -2643,6 +2683,20 @@ let currentUserGrupos = []; // [] = todos os grupos (admin/visualizador)
 let currentUserSigla = null; // sigla do advogado logado, filtra pauta automaticamente
 let currentUserEmail = null; // email de login do usuário atual
 let selectedRoleLogin = 'visualizador';
+
+// Bind role buttons via event delegation (more robust than inline onclick)
+document.addEventListener('DOMContentLoaded', function() {
+  var roleGroup = document.getElementById('login-role-group');
+  if (roleGroup) {
+    roleGroup.addEventListener('click', function(e) {
+      var btn = e.target.closest('[data-role]');
+      if (!btn) return;
+      selectedRoleLogin = btn.getAttribute('data-role');
+      roleGroup.querySelectorAll('.role-btn').forEach(function(b) { b.classList.remove('active'); });
+      btn.classList.add('active');
+    });
+  }
+});
 
 function selectRole(r, el){
   selectedRoleLogin = r;
@@ -3023,7 +3077,6 @@ function openGrupoDetail(grupo, card){
 }
 
 // Data de geração da pauta (extraída do nome do arquivo xlsx)
-const PAUTA_GENERATION_DATE = '29/04/2026';
 
 function updateLastUpdateBadge(){
   const el = document.getElementById('last-update-badge');
@@ -3418,11 +3471,12 @@ function renderTable(){
     const hasConflict = typeof CONFLICTS!=='undefined' && r.adv_audiencia && r.adv_audiencia !== 'N/A' && CONFLICTS.some(c=>c.cod1===r.codigo||c.cod2===r.codigo);
     const conflictBadge = hasConflict ? ' <span style="display:inline-block;background:#c0392b;color:#fff;border-radius:3px;padding:1px 5px;font-size:9px;font-weight:700;margin-left:4px;vertical-align:middle">⚠ CONFLITO</span>' : '';
     const advPre = r.adv_preparo || '';
+    const semDesignacaoAlerta = isSemDesignacao(r);
 
     const rowEditable = canEditRow(r);
     const audCell = rowEditable
-      ? `<span class="editable" onclick="startEdit(event,${realIdx},'adv_audiencia')" title="Clique para editar">${advAud||'<span style=\'color:var(--muted2)\'>+ Indicar</span>'}</span>`
-      : `<span style="color:var(--muted);font-size:11px">${advAud||'—'}</span>`;
+      ? `<span class="editable" onclick="startEdit(event,${realIdx},'adv_audiencia')" title="Clique para editar">${advAud||'<span style=\'color:var(--muted2)\'>+ Indicar</span>'}</span>${semDesignacaoAlerta ? '<br><span class="badge-sem-designacao">SEM DESIGNAÇÃO</span>' : ''}`
+      : `<span style="color:var(--muted);font-size:11px">${advAud||'—'}</span>${semDesignacaoAlerta ? '<br><span class="badge-sem-designacao">SEM DESIGNAÇÃO</span>' : ''}`;
 
     const preCell = rowEditable
       ? `<span class="editable" onclick="startEdit(event,${realIdx},'adv_preparo')" title="Clique para editar">${advPre||'<span style=\'color:var(--muted2)\'>+ Indicar</span>'}</span>`
@@ -3445,7 +3499,7 @@ function renderTable(){
       }
     })();
 
-    return `<tr onclick="openModal(${realIdx})" style="${hasConflict?'background:rgba(192,57,43,.07);border-left:3px solid #c0392b':''}">
+    return `<tr class="${semDesignacaoAlerta ? 'alerta-sem-designacao' : ''}" onclick="openModal(${realIdx})" style="${hasConflict?'background:rgba(192,57,43,.07);border-left:3px solid #c0392b':''}">
       <td data-label="Data" style="white-space:nowrap;font-weight:500">${r.data}</td>
       <td data-label="Hora" style="white-space:nowrap;color:var(--cyan)">${r.horario!=='00:00'?r.horario:'—'}${conflictBadge}</td>
       <td data-label="Grupo"><span style="color:var(--cyan);font-weight:600;font-size:11px">${r.grupo}</span></td>
@@ -4712,6 +4766,10 @@ function parsePtDateForPost(dataStr){
 function isWithinD1Window(dataStr){
   const d = parsePtDateForPost(dataStr);
   if(!d || isNaN(d)) return false;
+  // Dias anteriores ao início da pauta oficial ficam sempre visíveis no pós
+  const primeiroDiaPauta = parsePtDateForPost(PAUTA_GENERATION_DATE);
+  if(primeiroDiaPauta && d <= primeiroDiaPauta) return true;
+  // Para os demais dias: janela do próprio dia até D+1
   const start = new Date(d); start.setHours(0,0,0,0);
   const limite = new Date(d); limite.setDate(limite.getDate() + 1); limite.setHours(23,59,59,999);
   const hoje = new Date();
@@ -5534,6 +5592,8 @@ function enviarEmailControladoria(codigo) {
   const testsRec = (rec.testemunhas || []).filter(t => t.tipo === 'Reclamante').map(t => t.nome).filter(Boolean).join(', ') || '—';
   const testsRda = (rec.testemunhas || []).filter(t => t.tipo === 'Reclamada').map(t => t.nome).filter(Boolean).join(', ') || '—';
 
+  // Dados da Controladoria (salvos separadamente via salvarInfoControladoria)
+  const ctrlDados = (() => { try { return JSON.parse(localStorage.getItem('ctrl_aud_' + codigo)); } catch { return {}; } })() || {};
 
   const subject = `[Pós-Audiência] ${r.parte_principal} × ${r.parte_contraria} — ${r.data}`;
 
@@ -5572,6 +5632,13 @@ Reclamada: ${testsRda}
 OBSERVAÇÕES
 -----------
 ${rec.observacoes || 'Nenhuma observação registrada.'}
+
+INFORMAÇÕES PARA A CONTROLADORIA
+---------------------------------
+Situação: ${ctrlDados.situacao || 'Sem alteração'}
+Modalidade: ${ctrlDados.modalidade || 'Sem ajuste'}
+Novo Responsável: ${ctrlDados.responsavel || 'Não informado'}
+Observações (Controladoria): ${ctrlDados.obs || 'Sem observações adicionais.'}
 
 --
 Enviado pelo sistema de Pós-Audiência — Peixoto & Cury Advogados`;
@@ -6464,6 +6531,84 @@ function isWithinPostWindow(dataAudiencia){
     }
   });
 })();
+
+
+/* ===== ALERTAS DE DESIGNAÇÃO — DISPARO POR BOTÃO ===== */
+const RESPONSAVEIS_ALERTA_DESIGNACAO = {
+  "A1": "sofia.freire@peixotoecury.com.br",
+  "A2": "sofia.freire@peixotoecury.com.br",
+  "A3": "sofia.freire@peixotoecury.com.br",
+  "B1": "anacarolina.martini@peixotoecury.com.br",
+  "B2": "anacarolina.martini@peixotoecury.com.br",
+  "B3": "anacarolina.martini@peixotoecury.com.br",
+  "C":  "sofia.freire@peixotoecury.com.br",
+  "D":  "bianca.camacho@peixotoecury.com.br",
+  "D1": "bianca.camacho@peixotoecury.com.br",
+  "D2": "bianca.camacho@peixotoecury.com.br",
+  "E1": "keyla.moraes@peixotoecury.com.br",
+  "E2": "washington.soares@peixotoecury.com.br"
+};
+
+function normalizarGrupoAlertaDesignacao(grupo){
+  const g = String(grupo || "").replace(/grupo/ig, "").trim().toUpperCase().replace(/\s+/g, "");
+  if(g.startsWith("D")) return g; // D, D1, D2 etc.
+  return g;
+}
+
+function getEmailAlertaDesignacao(grupo){
+  const g = normalizarGrupoAlertaDesignacao(grupo);
+  if(RESPONSAVEIS_ALERTA_DESIGNACAO[g]) return RESPONSAVEIS_ALERTA_DESIGNACAO[g];
+  if(g.startsWith("D")) return RESPONSAVEIS_ALERTA_DESIGNACAO["D"];
+  return "";
+}
+
+function isSemDesignacao(r){
+  const v = String((r && (r.adv_audiencia ?? r.designacao)) || "").trim();
+  return v === "";
+}
+
+function getAudienciasSemDesignacao(){
+  const base = (typeof DATA !== "undefined" && DATA && Array.isArray(DATA.main)) ? DATA.main : [];
+  return base.filter(isSemDesignacao);
+}
+
+function dispararAlertasDesignacao(ev){
+  if(ev && ev.stopPropagation) ev.stopPropagation();
+  const pendentes = getAudienciasSemDesignacao();
+  if(!pendentes.length){
+    alert("Nenhuma audiência sem designação encontrada. 🎉");
+    return;
+  }
+
+  const agrupado = {};
+  pendentes.forEach(r => {
+    const email = getEmailAlertaDesignacao(r.grupo);
+    if(!email) return;
+    if(!agrupado[email]) agrupado[email] = [];
+    agrupado[email].push(r);
+  });
+
+  const emails = Object.keys(agrupado);
+  if(!emails.length){
+    alert("Há audiências sem designação, mas nenhum responsável foi localizado para os grupos encontrados.");
+    return;
+  }
+
+  const total = pendentes.length;
+  const ok = confirm(`Foram encontradas ${total} audiência(s) sem designação.\n\nSerão abertos ${emails.length} e-mail(s), agrupados por responsável.\n\nDeseja continuar?`);
+  if(!ok) return;
+
+  emails.forEach((email, idx) => {
+    const linhas = agrupado[email]
+      .map((r, i) => `${i+1}. ${r.data || "-"} ${r.horario || "-"} | ${r.grupo || "-"} | ${r.processo || "-"} | ${r.parte_principal || "-"} x ${r.parte_contraria || "-"}`)
+      .join("\n");
+
+    const assunto = `Alerta diário - Audiências sem designação (${agrupado[email].length})`;
+    const corpo = `Prezados,\n\nIdentificamos audiência(s) sem designação na pauta completa:\n\n${linhas}\n\nFavor regularizar a designação na pauta.\n\nEste alerta deverá ser reiterado diariamente até a regularização.\n\nControladoria Jurídica`;
+    const url = `mailto:${email}?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
+    setTimeout(() => { window.location.href = url; }, idx * 450);
+  });
+}
 </script>
 
 </body>
