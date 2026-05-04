@@ -3089,6 +3089,29 @@ function updateLastUpdateBadge(){
   el.style.display='none';
 }
 
+// ── Detecta troca de pauta e descarta edições de designação antigas ──
+function _getPautaHash(){
+  return DATA.main.map(r=>r.codigo+"|"+( r.adv_audiencia||"")+("|")+(r.adv_preparo||"")).join(",");
+}
+const PAUTA_HASH_KEY = "pauta_data_hash_v1";
+(function _checkPautaChanged(){
+  try {
+    const prev = localStorage.getItem(PAUTA_HASH_KEY);
+    const curr = _getPautaHash();
+    if(prev && prev !== curr){
+      const edits = JSON.parse(localStorage.getItem("pauta_edits_v1") || "{}");
+      Object.keys(edits).forEach(k => {
+        if(k.includes("::adv_audiencia") || k.includes("::adv_preparo") ||
+           k.includes("__adv_audiencia") || k.includes("__adv_preparo")) {
+          delete edits[k];
+        }
+      });
+      localStorage.setItem("pauta_edits_v1", JSON.stringify(edits));
+    }
+    localStorage.setItem(PAUTA_HASH_KEY, curr);
+  } catch(e){}
+})();
+
 function initApp(){
   applyEdits().then(()=>{
     try{ renderTable(); }catch(e){}
@@ -3102,7 +3125,9 @@ function initApp(){
     if(c.data){ const [dd,mm,yy]=c.data.split('/'); if(new Date(+yy,+mm-1,+dd).getTime()<PAUTA_START) return false; }
     const r1=DATA.main.find(r=>r.codigo===c.cod1);
     const r2=DATA.main.find(r=>r.codigo===c.cod2);
-    return r1&&r2&&r1.adv_audiencia&&r1.adv_audiencia!=='N/A'&&r2.adv_audiencia&&r2.adv_audiencia!=='N/A';
+    if(!r1||!r2) return false;
+    if(r1.adv_audiencia!==c.adv && r2.adv_audiencia!==c.adv) return false;
+    return r1.adv_audiencia&&r1.adv_audiencia!=='N/A'&&r2.adv_audiencia&&r2.adv_audiencia!=='N/A';
   }).length;
   const badge=document.getElementById('conflict-badge');
   if(badge){ badge.textContent=validConflictCount; if(validConflictCount===0) badge.style.display='none'; }
@@ -3482,6 +3507,7 @@ function renderTable(){
       && !r.adv_audiencia.startsWith('Correspondente')
       && (()=>{ if(!r.data) return false; const [dd,mm,yy]=r.data.split('/'); return new Date(+yy,+mm-1,+dd).getTime()>=PAUTA_START; })()
       && CONFLICTS.some(c=>(c.cod1===r.codigo||c.cod2===r.codigo)
+          && c.adv === r.adv_audiencia
           && (()=>{ if(!c.data) return false; const [dd,mm,yy]=c.data.split('/'); return new Date(+yy,+mm-1,+dd).getTime()>=PAUTA_START; })());
     const conflictBadge = hasConflict ? ' <span style="display:inline-block;background:#c0392b;color:#fff;border-radius:3px;padding:1px 5px;font-size:9px;font-weight:700;margin-left:4px;vertical-align:middle">⚠ CONFLITO</span>' : '';
     const advPre = r.adv_preparo || '';
@@ -4587,7 +4613,10 @@ function renderConflitos(){
     }
     const r1 = DATA.main.find(r=>r.codigo===c.cod1);
     const r2 = DATA.main.find(r=>r.codigo===c.cod2);
-    return r1 && r2 && r1.adv_audiencia && r1.adv_audiencia !== 'N/A' && r2.adv_audiencia && r2.adv_audiencia !== 'N/A';
+    if(!r1 || !r2) return false;
+    // If the advisor was changed via edit, the conflict no longer applies
+    if(r1.adv_audiencia !== c.adv && r2.adv_audiencia !== c.adv) return false;
+    return r1.adv_audiencia && r1.adv_audiencia !== 'N/A' && r2.adv_audiencia && r2.adv_audiencia !== 'N/A';
   });
   if(validConflicts.length===0){el.innerHTML='<p style="color:var(--muted)">Nenhum conflito detectado.</p>';return;}
   el.innerHTML=validConflicts.map(c=>{
