@@ -3431,8 +3431,8 @@ function getFiltered(){
   const tipo = document.getElementById('filter-tipo').value;
   const prof = document.getElementById('filter-prof').value;
   return getPautaRecords().filter(r=>{
-    // Auto-filter by logged-in user's sigla (non-admin)
-    if(currentUserSigla && currentRole !== 'admin'){
+    // Auto-filter by logged-in user's sigla (visualizador only)
+    if(currentUserSigla && currentRole !== 'admin' && currentRole !== 'editor'){
       if(r.adv_audiencia !== currentUserSigla && r.adv_preparo !== currentUserSigla) return false;
     }
     if(grupo && r.grupo!==grupo) return false;
