@@ -2737,6 +2737,12 @@ function doPublicAccess(){
   });
 
   initApp();
+  // Garante que a consulta pública abra sempre a pauta completa, sem filtros herdados do navegador.
+  ['search-main','filter-grupo','filter-data','filter-tipo','filter-prof'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  _filterStatus = '';
   showTab('pauta', document.querySelector('.nav-btn.public-allowed') || document.querySelectorAll('.nav-btn')[1]);
 }
 
@@ -2793,8 +2799,11 @@ function doLogin(){
     if(mnHist) mnHist.style.display='none';
   }
   initApp();
-  // If has sigla goes directly to personal schedule
-  if(currentUserSigla && currentRole !== 'admin'){
+  // Visualizador entra diretamente na Pauta Completa, sem filtro automático por sigla.
+  if(currentRole === 'visualizador'){
+    addAuditEntry('Login', `Usuário "${found.user}" entrou com perfil ${found.role}`);
+    showTab('pauta', document.querySelectorAll('.nav-btn')[1]);
+  } else if(currentUserSigla && currentRole === 'individual'){
     const p = PROF[currentUserSigla];
     const nomeAdv = p ? p.nome.split(' ')[0] : currentUserSigla;
     document.getElementById('user-label').textContent = nomeAdv + ' (' + currentUserSigla + ')';
@@ -3126,7 +3135,7 @@ function initApp(){
     const r1=DATA.main.find(r=>r.codigo===c.cod1);
     const r2=DATA.main.find(r=>r.codigo===c.cod2);
     if(!r1||!r2) return false;
-    if(r1.adv_audiencia!==c.adv && r2.adv_audiencia!==c.adv) return false;
+    if(r1.adv_audiencia!==c.adv || r2.adv_audiencia!==c.adv) return false;
     return r1.adv_audiencia&&r1.adv_audiencia!=='N/A'&&r2.adv_audiencia&&r2.adv_audiencia!=='N/A';
   }).length;
   const badge=document.getElementById('conflict-badge');
@@ -3456,8 +3465,9 @@ function getFiltered(){
   const tipo = document.getElementById('filter-tipo').value;
   const prof = document.getElementById('filter-prof').value;
   return getPautaRecords().filter(r=>{
-    // Auto-filter by logged-in user's sigla (visualizador only)
-    if(currentUserSigla && currentRole !== 'admin' && currentRole !== 'editor'){
+    // Visualizador/consulta pública devem enxergar a Pauta Completa.
+    // O filtro automático por sigla só deve existir se algum perfil específico for criado para acesso individual.
+    if(currentUserSigla && currentRole === 'individual'){
       if(r.adv_audiencia !== currentUserSigla && r.adv_preparo !== currentUserSigla) return false;
     }
     if(grupo && r.grupo!==grupo) return false;
@@ -4614,8 +4624,8 @@ function renderConflitos(){
     const r1 = DATA.main.find(r=>r.codigo===c.cod1);
     const r2 = DATA.main.find(r=>r.codigo===c.cod2);
     if(!r1 || !r2) return false;
-    // If the advisor was changed via edit, the conflict no longer applies
-    if(r1.adv_audiencia !== c.adv && r2.adv_audiencia !== c.adv) return false;
+    // If either advisor was changed, the conflict no longer applies
+    if(r1.adv_audiencia !== c.adv || r2.adv_audiencia !== c.adv) return false;
     return r1.adv_audiencia && r1.adv_audiencia !== 'N/A' && r2.adv_audiencia && r2.adv_audiencia !== 'N/A';
   });
   if(validConflicts.length===0){el.innerHTML='<p style="color:var(--muted)">Nenhum conflito detectado.</p>';return;}
