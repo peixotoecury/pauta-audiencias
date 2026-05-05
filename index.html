@@ -2954,7 +2954,7 @@ function doLogin(){
     if(mnAdm) mnAdm.style.display='none';
     if(mnHist) mnHist.style.display='none';
   }
-  initApp();
+  applyEdits().then(()=>{initApp();
   // Visualizador entra diretamente na Pauta Completa, sem filtro automático por sigla.
   if(currentRole === 'visualizador'){
     addAuditEntry('Login', `Usuário "${found.user}" entrou com perfil ${found.role}`);
@@ -2969,6 +2969,7 @@ function doLogin(){
     addAuditEntry('Login', `Usuário "${found.user}" entrou com perfil ${found.role}`);
     showTab('dashboard', document.querySelectorAll('.nav-btn')[0]);
   }
+});
 }
 
 function toggleMobileMenu(){
