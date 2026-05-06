@@ -1942,6 +1942,33 @@ tr.alerta-sem-designacao{
 .editable-input {
   min-width: 190px !important;
 }
+
+/* === ABA LINKS ÚTEIS — TRIBUNAIS TRABALHISTAS === */
+.links-uteis-wrap{padding:22px 24px;}
+.links-hero{background:linear-gradient(135deg,#003B5C,#006080 70%,#00A9E0);color:#fff;border-radius:16px;padding:22px 24px;margin-bottom:18px;box-shadow:0 10px 26px rgba(0,59,92,.16);}
+.links-hero h2{font-size:20px;margin:0 0 6px;font-weight:800;color:#fff;}
+.links-hero p{margin:0;color:rgba(255,255,255,.88);font-size:13px;}
+.links-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid #D8E7F0;border-radius:14px;padding:14px 16px;margin-bottom:16px;box-shadow:0 8px 22px rgba(0,59,92,.08);}
+.links-search{flex:1;min-width:260px;background:#fff;border:1px solid #BFD6E4;border-radius:8px;padding:9px 12px;font-family:var(--font);font-size:13px;color:#2D2926;outline:none;}
+.links-search:focus{border-color:#00A9E0;box-shadow:0 0 0 3px rgba(0,169,224,.12);}
+.links-section-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#003B5C;margin:22px 0 12px;display:flex;align-items:center;gap:8px;}
+.links-section-title::after{content:'';height:1px;background:#D8E7F0;flex:1;}
+.links-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;}
+.link-card-pc{background:#fff;border:1px solid #D8E7F0;border-radius:14px;padding:15px 16px;box-shadow:0 8px 22px rgba(0,59,92,.08);transition:transform .18s,border-color .18s;}
+.link-card-pc:hover{transform:translateY(-2px);border-color:#00A9E0;}
+.link-card-pc h3{font-size:14px;color:#003B5C;margin:0 0 4px;font-weight:800;}
+.link-card-pc .desc{font-size:11px;color:#5F7E92;margin-bottom:10px;line-height:1.45;}
+.link-actions{display:flex;gap:7px;flex-wrap:wrap;}
+.link-actions a{display:inline-flex;align-items:center;gap:5px;text-decoration:none;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700;border:1px solid rgba(0,169,224,.25);color:#006080;background:rgba(0,169,224,.08);}
+.link-actions a:hover{background:rgba(0,169,224,.15);}
+.phone-box{background:#fff;border:1px solid #D8E7F0;border-radius:14px;box-shadow:0 8px 22px rgba(0,59,92,.08);overflow:hidden;}
+.phone-table{width:100%;border-collapse:collapse;font-size:12px;}
+.phone-table th{background:#003B5C;color:#fff;text-align:left;padding:10px 12px;font-size:10px;letter-spacing:.7px;text-transform:uppercase;}
+.phone-table td{padding:10px 12px;border-bottom:1px solid #E6F0F6;color:#2D2926;}
+.phone-table tr:last-child td{border-bottom:none;}
+.phone-table a{color:#006080;font-weight:700;text-decoration:none;}
+@media(max-width:768px){.links-uteis-wrap{padding:14px 12px 84px}.links-grid{grid-template-columns:1fr}.links-toolbar{position:sticky;top:0;z-index:9}.links-search{min-width:0;width:100%}.phone-box{overflow:auto}.phone-table{min-width:620px}}
+
 </style>
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
@@ -1987,6 +2014,8 @@ tr.alerta-sem-designacao{
 <button class="public-btn" onclick="doPublicAccess()">🔍 Consultar Pauta (sem login)</button>
 </div>
 </div>
+
+
 <!-- ══════════ APP ══════════ -->
 <div id="app">
 <div class="topbar">
@@ -2008,6 +2037,7 @@ tr.alerta-sem-designacao{
 <button class="nav-btn active" onclick="showTab('dashboard',this)">📊 Dashboard</button>
 <button class="nav-btn" onclick="showTab('pauta',this)">🎯 Pauta Completa</button>
 <button class="nav-btn" id="btn-conflitos" onclick="showTab('conflitos',this)">⚠️ Conflitos <span id="conflict-badge" style="background:#c0392b;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;margin-left:4px">…</span></button>
+<button class="nav-btn" id="btn-hist-designacoes" onclick="showTab('histdesignacoes',this)">🧾 Hist. Designações <span id="designacao-conflict-badge" style="display:none;background:#c0392b;color:#fff;border-radius:10px;padding:1px 7px;font-size:10px;margin-left:4px">0</span></button>
 <button class="nav-btn" id="btn-comarcas" onclick="showTab('comarcas',this)">🗺️ Comarcas</button>
 <button class="nav-btn" id="btn-responsavel" onclick="showTab('responsavel',this)">👤 Responsáveis</button>
 <button class="nav-btn" id="btn-pos" onclick="showTab('pos',this)">📝 Pós-Audiência</button>
@@ -2015,6 +2045,7 @@ tr.alerta-sem-designacao{
 <button class="nav-btn" id="btn-auditoria" onclick="showTab('auditoria',this)" style="display:none">📋 Auditoria</button>
 <button class="nav-btn" id="admin-nav" onclick="showTab('admin',this)" style="display:none">⚙️ Admin</button>
 <button class="nav-btn" id="historico-nav" onclick="showTab('historico',this)" style="display:none">📚 Histórico</button>
+<button class="nav-btn" id="links-nav" onclick="showTab('linksuteis',this)">🔗 Links Úteis</button>
 <button class="nav-btn" id="cliente-nav" onclick="showTab('cliente',this)">🏢 Banco Cliente</button>
 </div>
 <!-- BOTTOM NAV (mobile app style) -->
@@ -2056,6 +2087,9 @@ tr.alerta-sem-designacao{
     </button>
 <button id="mn-historico" onclick="closeMobileMenu();showTab('historico',document.querySelector('.nav-btn'))" style="display:none;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
 <span style="font-size:20px">📚</span> Histórico
+    </button>
+<button id="mn-linksuteis" onclick="closeMobileMenu();showTab('linksuteis',document.querySelector('#links-nav'))" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
+<span style="font-size:20px">🔗</span> Links Úteis
     </button>
 <button onclick="closeMobileMenu();showChangePasswordModal()" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--cyan);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
 <span style="font-size:20px">🔐</span> Alterar Senha
@@ -2194,6 +2228,7 @@ tr.alerta-sem-designacao{
 <button class="export-btn" onclick="exportarExcel()" title="Exportar pauta filtrada para Excel (.xlsx)">📥 Excel (.xlsx)</button>
 <button class="export-btn" id="btn-upload-pauta" onclick="pcAbrirUploadPauta(event)" title="Atualizar a pauta pelo upload da planilha" style="background:var(--cyan);color:var(--bg)">⬆️ Atualizar pauta</button>
 <button class="export-btn" id="btn-alertas-designacao" onclick="dispararAlertasDesignacao(event)" title="Enviar alertas das audiências sem designação por grupo" style="background:#C0392B">🚨 Alertas Designação</button>
+<button class="export-btn" id="btn-alerta-17h" onclick="abrirAlertas17hAmanha(event)" title="Enviar alerta de preparação das audiências de amanhã" style="background:#003B5C;color:#fff">📧 Alerta 17h amanhã</button>
 <button class="export-btn" id="btn-dashboard-designacoes" onclick="abrirDashboardDesignacoesPendentes(event)" title="Ver dashboard de designações pendentes por grupo">📊 Dashboard Designações</button>
 </div>
 <div class="table-wrap">
@@ -2215,6 +2250,33 @@ tr.alerta-sem-designacao{
 <h2 style="color:#e74c3c;margin-bottom:6px;font-size:16px;font-weight:700">⚠️ Conflitos de Comarca</h2>
 <p style="color:var(--muted);font-size:12px;margin-bottom:18px">Mesmo advogado responsável · mesmo dia · comarcas diferentes · intervalo inferior a 2h.</p>
 <div id="conflict-list"></div>
+</div>
+<div class="tab-content" id="tab-histdesignacoes" style="display:none;padding:20px 24px">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px">
+    <div>
+      <h2 style="color:var(--cyan);font-size:16px;font-weight:800;margin-bottom:4px">🧾 Histórico e Conflitos de Designações</h2>
+      <p style="color:var(--muted);font-size:12px;max-width:900px">Controle centralizado para proteger designações manuais mais recentes contra upload de planilha desatualizada. Se o Excel tentar substituir uma designação manual, o sistema mantém a manual e registra conflito para decisão.</p>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="export-btn" onclick="exportarHistoricoDesignacoes()">📥 Exportar CSV</button>
+      <button class="filter-clear-btn" onclick="limparConflitosDesignacaoResolvidos()">🧹 Limpar resolvidos</button>
+    </div>
+  </div>
+  <div id="designacao-alertas-wrap" style="margin-bottom:18px"></div>
+  <div style="margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+    <input id="designacao-log-search" oninput="renderHistoricoDesignacoes()" placeholder="🔍 Buscar por processo, cliente, parte, advogado, origem ou usuário..." style="background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:8px 14px;font-size:13px;font-family:var(--font);width:100%;max-width:560px;outline:none"/>
+    <span id="designacao-log-count" style="font-size:11px;color:var(--muted)"></span>
+  </div>
+  <div style="background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);overflow:auto;max-height:58vh">
+    <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:1100px">
+      <thead>
+        <tr>
+          <th>Data/Hora</th><th>Origem</th><th>Processo</th><th>Cliente</th><th>Parte</th><th>Campo</th><th>Anterior</th><th>Nova</th><th>Usuário</th><th>Ação</th>
+        </tr>
+      </thead>
+      <tbody id="designacao-log-tbody"><tr><td colspan="10" style="text-align:center;color:var(--muted);padding:34px">Nenhuma alteração registrada.</td></tr></tbody>
+    </table>
+  </div>
 </div>
 <div class="tab-content" id="tab-comarcas" style="display:none;padding:20px 24px">
 <h2 style="color:var(--cyan);margin-bottom:4px;font-size:16px;font-weight:700">🗺️ Dashboard por Comarca &amp; Vara</h2>
@@ -2430,11 +2492,238 @@ tr.alerta-sem-designacao{
 <div class="add-msg" id="add-msg"></div>
 </div>
 </div>
+
+<!-- LINKS ÚTEIS -->
+<div id="tab-linksuteis" class="links-uteis-wrap" style="display:none">
+  <div class="links-hero">
+    <h2>🔗 Links úteis — Justiça do Trabalho</h2>
+    <p>Acesso rápido aos Tribunais Regionais do Trabalho, portais nacionais e páginas de contato para apoio operacional da pauta.</p>
+  </div>
+  <div class="links-toolbar">
+    <input id="links-search" class="links-search" oninput="filtrarLinksUteis()" placeholder="🔍 Buscar TRT, estado, região ou assunto..."/>
+    <button class="filter-clear-btn" onclick="document.getElementById('links-search').value='';filtrarLinksUteis();">✕ Limpar</button>
+  </div>
+  <div class="links-section-title">⚖️ Portais nacionais</div>
+  <div class="links-grid">
+    <div class="link-card-pc" data-link-item="TST Tribunal Superior do Trabalho jurisprudência consulta processual"><h3>TST</h3><div class="desc">Tribunal Superior do Trabalho.</div><div class="link-actions"><a href="https://www.tst.jus.br/" target="_blank" rel="noopener">🌐 Portal</a><a href="https://www.tst.jus.br/consulta-processual" target="_blank" rel="noopener">🔎 Consulta</a></div></div>
+    <div class="link-card-pc" data-link-item="CSJT Conselho Superior Justiça Trabalho PJe"><h3>CSJT</h3><div class="desc">Conselho Superior da Justiça do Trabalho.</div><div class="link-actions"><a href="https://www.csjt.jus.br/" target="_blank" rel="noopener">🌐 Portal</a><a href="https://www.csjt.jus.br/web/csjt/pje" target="_blank" rel="noopener">💻 PJe-JT</a></div></div>
+    <div class="link-card-pc" data-link-item="PJe Justiça do Trabalho CNJ sistema processo eletrônico"><h3>PJe-JT</h3><div class="desc">Acesso e informações sobre o Processo Judicial Eletrônico.</div><div class="link-actions"><a href="https://www.csjt.jus.br/web/csjt/pje" target="_blank" rel="noopener">💻 PJe</a><a href="https://www.pje.jus.br/wiki/index.php/P%C3%A1gina_principal" target="_blank" rel="noopener">📘 Ajuda</a></div></div>
+    <div class="link-card-pc" data-link-item="Diário Eletrônico Justiça Trabalho DEJT"><h3>DEJT</h3><div class="desc">Diário Eletrônico da Justiça do Trabalho.</div><div class="link-actions"><a href="https://dejt.jt.jus.br/dejt/f/n/diariocon" target="_blank" rel="noopener">📰 Diário</a></div></div>
+  </div>
+  <div class="links-section-title">🏛️ Tribunais Regionais do Trabalho</div>
+  <div class="links-grid" id="links-trt-grid">
+    <div class="link-card-pc" data-link-item="TRT-1 Rio de Janeiro">
+<h3>TRT-1</h3>
+<div class="desc">Rio de Janeiro</div>
+<div class="link-actions">
+<a href="https://www.trt1.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://www.trt1.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+<div class="link-card-pc" data-link-item="TRT-2 São Paulo">
+<h3>TRT-2</h3>
+<div class="desc">São Paulo</div>
+<div class="link-actions">
+<a href="https://ww2.trt2.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://ww2.trt2.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+<div class="link-card-pc" data-link-item="TRT-3 Minas Gerais">
+<h3>TRT-3</h3>
+<div class="desc">Minas Gerais</div>
+<div class="link-actions">
+<a href="https://portal.trt3.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://portal.trt3.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+<div class="link-card-pc" data-link-item="TRT-4 Rio Grande do Sul">
+<h3>TRT-4</h3>
+<div class="desc">Rio Grande do Sul</div>
+<div class="link-actions">
+<a href="https://www.trt4.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://www.trt4.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+<div class="link-card-pc" data-link-item="TRT-5 Bahia">
+<h3>TRT-5</h3>
+<div class="desc">Bahia</div>
+<div class="link-actions">
+<a href="https://www.trt5.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://www.trt5.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+<div class="link-card-pc" data-link-item="TRT-6 Pernambuco">
+<h3>TRT-6</h3>
+<div class="desc">Pernambuco</div>
+<div class="link-actions">
+<a href="https://www.trt6.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://www.trt6.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+<div class="link-card-pc" data-link-item="TRT-7 Ceará">
+<h3>TRT-7</h3>
+<div class="desc">Ceará</div>
+<div class="link-actions">
+<a href="https://www.trt7.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://www.trt7.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+<div class="link-card-pc" data-link-item="TRT-8 Pará e Amapá">
+<h3>TRT-8</h3>
+<div class="desc">Pará e Amapá</div>
+<div class="link-actions">
+<a href="https://www.trt8.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://www.trt8.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+<div class="link-card-pc" data-link-item="TRT-9 Paraná">
+<h3>TRT-9</h3>
+<div class="desc">Paraná</div>
+<div class="link-actions">
+<a href="https://www.trt9.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://www.trt9.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+<div class="link-card-pc" data-link-item="TRT-10 DF e Tocantins">
+<h3>TRT-10</h3>
+<div class="desc">DF e Tocantins</div>
+<div class="link-actions">
+<a href="https://www.trt10.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://www.trt10.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+<div class="link-card-pc" data-link-item="TRT-11 Amazonas e Roraima">
+<h3>TRT-11</h3>
+<div class="desc">Amazonas e Roraima</div>
+<div class="link-actions">
+<a href="https://www.trt11.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://www.trt11.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+<div class="link-card-pc" data-link-item="TRT-12 Santa Catarina">
+<h3>TRT-12</h3>
+<div class="desc">Santa Catarina</div>
+<div class="link-actions">
+<a href="https://www.trt12.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://www.trt12.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+<div class="link-card-pc" data-link-item="TRT-13 Paraíba">
+<h3>TRT-13</h3>
+<div class="desc">Paraíba</div>
+<div class="link-actions">
+<a href="https://www.trt13.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://www.trt13.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+<div class="link-card-pc" data-link-item="TRT-14 Rondônia e Acre">
+<h3>TRT-14</h3>
+<div class="desc">Rondônia e Acre</div>
+<div class="link-actions">
+<a href="https://www.trt14.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://www.trt14.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+<div class="link-card-pc" data-link-item="TRT-15 Campinas">
+<h3>TRT-15</h3>
+<div class="desc">Campinas</div>
+<div class="link-actions">
+<a href="https://trt15.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://trt15.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+<div class="link-card-pc" data-link-item="TRT-16 Maranhão">
+<h3>TRT-16</h3>
+<div class="desc">Maranhão</div>
+<div class="link-actions">
+<a href="https://www.trt16.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://www.trt16.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+<div class="link-card-pc" data-link-item="TRT-17 Espírito Santo">
+<h3>TRT-17</h3>
+<div class="desc">Espírito Santo</div>
+<div class="link-actions">
+<a href="https://www.trt17.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://www.trt17.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+<div class="link-card-pc" data-link-item="TRT-18 Goiás">
+<h3>TRT-18</h3>
+<div class="desc">Goiás</div>
+<div class="link-actions">
+<a href="https://www.trt18.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://www.trt18.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+<div class="link-card-pc" data-link-item="TRT-19 Alagoas">
+<h3>TRT-19</h3>
+<div class="desc">Alagoas</div>
+<div class="link-actions">
+<a href="https://www.trt19.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://www.trt19.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+<div class="link-card-pc" data-link-item="TRT-20 Sergipe">
+<h3>TRT-20</h3>
+<div class="desc">Sergipe</div>
+<div class="link-actions">
+<a href="https://www.trt20.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://www.trt20.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+<div class="link-card-pc" data-link-item="TRT-21 Rio Grande do Norte">
+<h3>TRT-21</h3>
+<div class="desc">Rio Grande do Norte</div>
+<div class="link-actions">
+<a href="https://www.trt21.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://www.trt21.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+<div class="link-card-pc" data-link-item="TRT-22 Piauí">
+<h3>TRT-22</h3>
+<div class="desc">Piauí</div>
+<div class="link-actions">
+<a href="https://www.trt22.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://www.trt22.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+<div class="link-card-pc" data-link-item="TRT-23 Mato Grosso">
+<h3>TRT-23</h3>
+<div class="desc">Mato Grosso</div>
+<div class="link-actions">
+<a href="https://www.trt23.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://www.trt23.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+<div class="link-card-pc" data-link-item="TRT-24 Mato Grosso do Sul">
+<h3>TRT-24</h3>
+<div class="desc">Mato Grosso do Sul</div>
+<div class="link-actions">
+<a href="https://www.trt24.jus.br/" target="_blank" rel="noopener">🌐 Portal</a>
+<a href="https://www.trt24.jus.br/" target="_blank" rel="noopener">☎️ Contatos</a>
+</div>
+</div>
+  </div>
+  <div class="links-section-title">☎️ Telefones e contatos úteis</div>
+  <div class="phone-box">
+    <table class="phone-table">
+      <thead><tr><th>Uso</th><th>Link/Contato</th><th>Observação</th></tr></thead>
+      <tbody>
+        <tr><td>Contatos dos TRTs</td><td><a href="https://www.csjt.jus.br/web/csjt/justica-do-trabalho" target="_blank" rel="noopener">Mapa/portais da Justiça do Trabalho</a></td><td>Use para localizar telefone, balcão virtual, secretaria, CEJUSC e suporte PJe do tribunal.</td></tr>
+        <tr><td>Suporte PJe-JT</td><td><a href="https://www.csjt.jus.br/web/csjt/pje" target="_blank" rel="noopener">Página PJe-JT/CSJT</a></td><td>Atalhos, manuais e informações de acesso.</td></tr>
+        <tr><td>Consulta processual TST</td><td><a href="https://www.tst.jus.br/consulta-processual" target="_blank" rel="noopener">Consulta processual</a></td><td>Útil para conferência de processos em instância superior.</td></tr>
+        <tr><td>Diário Eletrônico</td><td><a href="https://dejt.jt.jus.br/dejt/f/n/diariocon" target="_blank" rel="noopener">DEJT</a></td><td>Publicações e conferências de pauta/publicação.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
 <!-- HISTÓRICO ACUMULADO -->
 <div id="tab-historico" style="display:none;padding:20px 24px">
 <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
 <div>
-<div style="font-size:16px;font-weight:700;color:var(--white)">📚 Histórico Acumulado de Audiências</div>
+<div style="font-size:18px;font-weight:800;color:#003B5C;text-shadow:none;letter-spacing:.2px">📚 Histórico Acumulado de Audiências</div>
 <div style="font-size:12px;color:var(--muted);margin-top:3px">Registro persistente de todas as pautas — os dados são mantidos mesmo após atualização do sistema.</div>
 </div>
 <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -3061,7 +3350,7 @@ function logout(){
 function showTab(id, el){
   if(currentRole === 'publico' && id !== 'pauta'){ id = 'pauta'; el = document.querySelector('.nav-btn.public-allowed') || document.querySelectorAll('.nav-btn')[1]; }
 
-  ['dashboard','pauta','conflitos','comarcas','responsavel','auditoria','pos','pericia','admin','historico','cliente'].forEach(t=>{
+  ['dashboard','pauta','conflitos','histdesignacoes','comarcas','responsavel','auditoria','pos','pericia','admin','historico','linksuteis','cliente'].forEach(t=>{
     const _el=document.getElementById('tab-'+t);
     if(_el) _el.style.display = t===id?'':'none';
   });
@@ -3069,7 +3358,7 @@ function showTab(id, el){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   if(el && el.classList.contains('nav-btn')) el.classList.add('active');
   // sync bottom nav — highlight "Mais" for drawer-only tabs
-  const drawerTabs = ['comarcas','responsavel','pericia','auditoria','admin','historico','cliente'];
+  const drawerTabs = ['histdesignacoes','comarcas','responsavel','pericia','auditoria','admin','historico','linksuteis','cliente'];
   document.querySelectorAll('.bottom-nav-btn').forEach(b=>{
     if(b.id === 'bn-mais') {
       b.classList.toggle('active', drawerTabs.includes(id));
@@ -3081,6 +3370,7 @@ function showTab(id, el){
   closeMobileMenu();
   if(id==='pauta') renderTable();
   if(id==='conflitos') renderConflitos();
+  if(id==='histdesignacoes') renderHistoricoDesignacoes();
   if(id==='comarcas') renderComarcas();
   if(id==='responsavel') renderResponsavel();
   if(id==='auditoria') renderAuditLog();
@@ -3088,7 +3378,17 @@ function showTab(id, el){
   if(id==='pericia') renderPericia();
   if(id==='admin') { renderUsers(); renderGruposCheck(); }
   if(id==='historico') renderHistorico();
+  if(id==='linksuteis') filtrarLinksUteis();
   if(id==='cliente') renderClienteBanco();
+}
+
+
+function filtrarLinksUteis(){
+  const q = (document.getElementById('links-search')?.value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  document.querySelectorAll('[data-link-item]').forEach(card=>{
+    const txt = (card.getAttribute('data-link-item') || card.innerText || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    card.style.display = !q || txt.includes(q) ? '' : 'none';
+  });
 }
 
 // ---- DASHBOARD ----
@@ -3850,13 +4150,24 @@ function renderRedesig(){
 // Não sincroniza: anexos PDF (limite de tamanho)
 // ═══════════════════════════════════════════════════════════════
 const EDITS_KEY           = 'pauta_edits_v1';
-const JSONBIN_ID          = '69f62134856a6821899aea5f';
-const JSONBIN_KEY_STOR    = 'pc_jsonbin_masterkey';
-const JSONBIN_KEY_DEFAULT = '$2a$10$p4npPjyCH7lkIETkFhDwDe45pAgYy2u6hcPIM9lM/nLoNtoJLNchm';
-let   _syncTimer          = null;
 
-function getJSONBinKey(){
-  return localStorage.getItem(JSONBIN_KEY_STOR) || JSONBIN_KEY_DEFAULT;
+// ═══════════════════════════════════════════════════════
+// SUPABASE — NUVEM COMPARTILHADA DA PAUTA
+// Salva a pauta, histórico, designações, pós-audiência e pós-perícia
+// para todos os usuários/computadores.
+// ═══════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://kgyeeuynerhpaqlhqwkx.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_MdUFFFJ5xRqiQysyxlWHFA_yk_LsknZ';
+const SUPABASE_SNAPSHOT_ID = 'global';
+let   _syncTimer          = null;
+let   _lastRemoteUpdatedAt = null;
+
+function _sbHeaders(extra){
+  return Object.assign({
+    'apikey': SUPABASE_KEY,
+    'Authorization': 'Bearer ' + SUPABASE_KEY,
+    'Content-Type': 'application/json'
+  }, extra || {});
 }
 
 function _showSyncInd(msg, color){
@@ -3874,24 +4185,31 @@ function _hideSyncInd(delay){
 
 async function _binGet(){
   try{
-    const r = await fetch('https://api.jsonbin.io/v3/b/'+JSONBIN_ID+'/latest',{
-      headers:{'X-Master-Key':getJSONBinKey(),'X-Bin-Meta':'false'}
-    });
+    const url = SUPABASE_URL + '/rest/v1/pauta_audiencias?id=eq.' + encodeURIComponent(SUPABASE_SNAPSHOT_ID) + '&select=dados,atualizado_em';
+    const r = await fetch(url, { headers: _sbHeaders() });
     if(!r.ok) return null;
-    const d = await r.json();
-    return d.record||d;
-  }catch{ return null; }
+    const arr = await r.json();
+    if(!arr || !arr.length) return null;
+    _lastRemoteUpdatedAt = arr[0].atualizado_em || _lastRemoteUpdatedAt;
+    return arr[0].dados || null;
+  }catch(e){ console.warn('Supabase GET falhou', e); return null; }
 }
 
 async function _binPut(data){
   try{
-    const r = await fetch('https://api.jsonbin.io/v3/b/'+JSONBIN_ID,{
-      method:'PUT',
-      headers:{'Content-Type':'application/json','X-Master-Key':getJSONBinKey()},
-      body:JSON.stringify(data)
+    const payload = { id: SUPABASE_SNAPSHOT_ID, dados: data, atualizado_em: new Date().toISOString() };
+    const r = await fetch(SUPABASE_URL + '/rest/v1/pauta_audiencias', {
+      method:'POST',
+      headers:_sbHeaders({'Prefer':'resolution=merge-duplicates,return=minimal'}),
+      body:JSON.stringify(payload)
     });
-    return r.ok;
-  }catch{ return false; }
+    if(!r.ok){
+      console.warn('Supabase PUT falhou', r.status, await r.text().catch(()=>''));
+      return false;
+    }
+    _lastRemoteUpdatedAt = payload.atualizado_em;
+    return true;
+  }catch(e){ console.warn('Supabase PUT falhou', e); return false; }
 }
 
 function _buildLocalSnapshot(){
@@ -3928,7 +4246,7 @@ function _buildLocalSnapshot(){
           pauta_main: (DATA && Array.isArray(DATA.main)) ? DATA.main : [],
           historico,
           pauta_updated_at: new Date().toISOString(),
-          designacoes:desig,pos_audiencia:posAud,pos_pericia:posPericia,
+          designacoes:desig,designacoes_meta:pcGetDesignMeta(),designacoes_log:pcGetDesignLog(),designacoes_conflitos:pcGetDesignConflicts(),pos_audiencia:posAud,pos_pericia:posPericia,
           notas,pt,ctrl,preparo_info:prepInfo};
 }
 
@@ -3936,11 +4254,10 @@ function _applySnapshot(snap){
   if(!snap) return;
 
   // Pauta importada pela Controladoria: fica na nuvem e todos os acessos carregam a mesma base.
-  // Merge inteligente: nunca apaga registros antigos/pós/histórico por simples Sync.
+  // REGRA: Pauta Completa recebe somente a base atual salva; antigos ficam apenas no Histórico.
   if(Array.isArray(snap.pauta_main) && snap.pauta_main.length){
     try {
-      const atuais = (DATA && Array.isArray(DATA.main)) ? DATA.main : [];
-      DATA.main = pcMergeAudiencias([...(atuais||[]), ...(snap.pauta_main||[])]);
+      DATA.main = pcMergeAudiencias([...(snap.pauta_main||[])]);
     } catch(e) { console.warn("Não foi possível aplicar pauta_main", e); }
   }
 
@@ -3971,6 +4288,24 @@ function _applySnapshot(snap){
       if(DATA.main[i]) DATA.main[i][field]=val;
     }
   });
+
+  if(snap.designacoes_meta){
+    try{ localStorage.setItem(DESIGN_META_KEY, JSON.stringify(Object.assign({}, pcGetDesignMeta(), snap.designacoes_meta||{}))); }catch{}
+  }
+  if(Array.isArray(snap.designacoes_log)){
+    try{
+      const byId = new Map();
+      [...(snap.designacoes_log||[]), ...pcGetDesignLog()].forEach(e=>{ if(e && e.id) byId.set(e.id,e); });
+      pcSaveDesignLog(Array.from(byId.values()).sort((a,b)=>String(b.criado_em||'').localeCompare(String(a.criado_em||''))));
+    }catch{}
+  }
+  if(Array.isArray(snap.designacoes_conflitos)){
+    try{
+      const byId = new Map();
+      [...(snap.designacoes_conflitos||[]), ...pcGetDesignConflicts()].forEach(e=>{ if(e && e.id) byId.set(e.id,e); });
+      pcSaveDesignConflicts(Array.from(byId.values()).sort((a,b)=>String(b.criado_em||'').localeCompare(String(a.criado_em||''))));
+    }catch{}
+  }
 
   if(snap.pos_audiencia){
     try{
@@ -4024,6 +4359,9 @@ async function applyEdits(){
       pauta_main:   (Array.isArray(snap.pauta_main) && snap.pauta_main.length) ? snap.pauta_main : loc.pauta_main,
       historico:    Array.isArray(snap.historico) ? snap.historico : [],
       designacoes:  Object.assign({},loc.designacoes,  snap.designacoes||{}),
+      designacoes_meta: Object.assign({},loc.designacoes_meta||{}, snap.designacoes_meta||{}),
+      designacoes_log:  Array.isArray(snap.designacoes_log) ? snap.designacoes_log : (loc.designacoes_log||[]),
+      designacoes_conflitos: Array.isArray(snap.designacoes_conflitos) ? snap.designacoes_conflitos : (loc.designacoes_conflitos||[]),
       pos_audiencia:Object.assign({},loc.pos_audiencia, snap.pos_audiencia||{}),
       pos_pericia:  Object.assign({},loc.pos_pericia,   snap.pos_pericia||{}),
       notas:        Object.assign({},loc.notas,         snap.notas||{}),
@@ -4048,6 +4386,201 @@ async function recarregarDesignacoes(){
 }
 
 
+
+
+// ═══════════════════════════════════════════════════════
+// GOVERNANÇA DE DESIGNAÇÕES — LOG + PROTEÇÃO CONTRA UPLOAD DESATUALIZADO
+// ═══════════════════════════════════════════════════════
+const DESIGN_META_KEY      = 'pc_designacoes_meta_v1';
+const DESIGN_LOG_KEY       = 'pc_designacoes_log_v1';
+const DESIGN_CONFLICT_KEY  = 'pc_designacoes_conflitos_v1';
+
+function pcUsuarioAtual(){
+  return currentUserEmail || document.getElementById('user-label')?.textContent || 'usuário não identificado';
+}
+function pcCampoDesignacaoLabel(field){
+  return field === 'adv_preparo' ? 'Adv. Preparo' : 'Adv. Audiência';
+}
+function pcNormDesignacao(v){
+  return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').trim().toUpperCase();
+}
+function pcEhDesignacaoValida(v){
+  const s = pcNormDesignacao(v);
+  return !!s && !['INDICAR ADVOGADO','INDICAR','SEM DESIGNACAO','SEM DESIGNAÇÃO','NAO','NÃO','N/A','-','—','NULL','UNDEFINED'].includes(s);
+}
+function pcGetJSON(key, fallback){ try{ return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback)); }catch{ return fallback; } }
+function pcSetJSON(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch{} }
+function pcDesignKey(row, field){ return pcChaveAudiencia(row) + '::' + field; }
+function pcGetDesignMeta(){ return pcGetJSON(DESIGN_META_KEY, {}); }
+function pcSaveDesignMeta(v){ pcSetJSON(DESIGN_META_KEY, v||{}); }
+function pcGetDesignLog(){ return pcGetJSON(DESIGN_LOG_KEY, []); }
+function pcSaveDesignLog(v){ pcSetJSON(DESIGN_LOG_KEY, (v||[]).slice(0,2000)); }
+function pcGetDesignConflicts(){ return pcGetJSON(DESIGN_CONFLICT_KEY, []); }
+function pcSaveDesignConflicts(v){ pcSetJSON(DESIGN_CONFLICT_KEY, v||[]); pcAtualizarBadgeConflitosDesignacao(); }
+function pcRegistroBase(row, field, anterior, novo, origem, acao){
+  return {
+    id: 'desig_'+Date.now()+'_'+Math.random().toString(36).slice(2,9),
+    criado_em: new Date().toISOString(),
+    audiencia_id: pcChaveAudiencia(row),
+    codigo: row?.codigo || '',
+    processo: row?.processo || '',
+    cliente: row?.cliente || row?.parte_principal || '',
+    parte: row?.parte_contraria || '',
+    data: row?.data || '',
+    horario: row?.horario || '',
+    campo: field,
+    campo_label: pcCampoDesignacaoLabel(field),
+    anterior: anterior || '',
+    novo: novo || '',
+    origem: origem || 'manual',
+    usuario: pcUsuarioAtual(),
+    acao: acao || 'alteração'
+  };
+}
+function pcAddDesignLog(entry){
+  const log = pcGetDesignLog();
+  log.unshift(entry);
+  pcSaveDesignLog(log);
+}
+function pcRegistrarDesignacaoManual(row, field, anterior, novo){
+  if(pcNormDesignacao(anterior) === pcNormDesignacao(novo)) return;
+  const key = pcDesignKey(row, field);
+  const meta = pcGetDesignMeta();
+  meta[key] = { valor: novo || '', atualizado_em: new Date().toISOString(), origem: 'manual', usuario: pcUsuarioAtual() };
+  pcSaveDesignMeta(meta);
+  pcAddDesignLog(pcRegistroBase(row, field, anterior, novo, 'Manual', 'Designação manual salva'));
+}
+function pcAddDesignConflict(row, field, manualVal, excelVal, meta){
+  const conflicts = pcGetDesignConflicts();
+  const key = pcDesignKey(row, field);
+  const aberto = conflicts.find(c => c.status === 'pendente' && c.design_key === key && pcNormDesignacao(c.excel_valor) === pcNormDesignacao(excelVal));
+  if(aberto) return;
+  conflicts.unshift({
+    id:'conf_'+Date.now()+'_'+Math.random().toString(36).slice(2,9),
+    criado_em:new Date().toISOString(),
+    status:'pendente',
+    design_key:key,
+    audiencia_id:pcChaveAudiencia(row),
+    campo:field,
+    campo_label:pcCampoDesignacaoLabel(field),
+    processo:row?.processo||'', cliente:row?.cliente||row?.parte_principal||'', parte:row?.parte_contraria||'', data:row?.data||'', horario:row?.horario||'',
+    manual_valor:manualVal||'', excel_valor:excelVal||'',
+    manual_usuario:meta?.usuario||'', manual_em:meta?.atualizado_em||'', upload_usuario:pcUsuarioAtual()
+  });
+  pcSaveDesignConflicts(conflicts);
+}
+function pcAplicarProtecaoDesignacoesUpload(rows){
+  const antigas = new Map();
+  try{ (DATA.main||[]).forEach(r=> antigas.set(pcChaveAudiencia(r), r)); }catch{}
+  const meta = pcGetDesignMeta();
+  const edits = getEdits();
+  const fields = ['adv_audiencia','adv_preparo'];
+  rows.forEach(row=>{
+    const keyRow = pcChaveAudiencia(row);
+    const old = antigas.get(keyRow);
+    fields.forEach(field=>{
+      const excelValOriginal = row[field] || '';
+      const oldVal = old?.[field] || '';
+      const dkey = keyRow + '::' + field;
+      const m = meta[dkey];
+      if(!pcEhDesignacaoValida(excelValOriginal) && pcEhDesignacaoValida(oldVal)){
+        row[field] = oldVal;
+        edits[dkey] = oldVal;
+        return;
+      }
+      if(pcEhDesignacaoValida(excelValOriginal) && pcEhDesignacaoValida(oldVal) && pcNormDesignacao(excelValOriginal) !== pcNormDesignacao(oldVal)){
+        if(m && m.origem === 'manual'){
+          row[field] = oldVal;
+          edits[dkey] = oldVal;
+          pcAddDesignConflict(row, field, oldVal, excelValOriginal, m);
+          pcAddDesignLog(pcRegistroBase(row, field, oldVal, excelValOriginal, 'Upload Excel bloqueado', 'Conflito: mantida designação manual mais recente'));
+        } else {
+          row[field] = excelValOriginal;
+          edits[dkey] = excelValOriginal;
+          meta[dkey] = { valor: excelValOriginal, atualizado_em: new Date().toISOString(), origem: 'upload', usuario: pcUsuarioAtual() };
+          pcAddDesignLog(pcRegistroBase(row, field, oldVal, excelValOriginal, 'Upload Excel', 'Designação atualizada pelo Excel'));
+        }
+      } else if(pcEhDesignacaoValida(excelValOriginal) && !pcEhDesignacaoValida(oldVal)){
+        edits[dkey] = excelValOriginal;
+        meta[dkey] = { valor: excelValOriginal, atualizado_em: new Date().toISOString(), origem: 'upload', usuario: pcUsuarioAtual() };
+        pcAddDesignLog(pcRegistroBase(row, field, oldVal, excelValOriginal, 'Upload Excel', 'Designação incluída pelo Excel'));
+      }
+    });
+  });
+  pcSaveDesignMeta(meta);
+  saveEditsLocal(edits);
+  return rows;
+}
+function pcAtualizarBadgeConflitosDesignacao(){
+  const n = pcGetDesignConflicts().filter(c=>c.status==='pendente').length;
+  const b = document.getElementById('designacao-conflict-badge');
+  if(b){ b.textContent = n; b.style.display = n ? 'inline-block' : 'none'; }
+}
+function pcFmtDataHoraISO(iso){
+  try{return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});}catch{return iso||'';}
+}
+function renderHistoricoDesignacoes(){
+  pcAtualizarBadgeConflitosDesignacao();
+  const wrap = document.getElementById('designacao-alertas-wrap');
+  const conflitos = pcGetDesignConflicts();
+  const pend = conflitos.filter(c=>c.status==='pendente');
+  if(wrap){
+    wrap.innerHTML = pend.length ? `<div style="border:1px solid rgba(192,57,43,.25);background:rgba(192,57,43,.06);border-radius:12px;padding:14px 16px">
+      <div style="font-weight:800;color:var(--red);margin-bottom:8px">⚠️ ${pend.length} conflito(s) de designação aguardando decisão</div>
+      ${pend.slice(0,8).map(c=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid var(--border2);padding:10px 0;flex-wrap:wrap">
+        <div style="font-size:12px"><b>${c.processo||'—'}</b> · ${c.cliente||''} · ${c.campo_label}<br><span style="color:var(--muted)">Manual: <b>${c.manual_valor||'—'}</b> (${pcFmtDataHoraISO(c.manual_em)}) · Excel: <b>${c.excel_valor||'—'}</b></span></div>
+        <div style="display:flex;gap:8px"><button class="export-btn" style="background:var(--green)" onclick="resolverConflitoDesignacao('${c.id}','manter')">Manter manual</button><button class="filter-clear-btn" onclick="resolverConflitoDesignacao('${c.id}','excel')">Aplicar Excel</button></div>
+      </div>`).join('')}
+    </div>` : `<div style="border:1px solid rgba(17,122,101,.18);background:rgba(17,122,101,.06);border-radius:12px;padding:12px 16px;color:var(--green);font-weight:700">✅ Nenhum conflito pendente de designação.</div>`;
+  }
+  const q = (document.getElementById('designacao-log-search')?.value||'').toLowerCase();
+  let log = pcGetDesignLog();
+  if(q) log = log.filter(e => Object.values(e).join(' ').toLowerCase().includes(q));
+  const count = document.getElementById('designacao-log-count'); if(count) count.textContent = `${log.length} registro(s)`;
+  const tb = document.getElementById('designacao-log-tbody');
+  if(!tb) return;
+  if(!log.length){ tb.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--muted);padding:34px">Nenhuma alteração registrada.</td></tr>'; return; }
+  tb.innerHTML = log.slice(0,500).map(e=>`<tr>
+    <td>${pcFmtDataHoraISO(e.criado_em)}</td><td><span class="badge badge-tipo">${e.origem||''}</span></td><td class="processo">${e.processo||''}</td><td>${e.cliente||''}</td><td>${e.parte||''}</td><td>${e.campo_label||e.campo||''}</td><td>${e.anterior||'—'}</td><td><b>${e.novo||'—'}</b></td><td>${e.usuario||''}</td><td>${e.acao||''}</td>
+  </tr>`).join('');
+}
+function resolverConflitoDesignacao(id, acao){
+  const conflitos = pcGetDesignConflicts();
+  const c = conflitos.find(x=>x.id===id);
+  if(!c) return;
+  const row = (DATA.main||[]).find(r=>pcChaveAudiencia(r)===c.audiencia_id);
+  const meta = pcGetDesignMeta();
+  const edits = getEdits();
+  if(acao === 'excel' && row){
+    const anterior = row[c.campo] || '';
+    row[c.campo] = c.excel_valor;
+    edits[c.design_key] = c.excel_valor;
+    meta[c.design_key] = {valor:c.excel_valor, atualizado_em:new Date().toISOString(), origem:'resolucao_excel', usuario:pcUsuarioAtual()};
+    pcAddDesignLog(pcRegistroBase(row, c.campo, anterior, c.excel_valor, 'Resolução de conflito', 'Aplicado valor do Excel'));
+  } else if(row) {
+    edits[c.design_key] = c.manual_valor;
+    meta[c.design_key] = {valor:c.manual_valor, atualizado_em:new Date().toISOString(), origem:'manual', usuario:c.manual_usuario||pcUsuarioAtual()};
+    pcAddDesignLog(pcRegistroBase(row, c.campo, c.excel_valor, c.manual_valor, 'Resolução de conflito', 'Mantida designação manual'));
+  }
+  c.status = 'resolvido'; c.resolvido_em = new Date().toISOString(); c.resolvido_por = pcUsuarioAtual(); c.resolucao = acao;
+  pcSaveDesignConflicts(conflitos);
+  pcSaveDesignMeta(meta); saveEditsLocal(edits); _scheduleSave();
+  try{ renderTable(); refreshDashboardAfterEdit(); }catch(e){}
+  renderHistoricoDesignacoes();
+  showToast(acao==='excel'?'✅ Valor do Excel aplicado.':'✅ Designação manual mantida.');
+}
+function limparConflitosDesignacaoResolvidos(){
+  pcSaveDesignConflicts(pcGetDesignConflicts().filter(c=>c.status==='pendente'));
+  _scheduleSave(); renderHistoricoDesignacoes(); showToast('🧹 Conflitos resolvidos limpos.');
+}
+function exportarHistoricoDesignacoes(){
+  const rows = pcGetDesignLog();
+  const headers = ['Data/Hora','Origem','Processo','Cliente','Parte','Campo','Anterior','Nova','Usuário','Ação'];
+  const csv = [headers, ...rows.map(e=>[pcFmtDataHoraISO(e.criado_em), e.origem, e.processo, e.cliente, e.parte, e.campo_label, e.anterior, e.novo, e.usuario, e.acao])]
+    .map(r=>r.map(v=>'"'+String(v||'').replace(/"/g,'""')+'"').join(';')).join('\n');
+  const blob = new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='historico_designacoes.csv'; a.click(); URL.revokeObjectURL(a.href);
+}
 
 // ═══════════════════════════════════════════════════════
 // IMPORTAÇÃO DIRETA DA PLANILHA NO SITE — CONTROLADORIA
@@ -4303,32 +4836,46 @@ function pcResgatarDia29Local(){
     try{ renderHistorico(); }catch(e){}
     try{ renderPos(); }catch(e){}
     try{ renderPericia(); }catch(e){}
+      try{ pcAtualizarBadgeConflitosDesignacao(); }catch(e){}
     showToast('✅ Dia 29 resgatado: '+achados.length+' registro(s).');
   }catch(e){ showToast('❌ Não consegui resgatar o dia 29: '+e.message); }
 }
 
 function pcMesclarPendentesAntigos(novaPauta){
+  // REGRA NOVA: a Pauta Completa mostra somente a pauta atual/futura importada.
+  // Registros antigos, como o dia 29, vão para a aba Histórico e não ficam mais na Pauta Completa.
   const novos = Array.isArray(novaPauta) ? novaPauta : [];
   const chavesNovas = new Set(novos.map(pcChaveAudiencia));
   const primeiraNova = Math.min(...novos.map(r => pcDataTimeValueBR(r.data, r.horario)).filter(Boolean));
   if(!isFinite(primeiraNova)) return novos;
+
   const fontes = [];
   try{ fontes.push(...(Array.isArray(DATA.main) ? DATA.main : [])); }catch{}
   try{ fontes.push(...(Array.isArray(POST_OLD_RECORDS) ? POST_OLD_RECORDS : [])); }catch{}
   try{ fontes.push(...((typeof getHistorico === 'function' ? getHistorico() : []) || [])); }catch{}
-  const pendentes = [];
+
+  const antigasParaHistorico = [];
   const usadas = new Set(chavesNovas);
   fontes.forEach(r => {
     const chave = pcChaveAudiencia(r);
     if(usadas.has(chave)) return;
     const dataVal = pcDataTimeValueBR(r?.data, r?.horario);
     if(!dataVal || dataVal >= primeiraNova) return;
-    if(!pcAudienciaPendentePosOuPericia(r)) return;
-    pendentes.push({...r, _mantida_pendente:true});
+    antigasParaHistorico.push({
+      ...r,
+      _hist_codigo: r._hist_codigo || chave,
+      _hist_pauta: r._hist_pauta || 'Histórico automático por upload',
+      _hist_absorvido: r._hist_absorvido || new Date().toISOString()
+    });
     usadas.add(chave);
   });
-  pendentes.sort((a,b)=>pcDataTimeValueBR(a.data,a.horario)-pcDataTimeValueBR(b.data,b.horario));
-  return [...pendentes, ...novos];
+
+  if(antigasParaHistorico.length && typeof saveHistorico === 'function'){
+    const histAtual = (typeof getHistorico === 'function') ? (getHistorico() || []) : [];
+    saveHistorico(pcMergeAudiencias([...(histAtual||[]), ...antigasParaHistorico]));
+  }
+
+  return novos;
 }
 
 async function pcImportarPlanilhaSite(file){
@@ -4343,7 +4890,7 @@ async function pcImportarPlanilhaSite(file){
     const wb = XLSX.read(buf, {type:'array', cellDates:true});
     const rows = pcParsePlanilhaPauta(wb);
     if(!rows.length) throw new Error('A planilha não trouxe nenhuma audiência.');
-    const rowsFinal = pcMesclarPendentesAntigos(rows);
+    const rowsFinal = pcAplicarProtecaoDesignacoesUpload(pcMesclarPendentesAntigos(rows));
     DATA.main = rowsFinal;
     try{ localStorage.setItem('pauta_data_hash_v1', _getPautaHash()); }catch{}
     const ok = await _binPut(_buildLocalSnapshot());
@@ -4355,14 +4902,46 @@ async function pcImportarPlanilhaSite(file){
     try{ refreshDashboardAfterEdit(); }catch{}
     try{ renderPos(); }catch{}
     try{ renderPericia(); }catch{}
-    const mantidas = Math.max(0, rowsFinal.length - rows.length);
-    addAuditEntry('Pauta importada', `${rows.length} registros importados pelo upload da planilha · ${mantidas} pendências antigas mantidas`);
-    showToast(`✅ Pauta atualizada! ${mantidas} audiência(s) antiga(s) pendente(s) foram mantidas no pós/histórico.`);
+    const movidasHist = Math.max(0, ((typeof getHistorico === 'function' ? getHistorico() : []) || []).length);
+    addAuditEntry('Pauta importada', `${rows.length} registros importados pelo upload da planilha · históricos preservados na aba Histórico`);
+    showToast(`✅ Pauta atualizada na nuvem! Pauta Completa ficou só com a base atual; antigos ficaram no Histórico.`);
   }catch(e){
     console.error(e);
     showToast('❌ Erro ao importar: '+ e.message);
   }
 }
+
+
+// Atualização compartilhada entre usuários: busca alterações da nuvem automaticamente.
+// Assim designações manuais e uploads feitos por admin aparecem para os demais sem republicar o GitHub.
+let _pcCloudPollStarted = false;
+function pcStartCloudRealtime(){
+  if(_pcCloudPollStarted) return;
+  _pcCloudPollStarted = true;
+  setInterval(async()=>{
+    try{
+      const snap = await _binGet();
+      if(!snap) return;
+      _applySnapshot(snap);
+      try{ renderTable(); }catch(e){}
+      try{ refreshDashboardAfterEdit(); }catch(e){}
+      try{ renderPos(); }catch(e){}
+      try{ renderPericia(); }catch(e){}
+      try{ renderHistorico(); }catch(e){}
+    }catch(e){ console.warn('Atualização automática falhou', e); }
+  }, 5000);
+}
+
+window.addEventListener('load', async()=>{
+  try{
+    await applyEdits();
+    try{ renderTable(); }catch(e){}
+    try{ refreshDashboardAfterEdit(); }catch(e){}
+    try{ renderHistorico(); }catch(e){}
+    pcStartCloudRealtime();
+try{ pcAtualizarBadgeConflitosDesignacao(); }catch(e){}
+  }catch(e){ console.warn('Carga inicial Supabase falhou', e); }
+});
 
 function normalizarGrupoPermissao(v){
   return String(v || '').replace(/grupo/ig,'').trim().toUpperCase().replace(/\s+/g,'');
@@ -4536,6 +5115,7 @@ function startEdit(e, idx, field){
     edits[idx + '__' + field] = newVal;
     const cod = DATA.main[idx]?.codigo;
     if(cod) edits[cod + '::' + field] = newVal;
+    pcRegistrarDesignacaoManual(DATA.main[idx], field, currentVal, newVal);
     saveEdits(edits);
 
     if(currentRole==='admin'||currentRole==='editor'){
@@ -7846,6 +8426,158 @@ function dispararAlertasDesignacao(ev){
       </div>
       <div class="alertas-designacao-lista">${cards}</div>
     </div>`;
+  document.body.appendChild(overlay);
+}
+
+
+/* ===== ALERTA 17H — AUDIÊNCIAS DE AMANHÃ ===== */
+const PC_ALERTA_17H_CC = "audiencia.trabalhista@peixotoecury.com.br";
+const PC_ALERTA_17H_LOG_KEY = "pc_alertas_17h_log_v1";
+
+function pcParseDataBR(data){
+  const m = String(data||"").match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if(!m) return null;
+  const y = m[3].length === 2 ? Number('20'+m[3]) : Number(m[3]);
+  const d = new Date(y, Number(m[2])-1, Number(m[1]));
+  d.setHours(0,0,0,0);
+  return d;
+}
+function pcFmtDataBR(dt){
+  return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();
+}
+function pcDataAmanhaBR(){
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  d.setDate(d.getDate()+1);
+  return pcFmtDataBR(d);
+}
+function pcNormSiglaPessoa(v){
+  return String(v||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+}
+function pcPessoaPorSigla(sigla){
+  const s = pcNormSiglaPessoa(sigla);
+  if(!s || s === 'INDICARADVOGADO' || s === 'INDICAR') return null;
+  const p = (typeof PROF !== 'undefined' && PROF && PROF[s]) ? PROF[s] : null;
+  return { sigla:s, nome:(p && p.nome) || s, email:(p && p.email) || '' };
+}
+function pcNomeClienteAlerta17(r){
+  return r?.cliente || r?.parte_principal || r?.reclamada || r?.empresa || '-';
+}
+function pcGetAudienciasAmanha17h(){
+  const alvo = pcDataAmanhaBR();
+  const base = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.main)) ? DATA.main : [];
+  return base.filter(r => String(r?.data||'').trim() === alvo)
+    .sort((a,b)=>String(a.horario||'').localeCompare(String(b.horario||'')) || String(a.processo||'').localeCompare(String(b.processo||'')));
+}
+function pcGetAlerta17Log(){
+  try{return JSON.parse(localStorage.getItem(PC_ALERTA_17H_LOG_KEY)||'[]');}catch(e){return []}
+}
+function pcSaveAlerta17Log(log){
+  try{localStorage.setItem(PC_ALERTA_17H_LOG_KEY, JSON.stringify(log||[]));}catch(e){}
+}
+function pcRegistrarAlerta17(r, destinatarios){
+  const log = pcGetAlerta17Log();
+  log.unshift({
+    id:'alt17_'+Date.now()+'_'+Math.random().toString(36).slice(2),
+    criado_em:new Date().toISOString(),
+    usuario: (typeof pcUsuarioAtual === 'function') ? pcUsuarioAtual() : (currentUserEmail||currentUserName||'admin'),
+    audiencia_id: (typeof pcChaveAudiencia === 'function') ? pcChaveAudiencia(r) : (r.codigo||r.processo||''),
+    processo:r.processo||'', cliente:pcNomeClienteAlerta17(r), parte:r.parte_contraria||'', data:r.data||'', horario:r.horario||'',
+    adv_audiencia:r.adv_audiencia||'', adv_preparo:r.adv_preparo||'',
+    destinatarios:destinatarios.map(d=>d.email||d.sigla).filter(Boolean).join('; ')
+  });
+  pcSaveAlerta17Log(log.slice(0,1000));
+}
+function pcMontarCorpoAlerta17(r){
+  const aud = pcPessoaPorSigla(r.adv_audiencia);
+  const prep = pcPessoaPorSigla(r.adv_preparo);
+  const mesmaPessoa = aud && prep && aud.sigla === prep.sigla;
+  const responsaveis = mesmaPessoa
+    ? `${aud.nome} (${aud.sigla}), você constará como responsável pela audiência e pelo preparo.`
+    : `Advogado(a) responsável pela audiência: ${aud ? aud.nome + ' ('+aud.sigla+')' : (r.adv_audiencia || 'não informado')}\nResponsável pelo preparo: ${prep ? prep.nome + ' ('+prep.sigla+')' : (r.adv_preparo || 'não informado')}`;
+  return `Prezados(as),\n\nIdentificamos audiência designada para amanhã, com as seguintes responsabilidades:\n\n${responsaveis}\n\nDados da audiência:\nCliente: ${pcNomeClienteAlerta17(r)}\nParte contrária/Reclamante: ${r.parte_contraria || '-'}\nProcesso: ${r.processo || '-'}\nData/Horário: ${r.data || '-'} às ${r.horario || '-'}\nGrupo: ${r.grupo || '-'}\nComarca/UF: ${r.comarca || '-'}${r.estado ? '/' + r.estado : ''}\nVara/Turma: ${r.vara || '-'}\nTipo/Fase: ${r.tipo || '-'}${r.fase ? ' — ' + r.fase : ''}\nLink/Observações: ${r.link || '-'}\n\nChecklist obrigatório:\n1. Defesa protocolada, quando aplicável.\n2. Orientações conferidas/enviadas.\n3. Documentos e subsídios conferidos.\n4. Preposto/testemunhas alinhados, quando aplicável.\n5. Link, sala ou forma de participação confirmados.\n6. Conferir se há alguma pendência de preparo antes da audiência.\n\nSolicitamos a conferência das informações na Pauta de Audiências.\n\nAtenciosamente,\nControladoria Jurídica`; 
+}
+function pcMailtoAlerta17(r){
+  const pessoas = [pcPessoaPorSigla(r.adv_audiencia), pcPessoaPorSigla(r.adv_preparo)].filter(p=>p && p.email);
+  const unicos = [];
+  const seen = new Set();
+  pessoas.forEach(p=>{ if(!seen.has(p.email.toLowerCase())){seen.add(p.email.toLowerCase()); unicos.push(p);} });
+  const to = unicos.map(p=>p.email).join(';');
+  const assunto = `Alerta de audiência amanhã — ${r.horario || ''} — ${pcNomeClienteAlerta17(r)} — ${r.processo || ''}`;
+  const corpo = pcMontarCorpoAlerta17(r);
+  return {url:`mailto:${encodeURIComponent(to)}?cc=${encodeURIComponent(PC_ALERTA_17H_CC)}&subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`, pessoas:unicos, assunto, corpo};
+}
+function pcAbrirEmailAlerta17(idx){
+  const r = window.__alertas17hAmanha && window.__alertas17hAmanha[idx];
+  if(!r) return;
+  const m = pcMailtoAlerta17(r);
+  if(!m.pessoas.length){ alert('Esta audiência não possui e-mail localizado para o advogado/preparo. Confira as siglas.'); return; }
+  pcRegistrarAlerta17(r, m.pessoas);
+  window.location.href = m.url;
+}
+function pcCopiarEmailAlerta17(idx){
+  const r = window.__alertas17hAmanha && window.__alertas17hAmanha[idx];
+  if(!r) return;
+  const m = pcMailtoAlerta17(r);
+  const txt = `Para: ${m.pessoas.map(p=>p.email).join('; ')}\nCc: ${PC_ALERTA_17H_CC}\nAssunto: ${m.assunto}\n\n${m.corpo}`;
+  navigator.clipboard?.writeText(txt).then(()=>showToast('Texto do alerta copiado.')).catch(()=>alert(txt));
+}
+function fecharAlertas17hAmanha(){
+  const overlay = document.getElementById('alertas-17h-modal');
+  if(overlay) overlay.remove();
+}
+function abrirAlertas17hAmanha(ev){
+  if(ev && ev.stopPropagation) ev.stopPropagation();
+  if(currentRole && currentRole !== 'admin'){
+    showToast('⚠️ Apenas o perfil admin pode enviar os alertas das 17h.');
+    return;
+  }
+  const rows = pcGetAudienciasAmanha17h();
+  if(!rows.length){ alert('Nenhuma audiência encontrada para amanhã ('+pcDataAmanhaBR()+').'); return; }
+  window.__alertas17hAmanha = rows;
+  const semEmail = rows.filter(r => !pcMailtoAlerta17(r).pessoas.length).length;
+  const cards = rows.map((r,i)=>{
+    const m = pcMailtoAlerta17(r);
+    const aud = pcPessoaPorSigla(r.adv_audiencia);
+    const prep = pcPessoaPorSigla(r.adv_preparo);
+    const dest = m.pessoas.length ? m.pessoas.map(p=>`${p.sigla} · ${p.email}`).join('<br>') : '<span style="color:#C0392B;font-weight:800">Sem e-mail localizado</span>';
+    return `<div class="alerta-card-email">
+      <div class="alerta-card-top">
+        <div>
+          <div class="alerta-card-email-destino">${r.horario || '-'} · ${pcNomeClienteAlerta17(r)}</div>
+          <div class="alerta-card-meta">${r.processo || '-'} · ${r.grupo || '-'} · ${r.tipo || '-'}</div>
+        </div>
+        <div class="alerta-card-count">${i+1}</div>
+      </div>
+      <ul class="alerta-card-lista">
+        <li><b>Responsável pela audiência:</b> <span>${aud ? aud.nome + ' ('+aud.sigla+')' : (r.adv_audiencia || 'não informado')}</span></li>
+        <li><b>Responsável pelo preparo:</b> <span>${prep ? prep.nome + ' ('+prep.sigla+')' : (r.adv_preparo || 'não informado')}</span></li>
+        <li><b>Destinatários:</b><br><span>${dest}</span></li>
+      </ul>
+      <div class="alerta-card-actions">
+        <button type="button" class="alerta-btn-primary" onclick="pcAbrirEmailAlerta17(${i})">Abrir e-mail</button>
+        <button type="button" class="alerta-btn-secondary" onclick="pcCopiarEmailAlerta17(${i})">Copiar texto</button>
+      </div>
+    </div>`;
+  }).join('');
+  fecharAlertas17hAmanha();
+  const overlay = document.createElement('div');
+  overlay.id = 'alertas-17h-modal';
+  overlay.className = 'alertas-designacao-overlay open';
+  overlay.innerHTML = `<div class="alertas-designacao-box" role="dialog" aria-modal="true">
+    <div class="alertas-designacao-header">
+      <div>
+        <div class="alertas-designacao-kicker">Controladoria Jurídica · rotina das 17h</div>
+        <h2>Alertas das audiências de amanhã</h2>
+        <p>${rows.length} audiência(s) em ${pcDataAmanhaBR()} · ${semEmail ? semEmail + ' com pendência de e-mail/sigla' : 'todos com destinatário localizado'}.</p>
+      </div>
+      <button type="button" class="alertas-designacao-close" onclick="fecharAlertas17hAmanha()">×</button>
+    </div>
+    <div class="alertas-designacao-info">
+      Clique em <b>“Abrir e-mail”</b> para cada audiência. O e-mail irá para quem fará a audiência e para quem fará o preparo, informando a função de cada um. Cópia padrão: <b>${PC_ALERTA_17H_CC}</b>.
+    </div>
+    <div class="alertas-designacao-lista">${cards}</div>
+  </div>`;
   document.body.appendChild(overlay);
 }
 
