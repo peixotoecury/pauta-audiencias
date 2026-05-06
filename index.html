@@ -3318,6 +3318,7 @@ async function doLogin(){
   currentUserGrupos = found.grupos || [];
   currentUserSigla = found.sigla || null;
   currentUserEmail = found.user;
+  try{ localStorage.setItem('pc_session_v2', JSON.stringify({role:currentRole, grupos:currentUserGrupos, sigla:currentUserSigla, email:currentUserEmail, ts:Date.now()})); }catch(e){}
   document.getElementById('login-screen').style.display='none';
   const app = document.getElementById('app');
   app.style.display='flex';
@@ -3388,6 +3389,7 @@ function closeMobileMenu(){
 }
 
 function logout(){
+  try{ localStorage.removeItem('pc_session_v2'); }catch(e){}
   document.body.classList.remove('public-mode');
   currentUserSigla = null;
   closeMobileMenu();
@@ -4292,7 +4294,7 @@ const EDITS_KEY           = 'pauta_edits_v1';
 // para todos os usuários/computadores.
 // ═══════════════════════════════════════════════════════
 const SUPABASE_URL = 'https://kgyeeuynerhpaqlhqwkx.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtneWVldXluZXJocGFxbGhxd2t4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwNDM5NDQsImV4cCI6MjA5MzYxOTk0NH0.t4RrVo6M4akFsrAlj4M_fth9Kn0wOorzBC4GetOumUY';
+const SUPABASE_KEY = 'sb_publishable_MdUFFFJ5xRqiQysyxlWHFA_yk_LsknZ';
 const SUPABASE_SNAPSHOT_ID = 'global';
 let   _syncTimer          = null;
 let   _lastRemoteUpdatedAt = null;
@@ -4512,10 +4514,24 @@ async function applyEdits(){
 
 async function recarregarDesignacoes(){
   showToast('↻ Sincronizando tudo...');
-  await applyEdits();
-  try{ pcRecuperarDoHistoricoEmbebido(true); }catch(e){}
-  showToast('✅ Tudo atualizado! Recarregando painel...');
-  setTimeout(()=>location.reload(), 450);
+  try{
+    await applyEdits();
+    try{ pcRecuperarDoHistoricoEmbebido(true); }catch(e){}
+    // IMPORTANTE: não recarregar a página. O reload derrubava a sessão e voltava para o login.
+    try{ initApp(); }catch(e){}
+    try{ renderTable(); }catch(e){}
+    try{ refreshDashboardAfterEdit(); }catch(e){}
+    try{ renderDashboard(); }catch(e){}
+    try{ renderHistorico(); }catch(e){}
+    try{ renderHistoricoDesignacoes(); }catch(e){}
+    try{ renderPos(); }catch(e){}
+    try{ renderPericia(); }catch(e){}
+    try{ pcAtualizarBadgeConflitosDesignacao(); }catch(e){}
+    showToast('✅ Tudo atualizado sem sair da página.');
+  }catch(e){
+    console.warn('Falha ao sincronizar', e);
+    showToast('⚠️ Não consegui sincronizar agora. Tente novamente.');
+  }
 }
 
 
