@@ -3921,8 +3921,12 @@ function _buildLocalSnapshot(){
     }
   }catch{}
 
+  let historico=[];
+  try{ historico = (typeof getHistorico === 'function') ? (getHistorico() || []) : JSON.parse(localStorage.getItem('pauta_historico_v1')||'[]'); }catch{}
+
   return {
           pauta_main: (DATA && Array.isArray(DATA.main)) ? DATA.main : [],
+          historico,
           pauta_updated_at: new Date().toISOString(),
           designacoes:desig,pos_audiencia:posAud,pos_pericia:posPericia,
           notas,pt,ctrl,preparo_info:prepInfo};
@@ -3932,8 +3936,26 @@ function _applySnapshot(snap){
   if(!snap) return;
 
   // Pauta importada pela Controladoria: fica na nuvem e todos os acessos carregam a mesma base.
+  // Merge inteligente: nunca apaga registros antigos/pós/histórico por simples Sync.
   if(Array.isArray(snap.pauta_main) && snap.pauta_main.length){
-    try { DATA.main = snap.pauta_main; } catch(e) { console.warn("Não foi possível aplicar pauta_main", e); }
+    try {
+      const atuais = (DATA && Array.isArray(DATA.main)) ? DATA.main : [];
+      DATA.main = pcMergeAudiencias([...(atuais||[]), ...(snap.pauta_main||[])]);
+    } catch(e) { console.warn("Não foi possível aplicar pauta_main", e); }
+  }
+
+  // Também sincroniza o histórico acumulado entre computadores.
+  if(Array.isArray(snap.historico)){
+    try {
+      const localHist = (typeof getHistorico === 'function') ? (getHistorico() || []) : [];
+      const mergedHist = pcMergeAudiencias([...(localHist||[]), ...(snap.historico||[])]).map(r => ({
+        ...r,
+        _hist_codigo: r._hist_codigo || pcChaveAudiencia(r),
+        _hist_pauta: r._hist_pauta || 'Histórico sincronizado',
+        _hist_absorvido: r._hist_absorvido || new Date().toISOString()
+      }));
+      if(typeof saveHistorico === 'function') saveHistorico(mergedHist);
+    } catch(e) { console.warn('Não foi possível aplicar histórico', e); }
   }
 
   const desig=snap.designacoes||{};
@@ -3996,6 +4018,11 @@ async function applyEdits(){
   if(snap){
     const loc=_buildLocalSnapshot();
     _applySnapshot({
+      // IMPORTANTE: agora também traz a pauta salva na nuvem.
+      // Antes o Sync buscava designações/pós, mas não reaplicava a pauta_main;
+      // por isso dias antigos podiam não reaparecer.
+      pauta_main:   (Array.isArray(snap.pauta_main) && snap.pauta_main.length) ? snap.pauta_main : loc.pauta_main,
+      historico:    Array.isArray(snap.historico) ? snap.historico : [],
       designacoes:  Object.assign({},loc.designacoes,  snap.designacoes||{}),
       pos_audiencia:Object.assign({},loc.pos_audiencia, snap.pos_audiencia||{}),
       pos_pericia:  Object.assign({},loc.pos_pericia,   snap.pos_pericia||{}),
@@ -4197,6 +4224,89 @@ function pcAudienciaPendentePosOuPericia(r){
     return !pos[codigo];
   }catch(e){ return true; }
 }
+
+function pcMergeAudiencias(arr){
+  const out = [];
+  const map = new Map();
+  (arr || []).forEach(r => {
+    if(!r) return;
+    const chave = pcChaveAudiencia(r);
+    if(!chave) return;
+    const antigo = map.get(chave) || {};
+    // Dados novos entram, mas campos preenchidos antigos não são perdidos.
+    const merged = {...antigo, ...r};
+    ['adv_audiencia','adv_preparo','link','cliente','parte_principal','parte_contraria','comarca','estado','vara','fase','acao','foro'].forEach(k => {
+      if((!merged[k] || merged[k] === 'N/A' || merged[k] === 'Indicar Advogado') && antigo[k]) merged[k] = antigo[k];
+    });
+    map.set(chave, merged);
+  });
+  map.forEach(v => out.push(v));
+  out.sort((a,b)=>pcDataTimeValueBR(a.data,a.horario)-pcDataTimeValueBR(b.data,b.horario));
+  return out;
+}
+
+function pcSalvarBackupAntesUpload(){
+  try{
+    const backup = {
+      created_at:new Date().toISOString(),
+      pauta:(DATA && Array.isArray(DATA.main)) ? DATA.main : [],
+      historico:(typeof getHistorico === 'function') ? (getHistorico() || []) : []
+    };
+    localStorage.setItem('pc_backup_antes_upload_'+Date.now(), JSON.stringify(backup));
+  }catch(e){}
+}
+
+function pcResgatarDia29Local(){
+  const achados = [];
+  const candidatos = [];
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const k = localStorage.key(i);
+      const v = localStorage.getItem(k);
+      if(v && (v.includes('29/') || v.includes('2026-04-29') || v.includes('2026-05-29'))) candidatos.push({k,v});
+    }
+  }catch(e){}
+  function walk(x){
+    if(Array.isArray(x)) return x.forEach(walk);
+    if(x && typeof x === 'object'){
+      const data = String(x.data || x.Data || x.DATA || x.dt || '');
+      const processo = x.processo || x.Processo || x['Nº Processo'] || x['Número do Processo'];
+      if((data.includes('29/') || data.includes('2026-04-29') || data.includes('2026-05-29')) && processo){
+        const r = {...x};
+        if(!r.data && x.Data) r.data = pcExcelDateToBR(x.Data);
+        if(!r.horario && (x.Hora || x.hora)) r.horario = pcExcelHourToBR(x.Hora || x.hora);
+        if(!r.processo && processo) r.processo = String(processo);
+        if(!r.codigo) r.codigo = pcChaveAudiencia(r).replace(/^mix:/,'resgatado_');
+        achados.push(r);
+      }
+      Object.values(x).forEach(walk);
+    }
+  }
+  candidatos.forEach(c => { try{ walk(JSON.parse(c.v)); }catch(e){} });
+
+  if(!achados.length){
+    showToast('⚠️ Não encontrei o dia 29 no cache/localStorage. Preciso do JSON backup ou da planilha que tinha o dia 29.');
+    return;
+  }
+  try{
+    DATA.main = pcMergeAudiencias([...(DATA.main||[]), ...achados]);
+    const hist = (typeof getHistorico === 'function') ? getHistorico() : [];
+    const novoHist = pcMergeAudiencias([...(hist||[]), ...achados]).map(r => ({
+      ...r,
+      _hist_codigo:r._hist_codigo || pcChaveAudiencia(r),
+      _hist_pauta:r._hist_pauta || 'Resgate automático dia 29',
+      _hist_absorvido:r._hist_absorvido || new Date().toISOString()
+    }));
+    if(typeof saveHistorico === 'function') saveHistorico(novoHist);
+    _scheduleSave();
+    try{ renderTable(); }catch(e){}
+    try{ renderHistorico(); }catch(e){}
+    try{ renderPos(); }catch(e){}
+    try{ renderPericia(); }catch(e){}
+    showToast('✅ Dia 29 resgatado: '+achados.length+' registro(s).');
+  }catch(e){ showToast('❌ Não consegui resgatar o dia 29: '+e.message); }
+}
+
 function pcMesclarPendentesAntigos(novaPauta){
   const novos = Array.isArray(novaPauta) ? novaPauta : [];
   const chavesNovas = new Set(novos.map(pcChaveAudiencia));
@@ -4227,6 +4337,7 @@ async function pcImportarPlanilhaSite(file){
     return;
   }
   try{
+    pcSalvarBackupAntesUpload();
     showToast('⏳ Lendo planilha e preservando designações...');
     const buf = await file.arrayBuffer();
     const wb = XLSX.read(buf, {type:'array', cellDates:true});
@@ -7123,7 +7234,8 @@ function importarPautaHistorico() {
     : new Date().toLocaleDateString('pt-BR');
 
   let novos = 0, atualizados = 0;
-  DATA.main.forEach(r => {
+  const baseParaHistorico = (typeof getPostRecords === 'function') ? getPostRecords() : DATA.main;
+  baseParaHistorico.forEach(r => {
     const chave = makeChave(r);
     if (!existingCodes.has(chave)) {
       hist.push({
@@ -7379,6 +7491,14 @@ document.addEventListener('DOMContentLoaded', function(){
     btn.innerHTML = '↻ Sync';
     btn.onclick = function(){ recarregarDesignacoes(); };
     topbarRight.insertBefore(btn, topbarRight.firstChild);
+
+    const rescue = document.createElement('button');
+    rescue.id = 'btn-resgatar-dia29';
+    rescue.title = 'Resgatar audiências do dia 29 que ainda estejam no cache/backups locais';
+    rescue.style.cssText = 'background:rgba(230,126,34,.15);border:1px solid rgba(230,126,34,.35);color:#E67E22;border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:5px;';
+    rescue.innerHTML = '🔎 Resgatar 29';
+    rescue.onclick = function(){ pcResgatarDia29Local(); };
+    topbarRight.insertBefore(rescue, topbarRight.firstChild);
   }
 });
 </script>
