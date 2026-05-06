@@ -1944,6 +1944,7 @@ tr.alerta-sem-designacao{
 }
 </style>
 
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <!-- ══════════ LOGIN ══════════ -->
@@ -1998,6 +1999,7 @@ tr.alerta-sem-designacao{
 </div>
 <div class="topbar-right">
 <div class="user-badge">Logado como: <span id="user-label"></span></div>
+<button class="logout-btn" id="btn-upload-pauta-top" onclick="pcAbrirUploadPauta(event)" style="border-color:rgba(0,174,239,.3);color:var(--cyan)" title="Atualizar pauta por planilha">⬆️ Planilha</button>
 <button class="logout-btn" onclick="showChangePasswordModal()" style="border-color:rgba(0,174,239,.3);color:var(--cyan)" title="Alterar minha senha">🔐 Senha</button>
 <button class="logout-btn" onclick="logout()">Sair</button>
 </div>
@@ -2190,6 +2192,7 @@ tr.alerta-sem-designacao{
 <button class="filter-clear-btn" id="filter-clear-btn" onclick="clearFilters()" style="display:none">✕ Limpar filtros</button>
 <span class="filter-count" id="filter-count"></span>
 <button class="export-btn" onclick="exportarExcel()" title="Exportar pauta filtrada para Excel (.xlsx)">📥 Excel (.xlsx)</button>
+<button class="export-btn" id="btn-upload-pauta" onclick="pcAbrirUploadPauta(event)" title="Atualizar a pauta pelo upload da planilha" style="background:var(--cyan);color:var(--bg)">⬆️ Atualizar pauta</button>
 <button class="export-btn" id="btn-alertas-designacao" onclick="dispararAlertasDesignacao(event)" title="Enviar alertas das audiências sem designação por grupo" style="background:#C0392B">🚨 Alertas Designação</button>
 <button class="export-btn" id="btn-dashboard-designacoes" onclick="abrirDashboardDesignacoesPendentes(event)" title="Ver dashboard de designações pendentes por grupo">📊 Dashboard Designações</button>
 </div>
@@ -2907,7 +2910,7 @@ function selectRole(r, el){
   el.classList.add('active');
 }
 
-function doPublicAccess(){
+async function doPublicAccess(){
   currentRole = 'publico';
   currentUserGrupos = [];
   currentUserSigla = null;
@@ -2919,6 +2922,7 @@ function doPublicAccess(){
   app.style.display='flex';
   app.classList.add('visible');
   document.getElementById('user-label').textContent = 'Consulta Pública';
+  document.querySelectorAll('#btn-upload-pauta,#btn-upload-pauta-top').forEach(b=>{ if(b) b.style.display='none'; });
 
   // Permite somente Pauta Completa no acesso sem senha
   document.querySelectorAll('.nav-btn').forEach(btn=>{
@@ -2934,6 +2938,7 @@ function doPublicAccess(){
     btn.classList.toggle('active', isPauta);
   });
 
+  try{ await applyEdits(); }catch(e){ console.warn("Sync inicial ignorado", e); }
   initApp();
   // Garante que a consulta pública abra sempre a pauta completa, sem filtros herdados do navegador.
   ['search-main','filter-grupo','filter-data','filter-tipo','filter-prof'].forEach(id=>{
@@ -2944,7 +2949,7 @@ function doPublicAccess(){
   showTab('pauta', document.querySelector('.nav-btn.public-allowed') || document.querySelectorAll('.nav-btn')[1]);
 }
 
-function doLogin(){
+async function doLogin(){
   const u = document.getElementById('login-user').value.trim();
   const p = document.getElementById('login-pass').value;
   const users = getUsers();
@@ -2969,6 +2974,7 @@ function doLogin(){
   document.querySelectorAll('.nav-btn').forEach(b=>{ b.style.display=''; b.style.visibility=''; b.style.pointerEvents=''; });
   document.querySelectorAll('.bottom-nav-btn').forEach(b=>{ b.style.display=''; b.style.visibility=''; b.style.pointerEvents=''; });
   if(currentRole==='admin') {
+    document.querySelectorAll('#btn-upload-pauta,#btn-upload-pauta-top').forEach(b=>{ if(b) b.style.display=''; });
     document.getElementById('admin-nav').style.display='';
     document.getElementById('historico-nav').style.display='';
     const abn = document.getElementById('admin-bottom-nav');
@@ -2983,6 +2989,7 @@ function doLogin(){
     if(mnAdm) mnAdm.style.display='flex';
     if(mnHist) mnHist.style.display='flex';
   } else {
+    document.querySelectorAll('#btn-upload-pauta,#btn-upload-pauta-top').forEach(b=>{ if(b) b.style.display='none'; });
     document.getElementById('admin-nav').style.display='none';
     document.getElementById('historico-nav').style.display='none';
     const abn = document.getElementById('admin-bottom-nav');
@@ -2996,6 +3003,7 @@ function doLogin(){
     if(mnAdm) mnAdm.style.display='none';
     if(mnHist) mnHist.style.display='none';
   }
+  try{ await applyEdits(); }catch(e){ console.warn("Sync inicial ignorado", e); }
   initApp();
   // Visualizador entra diretamente na Pauta Completa, sem filtro automático por sigla.
   if(currentRole === 'visualizador'){
@@ -3910,12 +3918,20 @@ function _buildLocalSnapshot(){
     }
   }catch{}
 
-  return {designacoes:desig,pos_audiencia:posAud,pos_pericia:posPericia,
+  return {
+          pauta_main: (DATA && Array.isArray(DATA.main)) ? DATA.main : [],
+          pauta_updated_at: new Date().toISOString(),
+          designacoes:desig,pos_audiencia:posAud,pos_pericia:posPericia,
           notas,pt,ctrl,preparo_info:prepInfo};
 }
 
 function _applySnapshot(snap){
   if(!snap) return;
+
+  // Pauta importada pela Controladoria: fica na nuvem e todos os acessos carregam a mesma base.
+  if(Array.isArray(snap.pauta_main) && snap.pauta_main.length){
+    try { DATA.main = snap.pauta_main; } catch(e) { console.warn("Não foi possível aplicar pauta_main", e); }
+  }
 
   const desig=snap.designacoes||{};
   try{ localStorage.setItem(EDITS_KEY,JSON.stringify(desig)); }catch{}
@@ -3999,6 +4015,189 @@ async function recarregarDesignacoes(){
   try{ renderPos(); }catch{}
   try{ renderPericia(); }catch{}
   showToast('✅ Tudo atualizado!');
+}
+
+
+
+// ═══════════════════════════════════════════════════════
+// IMPORTAÇÃO DIRETA DA PLANILHA NO SITE — CONTROLADORIA
+// Admin sobe Excel/CSV, a pauta é lida, preserva designações já feitas
+// e salva no JSONBin para todos visualizarem a mesma base.
+// ═══════════════════════════════════════════════════════
+function pcAbrirUploadPauta(event){
+  if(event) event.preventDefault();
+  if(currentRole && currentRole !== 'admin'){
+    showToast('⚠️ Apenas o perfil admin pode atualizar a pauta por planilha.');
+    return;
+  }
+  let input = document.getElementById('pc-upload-pauta-input');
+  if(!input){
+    input = document.createElement('input');
+    input.type = 'file';
+    input.id = 'pc-upload-pauta-input';
+    input.accept = '.xlsx,.xls,.csv';
+    input.style.display = 'none';
+    input.addEventListener('change', function(){
+      const file = this.files && this.files[0];
+      if(file) pcImportarPlanilhaSite(file);
+      this.value = '';
+    });
+    document.body.appendChild(input);
+  }
+  input.click();
+}
+
+function pcNormHeader(v){
+  return String(v||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+}
+function pcFindCol(headers, terms){
+  const h = headers.map(pcNormHeader);
+  for(const t of terms){
+    const nt = pcNormHeader(t);
+    let idx = h.findIndex(x => x === nt || x.includes(nt));
+    if(idx >= 0) return idx;
+  }
+  return -1;
+}
+function pcExcelDateToBR(v){
+  if(!v && v !== 0) return '';
+  if(v instanceof Date && !isNaN(v)) return v.toLocaleDateString('pt-BR');
+  if(typeof v === 'number'){
+    const d = XLSX.SSF.parse_date_code(v);
+    if(d) return String(d.d).padStart(2,'0')+'/'+String(d.m).padStart(2,'0')+'/'+d.y;
+  }
+  const s = String(v).trim();
+  if(/^\d{4}-\d{2}-\d{2}/.test(s)){ const [y,m,d]=s.slice(0,10).split('-'); return d+'/'+m+'/'+y; }
+  if(/^\d{1,2}\/\d{1,2}\/\d{2,4}$/.test(s)){
+    const [d,m,y]=s.split('/'); return d.padStart(2,'0')+'/'+m.padStart(2,'0')+'/'+(y.length===2?'20'+y:y);
+  }
+  return s;
+}
+function pcExcelHourToBR(v){
+  if(!v && v !== 0) return '';
+  if(v instanceof Date && !isNaN(v)) return String(v.getHours()).padStart(2,'0')+':'+String(v.getMinutes()).padStart(2,'0');
+  if(typeof v === 'number'){
+    const total = Math.round(v * 24 * 60);
+    const hh = Math.floor(total/60)%24, mm = total%60;
+    return String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0');
+  }
+  const s = String(v).trim();
+  const m = s.match(/(\d{1,2})[:hH](\d{2})/);
+  if(m) return m[1].padStart(2,'0')+':'+m[2];
+  return s || '00:00';
+}
+function pcValor(v){
+  if(v === null || v === undefined || v === '') return '';
+  if(typeof v === 'number') return v;
+  const n = Number(String(v).replace(/R\$|\s/g,'').replace(/\./g,'').replace(',','.'));
+  return isNaN(n) ? v : n;
+}
+function pcRowVal(row, idx){ return idx >= 0 ? row[idx] : ''; }
+function pcMontarCodigo(row, cols, i){
+  const cod = pcRowVal(row, cols.codigo);
+  if(cod !== undefined && cod !== null && String(cod).trim()) return String(cod).trim();
+  const proc = pcRowVal(row, cols.processo);
+  const data = pcExcelDateToBR(pcRowVal(row, cols.data));
+  const hora = pcExcelHourToBR(pcRowVal(row, cols.horario));
+  return String(proc||'').trim() ? String(proc).trim()+'|'+data+'|'+hora : 'linha_'+i+'_'+Date.now();
+}
+function pcParsePlanilhaPauta(wb){
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+  let headerRow = 0;
+  for(let i=0;i<Math.min(raw.length,10);i++){
+    const joined = raw[i].map(pcNormHeader).join(' ');
+    if(joined.includes('processo') || joined.includes('codigo') || joined.includes('parte')){ headerRow = i; break; }
+  }
+  const headers = raw[headerRow] || [];
+  const cols = {
+    codigo: pcFindCol(headers, ['código p&c','codigo p c','codigo','cód','cod']),
+    data: pcFindCol(headers, ['data','data audiencia','data da audiencia','dt audiencia']),
+    horario: pcFindCol(headers, ['horário','horario','hora']),
+    tipo: pcFindCol(headers, ['tipo','tipo audiencia','tipo de audiencia']),
+    processo: pcFindCol(headers, ['processo','numero processo','número do processo','n processo']),
+    parte_principal: pcFindCol(headers, ['parte principal','cliente','reclamada','empresa','parte']),
+    parte_contraria: pcFindCol(headers, ['parte contrária','parte contraria','reclamante','autor']),
+    comarca: pcFindCol(headers, ['comarca','cidade']),
+    estado: pcFindCol(headers, ['estado','uf']),
+    vara: pcFindCol(headers, ['vara','vara turma','turma']),
+    fase: pcFindCol(headers, ['fase']),
+    acao: pcFindCol(headers, ['ação','acao']),
+    foro: pcFindCol(headers, ['foro']),
+    valor: pcFindCol(headers, ['valor','valor causa','valor da causa']),
+    grupo: pcFindCol(headers, ['grupo','equipe']),
+    adv_audiencia: pcFindCol(headers, ['adv audiencia','adv. audiência','advogado audiência','advogado audiencia','adv aud']),
+    adv_preparo: pcFindCol(headers, ['adv preparo','adv. preparo','advogado preparo','responsavel preparo']),
+    link: pcFindCol(headers, ['link','obs','observação','observacao','orientação','orientacao'])
+  };
+  if(cols.processo < 0 && cols.codigo < 0){
+    throw new Error('Não encontrei as colunas de Processo/Código na planilha.');
+  }
+  const antigas = Array.isArray(DATA.main) ? DATA.main : [];
+  const porCodigo = {};
+  antigas.forEach(r => { if(r.codigo) porCodigo[String(r.codigo)] = r; });
+  const edits = getEditsLocal ? getEditsLocal() : {};
+  const rows = [];
+  for(let i=headerRow+1;i<raw.length;i++){
+    const row = raw[i];
+    if(!row || row.every(v => String(v||'').trim()==='')) continue;
+    const codigo = pcMontarCodigo(row, cols, i);
+    const antigo = porCodigo[String(codigo)] || {};
+    let advAud = String(pcRowVal(row, cols.adv_audiencia) || antigo.adv_audiencia || 'Indicar Advogado').trim();
+    let advPrep = String(pcRowVal(row, cols.adv_preparo) || antigo.adv_preparo || '').trim();
+    if(edits[codigo+'::adv_audiencia']) advAud = edits[codigo+'::adv_audiencia'];
+    if(edits[codigo+'::adv_preparo']) advPrep = edits[codigo+'::adv_preparo'];
+    rows.push({
+      codigo,
+      data: pcExcelDateToBR(pcRowVal(row, cols.data) || antigo.data),
+      horario: pcExcelHourToBR(pcRowVal(row, cols.horario) || antigo.horario || '00:00'),
+      tipo: String(pcRowVal(row, cols.tipo) || antigo.tipo || '').trim(),
+      processo: String(pcRowVal(row, cols.processo) || antigo.processo || '').trim(),
+      parte_principal: String(pcRowVal(row, cols.parte_principal) || antigo.parte_principal || '').trim(),
+      parte_contraria: String(pcRowVal(row, cols.parte_contraria) || antigo.parte_contraria || '').trim(),
+      comarca: String(pcRowVal(row, cols.comarca) || antigo.comarca || '').trim(),
+      estado: String(pcRowVal(row, cols.estado) || antigo.estado || '').trim(),
+      vara: String(pcRowVal(row, cols.vara) || antigo.vara || '').trim(),
+      fase: String(pcRowVal(row, cols.fase) || antigo.fase || '').trim(),
+      acao: String(pcRowVal(row, cols.acao) || antigo.acao || '').trim(),
+      foro: String(pcRowVal(row, cols.foro) || antigo.foro || '').trim(),
+      valor: pcValor(pcRowVal(row, cols.valor) || antigo.valor),
+      grupo: String(pcRowVal(row, cols.grupo) || antigo.grupo || '').trim(),
+      adv_audiencia: advAud || 'Indicar Advogado',
+      adv_preparo: advPrep,
+      link: String(pcRowVal(row, cols.link) || antigo.link || '').trim()
+    });
+  }
+  return rows;
+}
+async function pcImportarPlanilhaSite(file){
+  if(typeof XLSX === 'undefined'){
+    showToast('❌ Biblioteca de Excel ainda carregando. Tente novamente em alguns segundos.');
+    return;
+  }
+  try{
+    showToast('⏳ Lendo planilha e preservando designações...');
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, {type:'array', cellDates:true});
+    const rows = pcParsePlanilhaPauta(wb);
+    if(!rows.length) throw new Error('A planilha não trouxe nenhuma audiência.');
+    DATA.main = rows;
+    try{ localStorage.setItem('pauta_data_hash_v1', _getPautaHash()); }catch{}
+    const ok = await _binPut(_buildLocalSnapshot());
+    if(!ok) throw new Error('A planilha foi lida, mas não consegui salvar na nuvem.');
+    _filtersPopulated = false;
+    try{ populateFilters(); }catch{}
+    try{ initApp(); }catch{}
+    try{ renderTable(); }catch{}
+    try{ refreshDashboardAfterEdit(); }catch{}
+    try{ renderPos(); }catch{}
+    try{ renderPericia(); }catch{}
+    addAuditEntry('Pauta importada', `${rows.length} registros importados pelo upload da planilha`);
+    showToast('✅ Pauta atualizada e salva na nuvem para todos os usuários!');
+  }catch(e){
+    console.error(e);
+    showToast('❌ Erro ao importar: '+ e.message);
+  }
 }
 
 function normalizarGrupoPermissao(v){
