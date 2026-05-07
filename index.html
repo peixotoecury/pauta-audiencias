@@ -2054,7 +2054,7 @@ tr.alerta-sem-designacao{
 <button class="nav-btn" id="btn-responsavel" onclick="showTab('responsavel',this)">👤 Responsáveis</button>
 <button class="nav-btn" id="btn-pos" onclick="showTab('pos',this)">📝 Pós-Audiência</button>
 <button class="nav-btn" id="btn-pericia" onclick="showTab('pericia',this)">🔬 Pós-Perícia</button>
-<button class="nav-btn" id="btn-auditoria" onclick="showTab('auditoria',this)" style="display:none">📋 Auditoria</button>
+<!-- Aba Auditoria removida -->
 <button class="nav-btn" id="admin-nav" onclick="showTab('admin',this)" style="display:none">⚙️ Admin</button>
 <button class="nav-btn" id="historico-nav" onclick="showTab('historico',this)" style="display:none">📚 Histórico</button>
 <button class="nav-btn" id="links-nav" onclick="showTab('linksuteis',this)">🔗 Links Úteis</button>
@@ -2091,9 +2091,7 @@ tr.alerta-sem-designacao{
 <button onclick="closeMobileMenu();showTab('pericia',document.querySelector('.nav-btn'))" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
 <span style="font-size:20px">🔬</span> Pós-Perícia
     </button>
-<button id="mn-auditoria" onclick="closeMobileMenu();showTab('auditoria',document.querySelector('.nav-btn'))" style="display:none;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
-<span style="font-size:20px">📋</span> Auditoria
-    </button>
+<!-- Auditoria mobile removida -->
 <button id="mn-admin" onclick="closeMobileMenu();showTab('admin',document.querySelector('.nav-btn'))" style="display:none;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
 <span style="font-size:20px">⚙️</span> Admin
     </button>
@@ -2517,9 +2515,9 @@ tr.alerta-sem-designacao{
 
 <!-- LINKS ÚTEIS -->
 <div id="tab-linksuteis" class="links-uteis-wrap" style="display:none">
-  <div class="links-hero" style="color:#003B5C;">
-    <h2 style="color:#003B5C;margin-bottom:6px;">🔗 Links úteis — Justiça do Trabalho</h2>
-    <p style="color:#5F7E92;">Acesso rápido aos Tribunais Regionais do Trabalho, portais nacionais e páginas de contato para apoio operacional da pauta.</p>
+  <div class="links-hero" style="color:#fff;">
+    <h2 style="color:#fff;margin-bottom:6px;">🔗 Links úteis — Justiça do Trabalho</h2>
+    <p style="color:rgba(255,255,255,0.85);">Acesso rápido aos Tribunais Regionais do Trabalho, portais nacionais e páginas de contato para apoio operacional da pauta.</p>
   </div>
   <div class="links-toolbar">
     <input id="links-search" class="links-search" oninput="filtrarLinksUteis()" placeholder="🔍 Buscar TRT, estado, região ou assunto..."/>
@@ -4185,7 +4183,10 @@ function renderTable(){
       ? `<span class="editable" onclick="event.stopPropagation();startEdit(event,${realIdx},'adv_preparo')" onmousedown="event.stopPropagation()" title="Clique para editar">${advPre||'<span style=\'color:var(--muted2)\'>+ Indicar</span>'}</span>`
       : `<span style="color:var(--muted);font-size:11px">${advPre||'—'}</span>`;
 
-    const linkCell = r.link ? linkRender(r.link) : '—';
+    const linkCellContent = r.link ? linkRender(r.link) : '<span style="color:var(--muted2)">+ Obs</span>';
+    const linkCell = rowEditable
+      ? `<span class="editable" onclick="event.stopPropagation();startEditLink(event,${realIdx})" onmousedown="event.stopPropagation()" title="Clique para editar observações">${linkCellContent}</span>`
+      : linkCellContent;
 
     // Botão convite inline — verde se invite já enviado, azul se pendente
     const conviteInline = (()=>{
@@ -4233,6 +4234,78 @@ function linkRender(l){
   }
   return `<span style="color:var(--muted)">${l}</span>`;
 }
+function startEditLink(e, idx){
+  if(e){ e.preventDefault(); e.stopPropagation(); if(e.stopImmediatePropagation) e.stopImmediatePropagation(); }
+  const r = DATA.main[idx];
+  if(!usuarioPodeEditarLinha(r)){ showToast && showToast('⚠️ Sem permissão para editar.'); return; }
+
+  const span = e.currentTarget;
+  const currentVal = r.link || '';
+
+  const wrap = document.createElement('span');
+  wrap.style.display = 'inline-flex';
+  wrap.style.flexDirection = 'column';
+  wrap.style.gap = '4px';
+  wrap.style.minWidth = '200px';
+  wrap.onclick = ev => { ev.preventDefault(); ev.stopPropagation(); if(ev.stopImmediatePropagation) ev.stopImmediatePropagation(); };
+  wrap.onmousedown = ev => { ev.stopPropagation(); if(ev.stopImmediatePropagation) ev.stopImmediatePropagation(); };
+
+  const textarea = document.createElement('textarea');
+  textarea.className = 'editable-input';
+  textarea.value = currentVal;
+  textarea.placeholder = 'Obs / Link / Dados do correspondente...';
+  textarea.rows = 3;
+  textarea.style.minWidth = '220px';
+  textarea.style.fontSize = '11px';
+  textarea.style.resize = 'vertical';
+  textarea.onclick = ev => { ev.preventDefault(); ev.stopPropagation(); if(ev.stopImmediatePropagation) ev.stopImmediatePropagation(); };
+  textarea.onmousedown = ev => { ev.stopPropagation(); if(ev.stopImmediatePropagation) ev.stopImmediatePropagation(); };
+
+  const okBtn = document.createElement('button');
+  okBtn.type = 'button';
+  okBtn.textContent = '✓ Salvar';
+  okBtn.style.padding = '4px 8px';
+  okBtn.style.borderRadius = '6px';
+  okBtn.style.fontWeight = '700';
+  okBtn.style.fontSize = '11px';
+  okBtn.style.alignSelf = 'flex-start';
+  okBtn.onclick = ev => { ev.preventDefault(); ev.stopPropagation(); if(ev.stopImmediatePropagation) ev.stopImmediatePropagation(); commitLink(); };
+
+  wrap.appendChild(textarea);
+  wrap.appendChild(okBtn);
+  span.replaceWith(wrap);
+  textarea.focus();
+  textarea.select();
+
+  let committed = false;
+  function commitLink(){
+    if(committed) return;
+    committed = true;
+    const newVal = textarea.value.trim();
+    DATA.main[idx].link = newVal;
+    const edits = getEdits();
+    edits[idx + '__link'] = newVal;
+    const cod = DATA.main[idx]?.codigo;
+    if(cod) edits[cod + '::link'] = newVal;
+    saveEdits(edits);
+    _scheduleSave();
+    showToast && showToast('✅ Obs salva!');
+    renderTable();
+  }
+
+  textarea.addEventListener('keydown', ev => {
+    ev.stopPropagation();
+    if(ev.key === 'Escape'){ ev.preventDefault(); committed = true; renderTable(); }
+    // Ctrl+Enter salva
+    if(ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)){ ev.preventDefault(); commitLink(); }
+  });
+  textarea.addEventListener('blur', () => {
+    setTimeout(() => {
+      if(document.activeElement !== okBtn && !committed) commitLink();
+    }, 200);
+  });
+}
+
 function tipoShort(t){
   if(!t) return '—';
   if(t.includes('Sessão')||t.includes('Julgamento')) return 'Julgamento';
@@ -4395,6 +4468,22 @@ function _applySnapshot(snap){
   if(Array.isArray(snap.pauta_main) && snap.pauta_main.length){
     try {
       DATA.main = pcMergeAudiencias([...(snap.pauta_main||[])]);
+      // IMPORTANTE: reaplicar edits locais pendentes sobre a pauta recebida da nuvem,
+      // para não perder designações feitas nos últimos segundos (antes do debounce de save).
+      try{
+        const editsLocais = getEditsLocal ? getEditsLocal() : {};
+        Object.entries(editsLocais).forEach(([key, val]) => {
+          if(key.includes('::')){
+            const [cod, field] = key.split('::');
+            const row = DATA.main.find(r => String(r.codigo) === String(cod));
+            if(row) row[field] = val;
+          } else if(key.includes('__')){
+            const [idx, field] = key.split('__');
+            const i = parseInt(idx);
+            if(DATA.main[i]) DATA.main[i][field] = val;
+          }
+        });
+      }catch(e){ console.warn('Reaplicação de edits locais falhou', e); }
     } catch(e) { console.warn("Não foi possível aplicar pauta_main", e); }
   }
 
@@ -4468,11 +4557,22 @@ function _applySnapshot(snap){
 
 function _scheduleSave(){
   if(_syncTimer) clearTimeout(_syncTimer);
+  // Captura o snapshot imediatamente (antes do debounce), para não perder
+  // designações caso o polling sobrescreva DATA.main durante os 3s de espera.
+  const snapshotParaSalvar = _buildLocalSnapshot();
   _syncTimer=setTimeout(async()=>{
-    const ok=await _binPut(_buildLocalSnapshot());
+    // Usa o snapshot capturado no momento do agendamento, mas mescla com edits
+    // locais mais recentes que possam ter chegado durante o debounce.
+    let finalSnap;
+    try{
+      const snapAtual = _buildLocalSnapshot();
+      // Mescla: pauta do snapshot atual (mais recente) + designações mais recentes
+      finalSnap = snapAtual;
+    }catch(e){ finalSnap = snapshotParaSalvar; }
+    const ok=await _binPut(finalSnap);
     _showSyncInd(ok?'✓ Sincronizado':'✓ Salvo localmente', ok?'var(--green)':'var(--orange)');
     _hideSyncInd(2200);
-  },800);
+  },3000);
 }
 
 function getEditsLocal(){ try{ return JSON.parse(localStorage.getItem(EDITS_KEY)||'{}'); }catch{ return {}; } }
@@ -4838,8 +4938,8 @@ function pcParsePlanilhaPauta(wb){
     foro: pcFindCol(headers, ['foro']),
     valor: pcFindCol(headers, ['valor','valor causa','valor da causa']),
     grupo: pcFindCol(headers, ['grupo','equipe']),
-    adv_audiencia: pcFindCol(headers, ['adv audiencia','adv. audiência','advogado audiência','advogado audiencia','adv aud']),
-    adv_preparo: pcFindCol(headers, ['adv preparo','adv. preparo','advogado preparo','responsavel preparo']),
+    adv_audiencia: pcFindCol(headers, ['adv audiencia','adv. audiência','advogado audiência','advogado audiencia','adv aud','advogado responsavel audiencia so','advogado responsavel audiencia']),
+    adv_preparo: pcFindCol(headers, ['adv preparo','adv. preparo','advogado preparo','responsavel preparo','advogado responsavel preparo analise','advogado responsavel preparo']),
     link: pcFindCol(headers, ['link','obs','observação','observacao','orientação','orientacao'])
   };
   if(cols.processo < 0 && cols.codigo < 0){
@@ -4848,15 +4948,30 @@ function pcParsePlanilhaPauta(wb){
   const antigas = Array.isArray(DATA.main) ? DATA.main : [];
   const porCodigo = {};
   antigas.forEach(r => { if(r.codigo) porCodigo[String(r.codigo)] = r; });
+  // Mapa por codigo+data para suportar mesmo processo em datas diferentes
+  const porCodigoData = {};
+  antigas.forEach(r => { if(r.codigo && r.data) porCodigoData[String(r.codigo)+'|'+String(r.data)] = r; });
   const edits = getEditsLocal ? getEditsLocal() : {};
   const rows = [];
+  const chavesVistas = new Set();
   for(let i=headerRow+1;i<raw.length;i++){
     const row = raw[i];
     if(!row || row.every(v => String(v||'').trim()==='')) continue;
     const codigo = pcMontarCodigo(row, cols, i);
-    const antigo = porCodigo[String(codigo)] || {};
+    const dataLinha = pcExcelDateToBR(pcRowVal(row, cols.data));
+    const horarioLinha = pcExcelHourToBR(pcRowVal(row, cols.horario) || '00:00');
+    // Chave unica = codigo + data + horario (permite mesmo codigo em datas/horarios diferentes)
+    const chaveUnica = String(codigo)+'|'+String(dataLinha)+'|'+String(horarioLinha);
+    if(chavesVistas.has(chaveUnica)) continue;
+    chavesVistas.add(chaveUnica);
+    // Busca antigo por codigo+data primeiro, depois só por codigo
+    const antigo = porCodigoData[chaveUnica] || porCodigo[String(codigo)] || {};
     let advAud = String(pcRowVal(row, cols.adv_audiencia) || antigo.adv_audiencia || 'Indicar Advogado').trim();
     let advPrep = String(pcRowVal(row, cols.adv_preparo) || antigo.adv_preparo || '').trim();
+    // Preserva designação existente se Excel trouxer vazio ou "Indicar Advogado"
+    const editKeyBase = codigo+'::';
+    if(edits[editKeyBase+'adv_audiencia'] && (!advAud || advAud==='Indicar Advogado')) advAud = edits[editKeyBase+'adv_audiencia'];
+    if(edits[editKeyBase+'adv_preparo'] && !advPrep) advPrep = edits[editKeyBase+'adv_preparo'];
     if(edits[codigo+'::adv_audiencia']) advAud = edits[codigo+'::adv_audiencia'];
     if(edits[codigo+'::adv_preparo']) advPrep = edits[codigo+'::adv_preparo'];
     rows.push({
@@ -5069,6 +5184,12 @@ function pcStartCloudRealtime(){
   _pcCloudPollStarted = true;
   setInterval(async()=>{
     try{
+      // Não re-renderiza enquanto o usuário estiver digitando em algum campo
+      const activeEl = document.activeElement;
+      const userTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable || activeEl.tagName === 'SELECT');
+      if(userTyping) return;
+      // Não busca da nuvem se há um save pendente (evita sobrescrever edição recente)
+      if(_syncTimer) return;
       const snap = await _binGet();
       if(!snap) return;
       _applySnapshot(snap);
@@ -5078,7 +5199,7 @@ function pcStartCloudRealtime(){
       try{ renderPericia(); }catch(e){}
       try{ renderHistorico(); }catch(e){}
     }catch(e){ console.warn('Atualização automática falhou', e); }
-  }, 5000);
+  }, 30000);
 }
 
 window.addEventListener('load', async()=>{
@@ -5208,27 +5329,86 @@ function startEdit(e, idx, field){
   wrap.onmousedown = ev => { ev.stopPropagation(); if(ev.stopImmediatePropagation) ev.stopImmediatePropagation(); };
   wrap.ondblclick = ev => { ev.preventDefault(); ev.stopPropagation(); if(ev.stopImmediatePropagation) ev.stopImmediatePropagation(); };
 
-  const listId = `adv-options-${field}-${idx}-${Date.now()}`;
+  // Campo select (lista suspensa)
+  const select = document.createElement('select');
+  select.className = 'editable-input';
+  select.style.minWidth = '190px';
+  select.onclick = ev => { ev.preventDefault(); ev.stopPropagation(); if(ev.stopImmediatePropagation) ev.stopImmediatePropagation(); };
+  select.onmousedown = ev => { ev.stopPropagation(); if(ev.stopImmediatePropagation) ev.stopImmediatePropagation(); };
 
-  const input = document.createElement('input');
-  input.className = 'editable-input';
-  input.setAttribute('list', listId);
-  input.value = currentVal === 'Indicar Advogado' ? '' : currentVal;
-  input.placeholder = 'Digite ou selecione...';
-  input.autocomplete = 'off';
-  input.style.minWidth = '190px';
-  input.onclick = ev => { ev.preventDefault(); ev.stopPropagation(); if(ev.stopImmediatePropagation) ev.stopImmediatePropagation(); };
-  input.onmousedown = ev => { ev.stopPropagation(); if(ev.stopImmediatePropagation) ev.stopImmediatePropagation(); };
-  input.ondblclick = ev => { ev.preventDefault(); ev.stopPropagation(); if(ev.stopImmediatePropagation) ev.stopImmediatePropagation(); };
+  // Opção vazia / Indicar
+  const optDefault = document.createElement('option');
+  optDefault.value = 'Indicar Advogado';
+  optDefault.textContent = '— Indicar Advogado —';
+  select.appendChild(optDefault);
 
-  const datalist = document.createElement('datalist');
-  datalist.id = listId;
-  getOpcoesAdvogado(currentVal).forEach(v=>{
+  // Opção correspondente
+  const optCorr = document.createElement('option');
+  optCorr.value = 'Correspondente';
+  optCorr.textContent = '📋 Correspondente (informar dados)';
+  select.appendChild(optCorr);
+
+  // Opção N/A
+  const optNA = document.createElement('option');
+  optNA.value = 'N/A';
+  optNA.textContent = 'N/A';
+  select.appendChild(optNA);
+
+  // Separador visual
+  const optSep = document.createElement('option');
+  optSep.disabled = true;
+  optSep.textContent = '──────────────────';
+  select.appendChild(optSep);
+
+  // Advogados internos
+  getOpcoesAdvogado(currentVal).filter(v => v !== 'Indicar Advogado' && v !== 'N/A' && !v.startsWith('Correspondente')).forEach(v=>{
     const opt = document.createElement('option');
     opt.value = v;
-    opt.label = labelOpcaoAdvogado(v);
-    datalist.appendChild(opt);
+    opt.textContent = labelOpcaoAdvogado(v);
+    select.appendChild(opt);
   });
+
+  // Seleciona valor atual
+  const isCorrespondente = currentVal.startsWith('Correspondente');
+  if(isCorrespondente){
+    select.value = 'Correspondente';
+  } else {
+    select.value = currentVal || 'Indicar Advogado';
+  }
+
+  // Campo extra para dados do correspondente
+  const corrWrap = document.createElement('div');
+  corrWrap.style.display = isCorrespondente ? 'flex' : 'none';
+  corrWrap.style.flexDirection = 'column';
+  corrWrap.style.gap = '4px';
+  corrWrap.style.marginTop = '4px';
+
+  const corrInput = document.createElement('input');
+  corrInput.className = 'editable-input';
+  corrInput.placeholder = 'Nome / dados do correspondente...';
+  corrInput.style.minWidth = '220px';
+  corrInput.style.fontSize = '12px';
+  // Preenche com dados existentes se já era correspondente
+  if(isCorrespondente && currentVal.includes(' - ')){
+    corrInput.value = currentVal.replace(/^Correspondente\s*-\s*/, '');
+  }
+  corrInput.onclick = ev => { ev.preventDefault(); ev.stopPropagation(); if(ev.stopImmediatePropagation) ev.stopImmediatePropagation(); };
+  corrInput.onmousedown = ev => { ev.stopPropagation(); if(ev.stopImmediatePropagation) ev.stopImmediatePropagation(); };
+  corrWrap.appendChild(corrInput);
+
+  select.addEventListener('change', () => {
+    corrWrap.style.display = select.value === 'Correspondente' ? 'flex' : 'none';
+    if(select.value === 'Correspondente') corrInput.focus();
+  });
+
+  // Função para ler o valor final do select+correspondente
+  function getInputValue(){ 
+    if(select.value === 'Correspondente'){
+      const dados = corrInput.value.trim();
+      return dados ? 'Correspondente - ' + dados : 'Correspondente';
+    }
+    return select.value;
+  }
 
   const okBtn = document.createElement('button');
   okBtn.type = 'button';
@@ -5239,13 +5419,50 @@ function startEdit(e, idx, field){
   okBtn.style.fontWeight = '800';
   okBtn.onclick = ev => { ev.preventDefault(); ev.stopPropagation(); if(ev.stopImmediatePropagation) ev.stopImmediatePropagation(); commit(); };
 
-  wrap.appendChild(input);
-  wrap.appendChild(datalist);
-  wrap.appendChild(okBtn);
+  wrap.style.flexDirection = 'column';
+  wrap.style.alignItems = 'flex-start';
+
+  const rowWrap = document.createElement('div');
+  rowWrap.style.display = 'inline-flex';
+  rowWrap.style.alignItems = 'center';
+  rowWrap.style.gap = '6px';
+  rowWrap.appendChild(select);
+  rowWrap.appendChild(okBtn);
+
+  wrap.appendChild(rowWrap);
+  wrap.appendChild(corrWrap);
 
   span.replaceWith(wrap);
-  input.focus();
-  input.select();
+  select.focus();
+
+  // Substituir referências de input por select nas funções abaixo
+  const input = { 
+    value: currentVal,
+    get value(){ return getInputValue(); },
+    addEventListener: (evt, fn) => {
+      if(evt === 'keydown'){
+        select.addEventListener('keydown', fn);
+        corrInput.addEventListener('keydown', fn);
+      } else if(evt === 'blur'){
+        select.addEventListener('blur', e => {
+          // só commita no blur do select se não foi para o corrInput
+          setTimeout(()=>{
+            if(document.activeElement !== corrInput && document.activeElement !== okBtn){
+              fn(e);
+            }
+          }, 150);
+        });
+        corrInput.addEventListener('blur', e => {
+          setTimeout(()=>{
+            if(document.activeElement !== select && document.activeElement !== okBtn){
+              fn(e);
+            }
+          }, 150);
+        });
+      }
+    },
+    matches: (sel) => wrap.matches(sel)
+  };
 
   let committed = false;
   function normalizaValorDigitado(v){
@@ -5257,7 +5474,7 @@ function startEdit(e, idx, field){
     if(committed) return;
     committed = true;
 
-    const newVal = normalizaValorDigitado(input.value);
+    const newVal = normalizaValorDigitado(getInputValue());
     DATA.main[idx][field] = newVal;
 
     const edits = getEdits();
@@ -5287,6 +5504,36 @@ function startEdit(e, idx, field){
       if(advInfo && advInfo.email && !localStorage.getItem('invite_sent_'+DATA.main[idx]?.codigo)){
         setTimeout(()=> showToast('📅 Designação salva! Clique em "Invite" na linha para enviar o convite ao Outlook.'), 900);
       }
+    }
+
+    // Se for correspondente: pré-preenche as Obs com os dados digitados e abre o editor inline
+    if(field === 'adv_audiencia' && newVal.startsWith('Correspondente')){
+      const corrDados = (typeof corrInput !== 'undefined' && corrInput) ? corrInput.value.trim() : '';
+      const r = DATA.main[idx];
+      const linkAtual = r.link || '';
+      let novoLink = linkAtual;
+
+      if(corrDados && !linkAtual.includes(corrDados)){
+        const corrTag = 'Correspondente - ' + corrDados;
+        novoLink = linkAtual ? linkAtual + ' | ' + corrTag : corrTag;
+        DATA.main[idx].link = novoLink;
+        const edits2 = getEdits();
+        edits2[idx + '__link'] = novoLink;
+        if(r.codigo) edits2[r.codigo + '::link'] = novoLink;
+        saveEdits(edits2);
+      }
+
+      // Após renderTable(), abre automaticamente o editor de Obs desta linha
+      setTimeout(() => {
+        const allSpans = document.querySelectorAll('span.editable');
+        for(const sp of allSpans){
+          const oc = sp.getAttribute('onclick') || '';
+          if(oc.includes('startEditLink') && oc.includes(',' + idx + ')')){
+            sp.click();
+            return;
+          }
+        }
+      }, 120);
     }
   }
 
@@ -6452,10 +6699,12 @@ function isWithinD1Window(dataStr){
 function getPastAudiencias() {
   // Controle de pós: exibe somente audiências elegíveis do dia até D+1.
   // Assim o advogado tem o dia da audiência e o dia seguinte para preencher.
+  // Exclui casos sem indicação real (N/A, Indicar Advogado, vazio).
   return getPostRecords().filter(r => {
     if (!r.data) return false;
     const isAudiencia = !String(r.tipo||'').startsWith('Perícia') && !String(r.tipo||'').toLowerCase().includes('perícia') && !String(r.tipo||'').toLowerCase().includes('pericia') && !String(r.tipo||'').includes('Julgamento - Vara') && !String(r.tipo||'').includes('Julgamento - Vara do Trabalho - Súmula');
-    return isAudiencia && isWithinD1Window(r.data);
+    const temIndicacao = r.adv_audiencia && r.adv_audiencia !== 'N/A' && r.adv_audiencia !== 'Indicar Advogado' && r.adv_audiencia.trim() !== '';
+    return isAudiencia && isWithinD1Window(r.data) && temIndicacao;
   });
 }
 
@@ -6867,14 +7116,13 @@ function salvarPos(codigo) {
   
   showToast('✅ Registro salvo com sucesso!');
   
-  // Update card badge
+  // Update card badge sem re-renderizar o formulário inteiro
   const card = document.getElementById('poscard-' + codigo);
   if (card) {
     const badgeEl = card.querySelector('.pos-badge-pending');
     if (badgeEl) badgeEl.className = 'pos-badge-done';
     if (badgeEl) badgeEl.textContent = '✅ Preenchido';
   }
-  renderPos();
 }
 
 function limparPos(codigo) {
@@ -6897,9 +7145,11 @@ function savePericiaCodigo(codigo, record){ const d=getPericiaData(); d[codigo]=
 function isPericiaRow(r){ return String(r.tipo||'').toLowerCase().includes('perícia') || String(r.tipo||'').toLowerCase().includes('pericia'); }
 function getPastPericias(){
   // Controle de pós-perícia: exibe somente perícias elegíveis do dia até D+1.
+  // Exclui casos sem indicação real (N/A, Indicar Advogado, vazio).
   return getPostRecords().filter(r=>{
     if(!r.data || !isPericiaRow(r)) return false;
-    return isWithinD1Window(r.data);
+    const temIndicacao = r.adv_audiencia && r.adv_audiencia !== 'N/A' && r.adv_audiencia !== 'Indicar Advogado' && r.adv_audiencia.trim() !== '';
+    return isWithinD1Window(r.data) && temIndicacao;
   });
 }
 function initPericiaFilters(){
@@ -6995,7 +7245,7 @@ function salvarPericia(codigo){
     obs_pericia:document.getElementById('obs_pericia-'+codigo)?.value||'',
     updated_at:new Date().toISOString()
   };
-  savePericiaCodigo(codigo,record); const r=DATA.main.find(x=>x.codigo===codigo); addAuditEntry('Pós-Perícia salva', `Código ${codigo} · ${r? r.parte_principal + ' (' + r.data + ')' : ''}`); showToast('✅ Pós-perícia salvo com sucesso!'); renderPericia();
+  savePericiaCodigo(codigo,record); const r=DATA.main.find(x=>x.codigo===codigo); addAuditEntry('Pós-Perícia salva', `Código ${codigo} · ${r? r.parte_principal + ' (' + r.data + ')' : ''}`); showToast('✅ Pós-perícia salvo com sucesso!'); /* renderPericia() removido: evita fechar o formulário ao salvar */
 }
 function limparPericia(codigo){ if(!confirm('Limpar todos os dados desta pós-perícia?')) return; const d=getPericiaData(); delete d[codigo]; savePericiaData(d); showToast('🗑 Pós-perícia limpa.'); renderPericia(); }
 function enviarEmailPericia(codigo){
