@@ -479,7 +479,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:13
   max-height:calc(100vh - 280px);
   background:var(--surface);
 }
-table{width:100%;border-collapse:collapse;font-size:12px;}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:900px;}
 thead{position:sticky;top:0;z-index:5;}
 thead th{
   background:var(--navy);
@@ -1020,7 +1020,7 @@ td.parte{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
   .q-status-bar{grid-template-columns:repeat(3,1fr) !important;}
   .q-status-val{font-size:18px;}
 
-  /* ─── FILTROS ─── */
+  /* ─── FILTROS MOBILE ─── */
   .filters{
     flex-direction:column;gap:8px;padding:10px 12px;
     position:sticky;top:0;z-index:10;
@@ -1030,6 +1030,12 @@ td.parte{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
   .filter-input{min-width:0;width:100%;}
   .filter-select{width:100%;}
   .filter-count{margin-left:0;}
+  /* Botões de ação: rolagem horizontal */
+  .filters .export-btn{ flex-shrink:0; font-size:11px; padding:6px 10px; white-space:nowrap; }
+  .mobile-actions-row{
+    display:flex; gap:6px; overflow-x:auto; width:100%;
+    padding-bottom:2px; -webkit-overflow-scrolling:touch;
+  }
 
   /* ─── TABELA → CARDS MOBILE ─── */
   .table-wrap{border:none;border-radius:0;background:transparent;max-height:none;overflow:visible;}
@@ -1958,8 +1964,8 @@ tr.alerta-sem-designacao{
 /* === ABA LINKS ÚTEIS — TRIBUNAIS TRABALHISTAS === */
 .links-uteis-wrap{padding:22px 24px;}
 .links-hero{background:linear-gradient(135deg,#003B5C,#006080 70%,#00A9E0);color:#fff;border-radius:16px;padding:22px 24px;margin-bottom:18px;box-shadow:0 10px 26px rgba(0,59,92,.16);}
-.links-hero h2{font-size:20px;margin:0 0 6px;font-weight:800;color:#fff;}
-.links-hero p{margin:0;color:rgba(255,255,255,.88);font-size:13px;}
+.links-hero h2{font-size:20px;margin:0 0 6px;font-weight:800;color:#fff !important;}
+.links-hero p{margin:0;color:#fff !important;font-size:13px;}
 .links-toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid #D8E7F0;border-radius:14px;padding:14px 16px;margin-bottom:16px;box-shadow:0 8px 22px rgba(0,59,92,.08);}
 .links-search{flex:1;min-width:260px;background:#fff;border:1px solid #BFD6E4;border-radius:8px;padding:9px 12px;font-family:var(--font);font-size:13px;color:#2D2926;outline:none;}
 .links-search:focus{border-color:#00A9E0;box-shadow:0 0 0 3px rgba(0,169,224,.12);}
@@ -1981,6 +1987,18 @@ tr.alerta-sem-designacao{
 .phone-table a{color:#006080;font-weight:700;text-decoration:none;}
 @media(max-width:768px){.links-uteis-wrap{padding:14px 12px 84px}.links-grid{grid-template-columns:1fr}.links-toolbar{position:sticky;top:0;z-index:9}.links-search{min-width:0;width:100%}.phone-box{overflow:auto}.phone-table{min-width:620px}}
 
+</style>
+
+<style>
+/* Anti-samba: estabilidade mobile */
+@media(max-width:768px){
+  html,body{ overflow-x:hidden; width:100%; }
+  body{ position:relative; }
+  #app{ overflow-x:hidden; }
+  .topbar,.nav,.main,.bottom-nav,.filters{ max-width:100vw; box-sizing:border-box; }
+  #main-table tbody tr{ max-width:calc(100vw - 24px); }
+  .main{ overscroll-behavior-x:none; }
+}
 </style>
 
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
@@ -2226,7 +2244,7 @@ tr.alerta-sem-designacao{
 <!-- PAUTA COMPLETA -->
 <div id="tab-pauta" style="display:none">
 <div class="section-title pauta-completa-title">🎯 Pauta Completa</div>
-<div class="filters">
+<div class="filters" id="main-filters">
 <input class="filter-input" id="search-main" placeholder="🔍 Buscar processo, cliente, parte, comarca, advogado..." type="text"/>
 <select class="filter-select" id="filter-grupo">
 <option value="">Todos os grupos</option>
@@ -4738,11 +4756,11 @@ function pcAplicarProtecaoDesignacoesUpload(rows){
         return;
       }
       if(pcEhDesignacaoValida(excelValOriginal) && pcEhDesignacaoValida(oldVal) && pcNormDesignacao(excelValOriginal) !== pcNormDesignacao(oldVal)){
-        if(m && m.origem === 'manual'){
+        if(m && m.origem === 'manual' && !window._pcUploadUsarExcel){
           row[field] = oldVal;
           edits[dkey] = oldVal;
           pcAddDesignConflict(row, field, oldVal, excelValOriginal, m);
-          pcAddDesignLog(pcRegistroBase(row, field, oldVal, excelValOriginal, 'Upload Excel bloqueado', 'Conflito: mantida designação manual mais recente'));
+          pcAddDesignLog(pcRegistroBase(row, field, oldVal, excelValOriginal, 'Upload Excel bloqueado', 'Conflito: mantida designação manual (escolha do usuário)'));
         } else {
           row[field] = excelValOriginal;
           edits[dkey] = excelValOriginal;
@@ -4946,11 +4964,9 @@ function pcParsePlanilhaPauta(wb){
     throw new Error('Não encontrei as colunas de Processo/Código na planilha.');
   }
   const antigas = Array.isArray(DATA.main) ? DATA.main : [];
-  const porCodigo = {};
-  antigas.forEach(r => { if(r.codigo) porCodigo[String(r.codigo)] = r; });
-  // Mapa por codigo+data para suportar mesmo processo em datas diferentes
-  const porCodigoData = {};
-  antigas.forEach(r => { if(r.codigo && r.data) porCodigoData[String(r.codigo)+'|'+String(r.data)] = r; });
+  // Mapa por chave completa (codigo|data|horario) — suporta mesmo processo em datas/horários diferentes
+  const porChave = {};
+  antigas.forEach(r => { porChave[pcChaveAudiencia(r)] = r; });
   const edits = getEditsLocal ? getEditsLocal() : {};
   const rows = [];
   const chavesVistas = new Set();
@@ -4960,20 +4976,19 @@ function pcParsePlanilhaPauta(wb){
     const codigo = pcMontarCodigo(row, cols, i);
     const dataLinha = pcExcelDateToBR(pcRowVal(row, cols.data));
     const horarioLinha = pcExcelHourToBR(pcRowVal(row, cols.horario) || '00:00');
-    // Chave unica = codigo + data + horario (permite mesmo codigo em datas/horarios diferentes)
-    const chaveUnica = String(codigo)+'|'+String(dataLinha)+'|'+String(horarioLinha);
+    // Usa pcChaveAudiencia para consistência: codigo|data|horario
+    const chaveUnica = codigo ? ('cod:'+String(codigo)+'|'+String(dataLinha)+'|'+String(horarioLinha))
+                               : ('mix:'+[pcRowVal(row,cols.processo),dataLinha,horarioLinha,pcRowVal(row,cols.tipo)].join('|'));
     if(chavesVistas.has(chaveUnica)) continue;
     chavesVistas.add(chaveUnica);
-    // Busca antigo por codigo+data primeiro, depois só por codigo
-    const antigo = porCodigoData[chaveUnica] || porCodigo[String(codigo)] || {};
+    // Busca antigo pela mesma chave
+    const antigo = porChave[chaveUnica] || {};
     let advAud = String(pcRowVal(row, cols.adv_audiencia) || antigo.adv_audiencia || 'Indicar Advogado').trim();
     let advPrep = String(pcRowVal(row, cols.adv_preparo) || antigo.adv_preparo || '').trim();
     // Preserva designação existente se Excel trouxer vazio ou "Indicar Advogado"
-    const editKeyBase = codigo+'::';
+    const editKeyBase = chaveUnica+'::';
     if(edits[editKeyBase+'adv_audiencia'] && (!advAud || advAud==='Indicar Advogado')) advAud = edits[editKeyBase+'adv_audiencia'];
     if(edits[editKeyBase+'adv_preparo'] && !advPrep) advPrep = edits[editKeyBase+'adv_preparo'];
-    if(edits[codigo+'::adv_audiencia']) advAud = edits[codigo+'::adv_audiencia'];
-    if(edits[codigo+'::adv_preparo']) advPrep = edits[codigo+'::adv_preparo'];
     rows.push({
       codigo,
       data: pcExcelDateToBR(pcRowVal(row, cols.data) || antigo.data),
@@ -8824,6 +8839,9 @@ function dispararAlertasDesignacao(ev){
     </div>`;
   document.body.appendChild(overlay);
 }
+
+
+
 
 
 /* ===== ALERTA 17H — AUDIÊNCIAS DE AMANHÃ ===== */
