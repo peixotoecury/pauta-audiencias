@@ -2266,7 +2266,7 @@ tr.alerta-sem-designacao{
 <button class="export-btn" onclick="exportarExcel()" title="Exportar pauta filtrada para Excel (.xlsx)">📥 Excel (.xlsx)</button>
 <button class="export-btn" id="btn-upload-pauta" onclick="pcAbrirUploadPauta(event)" title="Atualizar a pauta pelo upload da planilha" style="background:var(--cyan);color:var(--bg)">⬆️ Atualizar pauta</button>
 <button class="export-btn" id="btn-alertas-designacao" onclick="dispararAlertasDesignacao(event)" title="Enviar alertas das audiências sem designação por grupo" style="background:#C0392B">🚨 Alertas Designação</button>
-<button class="export-btn" id="btn-alerta-17h" onclick="abrirAlertas17hAmanha(event)" title="Enviar alerta de preparação das audiências de amanhã" style="background:#003B5C;color:#fff">📧 Alerta 17h amanhã</button>
+<button class="export-btn" id="btn-alerta-17h" onclick="abrirAlertas17hAmanha(event)" title="Enviar alerta de preparação das audiências do próximo dia útil" style="background:#003B5C;color:#fff">✉️ Alerta - 17h</button>
 <button class="export-btn" id="btn-dashboard-designacoes" onclick="abrirDashboardDesignacoesPendentes(event)" title="Ver dashboard de designações pendentes por grupo">📊 Dashboard Designações</button>
 </div>
 <div class="table-wrap">
@@ -4478,6 +4478,30 @@ function _buildLocalSnapshot(){
           notas,pt,ctrl,preparo_info:prepInfo};
 }
 
+
+function pcEhChaveDesignacaoAtual(key){
+  return /^(cod:|mix:).+::adv_(audiencia|preparo)$/.test(String(key || ''));
+}
+function pcLimparDesignacoesLegadas(edits){
+  const out = edits || {};
+  Object.keys(out).forEach(k => {
+    const ks = String(k || '');
+    // Remove chaves antigas por índice (ex.: 12__adv_audiencia) ou por código puro
+    // (ex.: 12345::adv_preparo). Elas misturam indicações quando o mesmo processo
+    // possui mais de um compromisso.
+    if(/^\d+__adv_(audiencia|preparo)$/.test(ks)) delete out[ks];
+    else if(/::adv_(audiencia|preparo)$/.test(ks) && !pcEhChaveDesignacaoAtual(ks)) delete out[ks];
+  });
+  return out;
+}
+function pcLinhaPorDesignKey(key){
+  const ks = String(key || '');
+  const m = ks.match(/^(.*)::(adv_audiencia|adv_preparo)$/);
+  if(!m) return null;
+  const chaveAud = m[1];
+  return (DATA.main || []).find(r => pcChaveAudiencia(r) === chaveAud) || null;
+}
+
 function _applySnapshot(snap){
   if(!snap) return;
 
@@ -4489,18 +4513,15 @@ function _applySnapshot(snap){
       // IMPORTANTE: reaplicar edits locais pendentes sobre a pauta recebida da nuvem,
       // para não perder designações feitas nos últimos segundos (antes do debounce de save).
       try{
-        const editsLocais = getEditsLocal ? getEditsLocal() : {};
+        const editsLocais = pcLimparDesignacoesLegadas(getEditsLocal ? getEditsLocal() : {});
         Object.entries(editsLocais).forEach(([key, val]) => {
-          if(key.includes('::')){
-            const [cod, field] = key.split('::');
-            const row = DATA.main.find(r => String(r.codigo) === String(cod));
-            if(row) row[field] = val;
-          } else if(key.includes('__')){
-            const [idx, field] = key.split('__');
-            const i = parseInt(idx);
-            if(DATA.main[i]) DATA.main[i][field] = val;
-          }
+          if(!pcEhChaveDesignacaoAtual(key)) return;
+          const m = String(key).match(/^(.*)::(adv_audiencia|adv_preparo)$/);
+          if(!m) return;
+          const row = (DATA.main || []).find(r => pcChaveAudiencia(r) === m[1]);
+          if(row) row[m[2]] = val;
         });
+        if(typeof saveEditsLocal === 'function') saveEditsLocal(editsLocais);
       }catch(e){ console.warn('Reaplicação de edits locais falhou', e); }
     } catch(e) { console.warn("Não foi possível aplicar pauta_main", e); }
   }
@@ -4778,6 +4799,43 @@ function pcAplicarProtecaoDesignacoesUpload(rows){
   saveEditsLocal(edits);
   return rows;
 }
+
+function pcForcarExcelComoFonte(rows){
+  const edits = pcLimparDesignacoesLegadas(getEdits());
+  const meta = pcGetDesignMeta();
+  const conflicts = pcGetDesignConflicts();
+  const fields = ['adv_audiencia','adv_preparo'];
+  const touched = new Set();
+
+  (rows || []).forEach(row => {
+    fields.forEach(field => {
+      const dkey = pcDesignKey(row, field);
+      const excelVal = String(row?.[field] || '').trim();
+      touched.add(dkey);
+
+      if(pcEhDesignacaoValida(excelVal)){
+        edits[dkey] = excelVal;
+        meta[dkey] = {
+          valor: excelVal,
+          atualizado_em: new Date().toISOString(),
+          origem: 'upload_excel_soberano',
+          usuario: pcUsuarioAtual()
+        };
+      } else {
+        // Excel vazio ou "Indicar Advogado" deve limpar o valor manual antigo do site.
+        delete edits[dkey];
+        delete meta[dkey];
+      }
+    });
+  });
+
+  // Conflitos antigos dessas audiências deixam de fazer sentido quando o Excel é a fonte soberana.
+  pcSaveDesignConflicts(conflicts.filter(c => !touched.has(c.design_key)));
+  saveEditsLocal(edits);
+  pcSaveDesignMeta(meta);
+  return rows;
+}
+
 function pcAtualizarBadgeConflitosDesignacao(){
   const n = pcGetDesignConflicts().filter(c=>c.status==='pendente').length;
   const b = document.getElementById('designacao-conflict-badge');
@@ -4851,7 +4909,7 @@ function exportarHistoricoDesignacoes(){
 
 // ═══════════════════════════════════════════════════════
 // IMPORTAÇÃO DIRETA DA PLANILHA NO SITE — CONTROLADORIA
-// Admin sobe Excel/CSV, a pauta é lida, preserva designações já feitas
+// Admin sobe Excel/CSV, a pauta é lida com o Excel como fonte soberana
 // e salva no JSONBin para todos visualizarem a mesma base.
 // ═══════════════════════════════════════════════════════
 function pcAbrirUploadPauta(event){
@@ -4867,9 +4925,12 @@ function pcAbrirUploadPauta(event){
     input.id = 'pc-upload-pauta-input';
     input.accept = '.xlsx,.xls,.csv';
     input.style.display = 'none';
-    input.addEventListener('change', function(){
+    input.addEventListener('change', async function(){
       const file = this.files && this.files[0];
-      if(file) pcImportarPlanilhaSite(file);
+      if(file){
+        const ok = window.confirm('Confirmar atualização da pauta\n\nAo confirmar, as indicações da planilha substituirão os dados atuais da pauta. Deseja continuar?');
+        if(ok) await pcImportarPlanilhaSite(file);
+      }
       this.value = '';
     });
     document.body.appendChild(input);
@@ -4976,38 +5037,43 @@ function pcParsePlanilhaPauta(wb){
     const codigo = pcMontarCodigo(row, cols, i);
     const dataLinha = pcExcelDateToBR(pcRowVal(row, cols.data));
     const horarioLinha = pcExcelHourToBR(pcRowVal(row, cols.horario) || '00:00');
-    // Usa pcChaveAudiencia para consistência: codigo|data|horario
-    const chaveUnica = codigo ? ('cod:'+String(codigo)+'|'+String(dataLinha)+'|'+String(horarioLinha))
-                               : ('mix:'+[pcRowVal(row,cols.processo),dataLinha,horarioLinha,pcRowVal(row,cols.tipo)].join('|'));
+    // Chave do compromisso: codigo + data + hora + tipo.
+    // Isso evita perder linhas quando o mesmo processo/código tem dois compromissos distintos.
+    const tipoLinha = String(pcRowVal(row, cols.tipo) || '').trim();
+    const chaveUnica = codigo ? ('cod:'+String(codigo).trim()+'|'+String(dataLinha)+'|'+String(horarioLinha)+'|'+tipoLinha)
+                               : ('mix:'+[pcRowVal(row,cols.processo),dataLinha,horarioLinha,tipoLinha,pcRowVal(row,cols.vara),pcRowVal(row,cols.parte_contraria)].join('|'));
     if(chavesVistas.has(chaveUnica)) continue;
     chavesVistas.add(chaveUnica);
-    // Busca antigo pela mesma chave
+    // Busca antigo pela mesma chave apenas como fallback quando a coluna não existir na planilha.
+    // REGRA: se a coluna existir no Excel, o valor do Excel prevalece, inclusive quando vier vazio.
     const antigo = porChave[chaveUnica] || {};
-    let advAud = String(pcRowVal(row, cols.adv_audiencia) || antigo.adv_audiencia || 'Indicar Advogado').trim();
-    let advPrep = String(pcRowVal(row, cols.adv_preparo) || antigo.adv_preparo || '').trim();
-    // Preserva designação existente se Excel trouxer vazio ou "Indicar Advogado"
-    const editKeyBase = chaveUnica+'::';
-    if(edits[editKeyBase+'adv_audiencia'] && (!advAud || advAud==='Indicar Advogado')) advAud = edits[editKeyBase+'adv_audiencia'];
-    if(edits[editKeyBase+'adv_preparo'] && !advPrep) advPrep = edits[editKeyBase+'adv_preparo'];
+    const advAudExcel = String(pcRowVal(row, cols.adv_audiencia) || '').trim();
+    const advPrepExcel = String(pcRowVal(row, cols.adv_preparo) || '').trim();
+    let advAud = cols.adv_audiencia >= 0 ? advAudExcel : String(antigo.adv_audiencia || 'Indicar Advogado').trim();
+    let advPrep = cols.adv_preparo >= 0 ? advPrepExcel : String(antigo.adv_preparo || '').trim();
+    const excelTextoOuAntigo = (col, antigoVal='') => col >= 0 ? String(pcRowVal(row, col) || '').trim() : String(antigoVal || '').trim();
+    const excelDataOuAntigo = (col, antigoVal='') => col >= 0 ? pcExcelDateToBR(pcRowVal(row, col)) : pcExcelDateToBR(antigoVal || '');
+    const excelHoraOuAntigo = (col, antigoVal='00:00') => col >= 0 ? pcExcelHourToBR(pcRowVal(row, col)) : pcExcelHourToBR(antigoVal || '00:00');
+    const excelValorOuAntigo = (col, antigoVal='') => col >= 0 ? pcValor(pcRowVal(row, col)) : pcValor(antigoVal);
     rows.push({
       codigo,
-      data: pcExcelDateToBR(pcRowVal(row, cols.data) || antigo.data),
-      horario: pcExcelHourToBR(pcRowVal(row, cols.horario) || antigo.horario || '00:00'),
-      tipo: String(pcRowVal(row, cols.tipo) || antigo.tipo || '').trim(),
-      processo: String(pcRowVal(row, cols.processo) || antigo.processo || '').trim(),
-      parte_principal: String(pcRowVal(row, cols.parte_principal) || antigo.parte_principal || '').trim(),
-      parte_contraria: String(pcRowVal(row, cols.parte_contraria) || antigo.parte_contraria || '').trim(),
-      comarca: String(pcRowVal(row, cols.comarca) || antigo.comarca || '').trim(),
-      estado: String(pcRowVal(row, cols.estado) || antigo.estado || '').trim(),
-      vara: String(pcRowVal(row, cols.vara) || antigo.vara || '').trim(),
-      fase: String(pcRowVal(row, cols.fase) || antigo.fase || '').trim(),
-      acao: String(pcRowVal(row, cols.acao) || antigo.acao || '').trim(),
-      foro: String(pcRowVal(row, cols.foro) || antigo.foro || '').trim(),
-      valor: pcValor(pcRowVal(row, cols.valor) || antigo.valor),
-      grupo: String(pcRowVal(row, cols.grupo) || antigo.grupo || '').trim(),
+      data: excelDataOuAntigo(cols.data, antigo.data),
+      horario: excelHoraOuAntigo(cols.horario, antigo.horario),
+      tipo: excelTextoOuAntigo(cols.tipo, antigo.tipo),
+      processo: excelTextoOuAntigo(cols.processo, antigo.processo),
+      parte_principal: excelTextoOuAntigo(cols.parte_principal, antigo.parte_principal),
+      parte_contraria: excelTextoOuAntigo(cols.parte_contraria, antigo.parte_contraria),
+      comarca: excelTextoOuAntigo(cols.comarca, antigo.comarca),
+      estado: excelTextoOuAntigo(cols.estado, antigo.estado),
+      vara: excelTextoOuAntigo(cols.vara, antigo.vara),
+      fase: excelTextoOuAntigo(cols.fase, antigo.fase),
+      acao: excelTextoOuAntigo(cols.acao, antigo.acao),
+      foro: excelTextoOuAntigo(cols.foro, antigo.foro),
+      valor: excelValorOuAntigo(cols.valor, antigo.valor),
+      grupo: excelTextoOuAntigo(cols.grupo, antigo.grupo),
       adv_audiencia: advAud || 'Indicar Advogado',
       adv_preparo: advPrep,
-      link: String(pcRowVal(row, cols.link) || antigo.link || '').trim()
+      link: excelTextoOuAntigo(cols.link, antigo.link)
     });
   }
   return rows;
@@ -5020,8 +5086,16 @@ function pcDataTimeValueBR(dataStr, horaStr){
   return new Date(+parts[2], +parts[1]-1, +parts[0], h ? +h[1] : 0, h ? +h[2] : 0).getTime();
 }
 function pcChaveAudiencia(r){
-  if(r && r.codigo != null && String(r.codigo).trim()) return 'cod:'+String(r.codigo).trim();
-  return 'mix:'+[r?.processo, r?.data, r?.horario, r?.tipo].map(x=>String(x||'').trim()).join('|');
+  const data = String(r?.data || '').trim();
+  const horario = String(r?.horario || '00:00').trim() || '00:00';
+  const tipo = String(r?.tipo || '').trim();
+  // O código/processo sozinho não identifica um compromisso. O mesmo processo pode ter
+  // audiência, perícia ou julgamento em datas/horários diferentes. A chave precisa refletir
+  // o compromisso, não apenas o cadastro do processo.
+  if(r && r.codigo != null && String(r.codigo).trim()){
+    return 'cod:'+[r.codigo, data, horario, tipo].map(x=>String(x||'').trim()).join('|');
+  }
+  return 'mix:'+[r?.processo, data, horario, tipo, r?.vara, r?.parte_contraria].map(x=>String(x||'').trim()).join('|');
 }
 function pcAudienciaPendentePosOuPericia(r){
   const codigo = String(r?.codigo || '');
@@ -5164,12 +5238,12 @@ async function pcImportarPlanilhaSite(file){
   }
   try{
     pcSalvarBackupAntesUpload();
-    showToast('⏳ Lendo planilha e preservando designações...');
+    showToast('⏳ Lendo planilha e aplicando dados do Excel...');
     const buf = await file.arrayBuffer();
     const wb = XLSX.read(buf, {type:'array', cellDates:true});
     const rows = pcParsePlanilhaPauta(wb);
     if(!rows.length) throw new Error('A planilha não trouxe nenhuma audiência.');
-    const rowsFinal = pcAplicarProtecaoDesignacoesUpload(pcMesclarPendentesAntigos(rows));
+    const rowsFinal = pcForcarExcelComoFonte(pcMesclarPendentesAntigos(rows));
     DATA.main = rowsFinal;
     try{ localStorage.setItem('pauta_data_hash_v1', _getPautaHash()); }catch{}
     const ok = await _binPut(_buildLocalSnapshot());
@@ -5492,10 +5566,9 @@ function startEdit(e, idx, field){
     const newVal = normalizaValorDigitado(getInputValue());
     DATA.main[idx][field] = newVal;
 
-    const edits = getEdits();
-    edits[idx + '__' + field] = newVal;
-    const cod = DATA.main[idx]?.codigo;
-    if(cod) edits[cod + '::' + field] = newVal;
+    const edits = pcLimparDesignacoesLegadas(getEdits());
+    const designKey = pcDesignKey(DATA.main[idx], field);
+    edits[designKey] = newVal;
     pcRegistrarDesignacaoManual(DATA.main[idx], field, currentVal, newVal);
     saveEdits(edits);
 
@@ -8844,7 +8917,7 @@ function dispararAlertasDesignacao(ev){
 
 
 
-/* ===== ALERTA 17H — AUDIÊNCIAS DE AMANHÃ ===== */
+/* ===== ALERTA 17H — AUDIÊNCIAS DO PRÓXIMO DIA ÚTIL ===== */
 const PC_ALERTA_17H_CC = "audiencia.trabalhista@peixotoecury.com.br";
 const PC_ALERTA_17H_LOG_KEY = "pc_alertas_17h_log_v1";
 
@@ -8859,18 +8932,40 @@ function pcParseDataBR(data){
 function pcFmtDataBR(dt){
   return String(dt.getDate()).padStart(2,'0')+'/'+String(dt.getMonth()+1).padStart(2,'0')+'/'+dt.getFullYear();
 }
-function pcDataAmanhaBR(){
+function pcEhDiaUtil(dt){
+  const dia = dt.getDay();
+  return dia !== 0 && dia !== 6; // 0 = domingo, 6 = sábado
+}
+function pcProximoDiaUtil(){
   const d = new Date();
   d.setHours(0,0,0,0);
-  d.setDate(d.getDate()+1);
-  return pcFmtDataBR(d);
+  do {
+    d.setDate(d.getDate()+1);
+  } while(!pcEhDiaUtil(d));
+  return d;
+}
+function pcDataProximoDiaUtilBR(){
+  return pcFmtDataBR(pcProximoDiaUtil());
+}
+function pcDataAmanhaBR(){
+  // Mantida como alias para compatibilidade com funções antigas.
+  // A rotina das 17h agora usa o próximo dia útil, não o dia corrido seguinte.
+  return pcDataProximoDiaUtilBR();
 }
 function pcNormSiglaPessoa(v){
   return String(v||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
 }
+function pcEhIndicacaoInvalidaAlerta17(v){
+  const bruto = String(v||'').trim().toUpperCase();
+  const norm = pcNormSiglaPessoa(v);
+  return !bruto || !norm || ['N/A','NA','N.D.','ND','NÃO SE APLICA','NAO SE APLICA','-','—','INDICAR','INDICAR ADVOGADO','INDICARADVOGADO'].includes(bruto) || ['NA','ND','NSEAPLICA','NAOSEAPLICA','INDICAR','INDICARADVOGADO'].includes(norm);
+}
+function pcTemIndicacaoValidaAlerta17(r){
+  return !pcEhIndicacaoInvalidaAlerta17(r && r.adv_audiencia) || !pcEhIndicacaoInvalidaAlerta17(r && r.adv_preparo);
+}
 function pcPessoaPorSigla(sigla){
+  if(pcEhIndicacaoInvalidaAlerta17(sigla)) return null;
   const s = pcNormSiglaPessoa(sigla);
-  if(!s || s === 'INDICARADVOGADO' || s === 'INDICAR') return null;
   const p = (typeof PROF !== 'undefined' && PROF && PROF[s]) ? PROF[s] : null;
   return { sigla:s, nome:(p && p.nome) || s, email:(p && p.email) || '' };
 }
@@ -8878,9 +8973,9 @@ function pcNomeClienteAlerta17(r){
   return r?.cliente || r?.parte_principal || r?.reclamada || r?.empresa || '-';
 }
 function pcGetAudienciasAmanha17h(){
-  const alvo = pcDataAmanhaBR();
+  const alvo = pcDataProximoDiaUtilBR();
   const base = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.main)) ? DATA.main : [];
-  return base.filter(r => String(r?.data||'').trim() === alvo)
+  return base.filter(r => String(r?.data||'').trim() === alvo && pcTemIndicacaoValidaAlerta17(r))
     .sort((a,b)=>String(a.horario||'').localeCompare(String(b.horario||'')) || String(a.processo||'').localeCompare(String(b.processo||'')));
 }
 function pcGetAlerta17Log(){
@@ -8909,7 +9004,7 @@ function pcMontarCorpoAlerta17(r){
   const responsaveis = mesmaPessoa
     ? `${aud.nome} (${aud.sigla}), você constará como responsável pela audiência e pelo preparo.`
     : `Advogado(a) responsável pela audiência: ${aud ? aud.nome + ' ('+aud.sigla+')' : (r.adv_audiencia || 'não informado')}\nResponsável pelo preparo: ${prep ? prep.nome + ' ('+prep.sigla+')' : (r.adv_preparo || 'não informado')}`;
-  return `Prezados(as),\n\nIdentificamos audiência designada para amanhã, com as seguintes responsabilidades:\n\n${responsaveis}\n\nDados da audiência:\nCliente: ${pcNomeClienteAlerta17(r)}\nParte contrária/Reclamante: ${r.parte_contraria || '-'}\nProcesso: ${r.processo || '-'}\nData/Horário: ${r.data || '-'} às ${r.horario || '-'}\nGrupo: ${r.grupo || '-'}\nComarca/UF: ${r.comarca || '-'}${r.estado ? '/' + r.estado : ''}\nVara/Turma: ${r.vara || '-'}\nTipo/Fase: ${r.tipo || '-'}${r.fase ? ' — ' + r.fase : ''}\nLink/Observações: ${r.link || '-'}\n\nChecklist obrigatório:\n1. Defesa protocolada, quando aplicável.\n2. Orientações conferidas/enviadas.\n3. Documentos e subsídios conferidos.\n4. Preposto/testemunhas alinhados, quando aplicável.\n5. Link, sala ou forma de participação confirmados.\n6. Conferir se há alguma pendência de preparo antes da audiência.\n\nSolicitamos a conferência das informações na Pauta de Audiências.\n\nAtenciosamente,\nControladoria Jurídica`; 
+  return `Prezados(as),\n\nIdentificamos audiência designada para o próximo dia útil, com as seguintes responsabilidades:\n\n${responsaveis}\n\nDados da audiência:\nCliente: ${pcNomeClienteAlerta17(r)}\nParte contrária/Reclamante: ${r.parte_contraria || '-'}\nProcesso: ${r.processo || '-'}\nData/Horário: ${r.data || '-'} às ${r.horario || '-'}\nGrupo: ${r.grupo || '-'}\nComarca/UF: ${r.comarca || '-'}${r.estado ? '/' + r.estado : ''}\nVara/Turma: ${r.vara || '-'}\nTipo/Fase: ${r.tipo || '-'}${r.fase ? ' — ' + r.fase : ''}\nLink/Observações: ${r.link || '-'}\n\nChecklist obrigatório:\n1. Defesa protocolada, quando aplicável.\n2. Orientações conferidas/enviadas.\n3. Documentos e subsídios conferidos.\n4. Preposto/testemunhas alinhados, quando aplicável.\n5. Link, sala ou forma de participação confirmados.\n6. Conferir se há alguma pendência de preparo antes da audiência.\n\nSolicitamos a conferência das informações na Pauta de Audiências.\n\nAtenciosamente,\nControladoria Jurídica`; 
 }
 function pcMailtoAlerta17(r){
   const pessoas = [pcPessoaPorSigla(r.adv_audiencia), pcPessoaPorSigla(r.adv_preparo)].filter(p=>p && p.email);
@@ -8917,7 +9012,7 @@ function pcMailtoAlerta17(r){
   const seen = new Set();
   pessoas.forEach(p=>{ if(!seen.has(p.email.toLowerCase())){seen.add(p.email.toLowerCase()); unicos.push(p);} });
   const to = unicos.map(p=>p.email).join(';');
-  const assunto = `Alerta de audiência amanhã — ${r.horario || ''} — ${pcNomeClienteAlerta17(r)} — ${r.processo || ''}`;
+  const assunto = `Alerta de audiência - próximo dia útil — ${r.horario || ''} — ${pcNomeClienteAlerta17(r)} — ${r.processo || ''}`;
   const corpo = pcMontarCorpoAlerta17(r);
   return {url:`mailto:${encodeURIComponent(to)}?cc=${encodeURIComponent(PC_ALERTA_17H_CC)}&subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`, pessoas:unicos, assunto, corpo};
 }
@@ -8947,7 +9042,7 @@ function abrirAlertas17hAmanha(ev){
     return;
   }
   const rows = pcGetAudienciasAmanha17h();
-  if(!rows.length){ alert('Nenhuma audiência encontrada para amanhã ('+pcDataAmanhaBR()+').'); return; }
+  if(!rows.length){ alert('Nenhuma audiência com indicação válida encontrada para o próximo dia útil ('+pcDataProximoDiaUtilBR()+').'); return; }
   window.__alertas17hAmanha = rows;
   const semEmail = rows.filter(r => !pcMailtoAlerta17(r).pessoas.length).length;
   const cards = rows.map((r,i)=>{
@@ -8982,13 +9077,13 @@ function abrirAlertas17hAmanha(ev){
     <div class="alertas-designacao-header">
       <div>
         <div class="alertas-designacao-kicker">Controladoria Jurídica · rotina das 17h</div>
-        <h2>Alertas das audiências de amanhã</h2>
-        <p>${rows.length} audiência(s) em ${pcDataAmanhaBR()} · ${semEmail ? semEmail + ' com pendência de e-mail/sigla' : 'todos com destinatário localizado'}.</p>
+        <h2>Alertas das audiências do próximo dia útil</h2>
+        <p>${rows.length} audiência(s) em ${pcDataProximoDiaUtilBR()} · ${semEmail ? semEmail + ' com pendência de e-mail/sigla' : 'todos com destinatário localizado'}.</p>
       </div>
       <button type="button" class="alertas-designacao-close" onclick="fecharAlertas17hAmanha()">×</button>
     </div>
     <div class="alertas-designacao-info">
-      Clique em <b>“Abrir e-mail”</b> para cada audiência. O e-mail irá para quem fará a audiência e para quem fará o preparo, informando a função de cada um. Cópia padrão: <b>${PC_ALERTA_17H_CC}</b>.
+      Clique em <b>“Abrir e-mail”</b> para cada audiência do próximo dia útil. O e-mail irá para quem fará a audiência e para quem fará o preparo, informando a função de cada um. Cópia padrão: <b>${PC_ALERTA_17H_CC}</b>.
     </div>
     <div class="alertas-designacao-lista">${cards}</div>
   </div>`;
@@ -8997,5 +9092,74 @@ function abrirAlertas17hAmanha(ev){
 
 </script>
 
+
+
+<!-- === MOBILE NAV INTELIGENTE: recolhe ao descer e reaparece ao subir === -->
+<style id="pc-mobile-nav-inteligente">
+@media (max-width: 768px){
+  .bottom-nav{
+    transition: transform .24s ease, opacity .24s ease !important;
+    will-change: transform, opacity !important;
+  }
+  .bottom-nav.pc-nav-hidden{
+    transform: translateY(calc(100% + env(safe-area-inset-bottom, 0px) + 8px)) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+}
+</style>
+<script id="pc-mobile-nav-inteligente-js">
+(function(){
+  function instalarMobileNavInteligente(){
+    var nav = document.getElementById('bottom-nav') || document.querySelector('.bottom-nav');
+    if(!nav || nav.dataset.pcSmartNav === '1') return;
+    nav.dataset.pcSmartNav = '1';
+
+    var lastY = window.scrollY || document.documentElement.scrollTop || 0;
+    var ticking = false;
+    var minDelta = 8;
+
+    function isMobile(){
+      return window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
+    }
+
+    function atualizar(){
+      var y = window.scrollY || document.documentElement.scrollTop || 0;
+      var diff = y - lastY;
+
+      if(!isMobile()){
+        nav.classList.remove('pc-nav-hidden');
+        lastY = y;
+        ticking = false;
+        return;
+      }
+
+      if(y < 40){
+        nav.classList.remove('pc-nav-hidden');
+      }else if(diff > minDelta){
+        nav.classList.add('pc-nav-hidden');
+      }else if(diff < -minDelta){
+        nav.classList.remove('pc-nav-hidden');
+      }
+
+      lastY = y;
+      ticking = false;
+    }
+
+    window.addEventListener('scroll', function(){
+      if(!ticking){
+        window.requestAnimationFrame(atualizar);
+        ticking = true;
+      }
+    }, {passive:true});
+
+    window.addEventListener('resize', atualizar, {passive:true});
+    nav.addEventListener('click', function(){ nav.classList.remove('pc-nav-hidden'); });
+  }
+
+  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', instalarMobileNavInteligente);
+  else instalarMobileNavInteligente();
+})();
+</script>
 </body>
 </html>
