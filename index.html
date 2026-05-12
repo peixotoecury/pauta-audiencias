@@ -2086,6 +2086,9 @@ tr.alerta-sem-designacao{
 <button class="bottom-nav-btn" data-tab="pauta" onclick="showTab('pauta',this)">
 <span class="bn-icon">🎯</span>Pauta
     </button>
+<button class="bottom-nav-btn" data-tab="audiencia-mode" onclick="showTab('audiencia-mode',this);pcInitAudienciaMode()">
+<span class="bn-icon">⚖️</span>Audiência
+    </button>
 <button class="bottom-nav-btn" data-tab="conflitos" onclick="showTab('conflitos',this)">
 <span class="bn-icon">⚠️</span>Conflitos
     </button>
@@ -4302,9 +4305,9 @@ function startEditLink(e, idx){
     const newVal = textarea.value.trim();
     DATA.main[idx].link = newVal;
     const edits = getEdits();
-    edits[idx + '__link'] = newVal;
-    const cod = DATA.main[idx]?.codigo;
-    if(cod) edits[cod + '::link'] = newVal;
+    const dkey = pcEditKey(DATA.main[idx], 'link');
+    edits[dkey] = newVal;
+    pcSanitizarEditsSoberanos(edits, DATA.main);
     saveEdits(edits);
     _scheduleSave();
     showToast && showToast('✅ Obs salva!');
@@ -4480,7 +4483,7 @@ function _buildLocalSnapshot(){
 
 
 function pcEhChaveDesignacaoAtual(key){
-  return /^(cod:|mix:).+::adv_(audiencia|preparo)$/.test(String(key || ''));
+  return /^(cod:|mix:).+::(adv_audiencia|adv_preparo|link)$/.test(String(key || ''));
 }
 function pcLimparDesignacoesLegadas(edits){
   const out = edits || {};
@@ -4489,14 +4492,14 @@ function pcLimparDesignacoesLegadas(edits){
     // Remove chaves antigas por índice (ex.: 12__adv_audiencia) ou por código puro
     // (ex.: 12345::adv_preparo). Elas misturam indicações quando o mesmo processo
     // possui mais de um compromisso.
-    if(/^\d+__adv_(audiencia|preparo)$/.test(ks)) delete out[ks];
-    else if(/::adv_(audiencia|preparo)$/.test(ks) && !pcEhChaveDesignacaoAtual(ks)) delete out[ks];
+    if(/^\d+__(adv_audiencia|adv_preparo|link)$/.test(ks)) delete out[ks];
+    else if(/::(adv_audiencia|adv_preparo|link)$/.test(ks) && !pcEhChaveDesignacaoAtual(ks)) delete out[ks];
   });
   return out;
 }
 function pcLinhaPorDesignKey(key){
   const ks = String(key || '');
-  const m = ks.match(/^(.*)::(adv_audiencia|adv_preparo)$/);
+  const m = ks.match(/^(.*)::(adv_audiencia|adv_preparo|link)$/);
   if(!m) return null;
   const chaveAud = m[1];
   return (DATA.main || []).find(r => pcChaveAudiencia(r) === chaveAud) || null;
@@ -4504,19 +4507,20 @@ function pcLinhaPorDesignKey(key){
 
 function _applySnapshot(snap){
   if(!snap) return;
+  const snapAntigoDepoisUpload = pcSnapshotMaisAntigoQueUpload(snap);
 
   // Pauta importada pela Controladoria: fica na nuvem e todos os acessos carregam a mesma base.
-  // REGRA: Pauta Completa recebe somente a base atual salva; antigos ficam apenas no Histórico.
-  if(Array.isArray(snap.pauta_main) && snap.pauta_main.length){
+  // REGRA: se este navegador acabou de subir Excel, snapshots antigos não podem voltar por cima.
+  if(Array.isArray(snap.pauta_main) && snap.pauta_main.length && !snapAntigoDepoisUpload){
     try {
       DATA.main = pcMergeAudiencias([...(snap.pauta_main||[])]);
       // IMPORTANTE: reaplicar edits locais pendentes sobre a pauta recebida da nuvem,
-      // para não perder designações feitas nos últimos segundos (antes do debounce de save).
+      // mas apenas por chave completa do compromisso.
       try{
-        const editsLocais = pcLimparDesignacoesLegadas(getEditsLocal ? getEditsLocal() : {});
+        const editsLocais = pcSanitizarEditsSoberanos(pcLimparDesignacoesLegadas(getEditsLocal ? getEditsLocal() : {}), DATA.main);
         Object.entries(editsLocais).forEach(([key, val]) => {
           if(!pcEhChaveDesignacaoAtual(key)) return;
-          const m = String(key).match(/^(.*)::(adv_audiencia|adv_preparo)$/);
+          const m = String(key).match(/^(.*)::(adv_audiencia|adv_preparo|link)$/);
           if(!m) return;
           const row = (DATA.main || []).find(r => pcChaveAudiencia(r) === m[1]);
           if(row) row[m[2]] = val;
@@ -4540,18 +4544,20 @@ function _applySnapshot(snap){
     } catch(e) { console.warn('Não foi possível aplicar histórico', e); }
   }
 
-  const desig=snap.designacoes||{};
+  let desig = pcSanitizarEditsSoberanos(pcLimparDesignacoesLegadas(Object.assign({}, snap.designacoes || {})), DATA.main);
+  // Depois de um upload Excel soberano, não reaplica edits antigos da nuvem nos campos críticos.
+  // Esses campos devem permanecer exatamente como vieram do Excel, até nova edição manual consciente.
+  if(snapAntigoDepoisUpload){
+    PC_EXCEL_FIELDS_SOBERANOS.forEach(field => {
+      Object.keys(desig).forEach(k => { if(String(k).endsWith('::'+field)) delete desig[k]; });
+    });
+  }
   try{ localStorage.setItem(EDITS_KEY,JSON.stringify(desig)); }catch{}
   Object.entries(desig).forEach(([key,val])=>{
-    if(key.includes('::')){
-      const [cod,field]=key.split('::');
-      const row=DATA.main.find(r=>String(r.codigo)===String(cod));
-      if(row) row[field]=val;
-    } else if(key.includes('__')){
-      const [idx,field]=key.split('__');
-      const i=parseInt(idx);
-      if(DATA.main[i]) DATA.main[i][field]=val;
-    }
+    const m = String(key).match(/^(.*)::(adv_audiencia|adv_preparo|link)$/);
+    if(!m) return;
+    const row = (DATA.main || []).find(r => pcChaveAudiencia(r) === m[1]);
+    if(row) row[m[2]] = val;
   });
 
   if(snap.designacoes_meta){
@@ -4683,6 +4689,34 @@ const DESIGN_META_KEY      = 'pc_designacoes_meta_v1';
 const DESIGN_LOG_KEY       = 'pc_designacoes_log_v1';
 const DESIGN_CONFLICT_KEY  = 'pc_designacoes_conflitos_v1';
 
+const PC_UPLOAD_LOCK_KEY    = 'pc_upload_excel_soberano_lock_v2';
+const PC_EXCEL_FIELDS_SOBERANOS = ['adv_audiencia','adv_preparo','link'];
+
+function pcGetUploadLock(){ try{ return JSON.parse(localStorage.getItem(PC_UPLOAD_LOCK_KEY)||'{}'); }catch{ return {}; } }
+function pcSetUploadLock(info){ try{ localStorage.setItem(PC_UPLOAD_LOCK_KEY, JSON.stringify(info||{})); }catch{} }
+function pcEditKey(row, field){ return pcChaveAudiencia(row) + '::' + field; }
+function pcCampoExcelSoberano(field){ return PC_EXCEL_FIELDS_SOBERANOS.includes(String(field||'')); }
+function pcSnapshotMaisAntigoQueUpload(snap){
+  const lock = pcGetUploadLock();
+  if(!lock || !lock.uploaded_at) return false;
+  const tsSnap = String((snap && (snap.pauta_updated_at || snap.atualizado_em)) || '');
+  if(!tsSnap) return true;
+  return Date.parse(tsSnap) < Date.parse(lock.uploaded_at);
+}
+function pcSanitizarEditsSoberanos(edits, rows){
+  const out = edits || {};
+  const valid = new Set();
+  (rows || DATA.main || []).forEach(r => PC_EXCEL_FIELDS_SOBERANOS.forEach(f => valid.add(pcEditKey(r,f))));
+  Object.keys(out).forEach(k => {
+    const ks = String(k||'');
+    const m = ks.match(/^(.*)::(adv_audiencia|adv_preparo|link)$/);
+    if(/^\d+__(adv_audiencia|adv_preparo|link)$/.test(ks)) delete out[ks];
+    else if(m && !valid.has(ks)) delete out[ks];
+    else if(m && !/^(cod:|mix:)/.test(m[1])) delete out[ks];
+  });
+  return out;
+}
+
 function pcUsuarioAtual(){
   return currentUserEmail || document.getElementById('user-label')?.textContent || 'usuário não identificado';
 }
@@ -4804,7 +4838,7 @@ function pcForcarExcelComoFonte(rows){
   const edits = pcLimparDesignacoesLegadas(getEdits());
   const meta = pcGetDesignMeta();
   const conflicts = pcGetDesignConflicts();
-  const fields = ['adv_audiencia','adv_preparo'];
+  const fields = ['adv_audiencia','adv_preparo','link'];
   const touched = new Set();
 
   (rows || []).forEach(row => {
@@ -4813,7 +4847,16 @@ function pcForcarExcelComoFonte(rows){
       const excelVal = String(row?.[field] || '').trim();
       touched.add(dkey);
 
-      if(pcEhDesignacaoValida(excelVal)){
+      if(field === 'link'){
+        // Obs/Link também é soberano: deve ficar exatamente como veio no Excel, inclusive vazio.
+        if(excelVal) edits[dkey] = excelVal; else delete edits[dkey];
+        meta[dkey] = {
+          valor: excelVal,
+          atualizado_em: new Date().toISOString(),
+          origem: 'upload_excel_soberano',
+          usuario: pcUsuarioAtual()
+        };
+      } else if(pcEhDesignacaoValida(excelVal)){
         edits[dkey] = excelVal;
         meta[dkey] = {
           valor: excelVal,
@@ -4822,7 +4865,7 @@ function pcForcarExcelComoFonte(rows){
           usuario: pcUsuarioAtual()
         };
       } else {
-        // Excel vazio ou "Indicar Advogado" deve limpar o valor manual antigo do site.
+        // Excel vazio, N/A ou "Indicar Advogado" deve limpar o valor manual antigo do site.
         delete edits[dkey];
         delete meta[dkey];
       }
@@ -5071,7 +5114,7 @@ function pcParsePlanilhaPauta(wb){
       foro: excelTextoOuAntigo(cols.foro, antigo.foro),
       valor: excelValorOuAntigo(cols.valor, antigo.valor),
       grupo: excelTextoOuAntigo(cols.grupo, antigo.grupo),
-      adv_audiencia: advAud || 'Indicar Advogado',
+      adv_audiencia: advAud,
       adv_preparo: advPrep,
       link: excelTextoOuAntigo(cols.link, antigo.link)
     });
@@ -5121,7 +5164,7 @@ function pcMergeAudiencias(arr){
     const antigo = map.get(chave) || {};
     // Dados novos entram, mas campos preenchidos antigos não são perdidos.
     const merged = {...antigo, ...r};
-    ['adv_audiencia','adv_preparo','link','cliente','parte_principal','parte_contraria','comarca','estado','vara','fase','acao','foro'].forEach(k => {
+    ['cliente','parte_principal','parte_contraria','comarca','estado','vara','fase','acao','foro'].forEach(k => {
       if((!merged[k] || merged[k] === 'N/A' || merged[k] === 'Indicar Advogado') && antigo[k]) merged[k] = antigo[k];
     });
     map.set(chave, merged);
@@ -5245,8 +5288,17 @@ async function pcImportarPlanilhaSite(file){
     if(!rows.length) throw new Error('A planilha não trouxe nenhuma audiência.');
     const rowsFinal = pcForcarExcelComoFonte(pcMesclarPendentesAntigos(rows));
     DATA.main = rowsFinal;
-    try{ localStorage.setItem('pauta_data_hash_v1', _getPautaHash()); }catch{}
-    const ok = await _binPut(_buildLocalSnapshot());
+    const uploadedAt = new Date().toISOString();
+    try{
+      const hash = _getPautaHash();
+      localStorage.setItem('pauta_data_hash_v1', hash);
+      pcSetUploadLock({ uploaded_at: uploadedAt, pauta_hash: hash, origem: 'upload_excel_soberano' });
+      saveEditsLocal(pcSanitizarEditsSoberanos(pcLimparDesignacoesLegadas(getEditsLocal ? getEditsLocal() : {}), DATA.main));
+    }catch{}
+    const snapUpload = _buildLocalSnapshot();
+    snapUpload.pauta_updated_at = uploadedAt;
+    snapUpload.upload_excel_soberano = true;
+    const ok = await _binPut(snapUpload);
     if(!ok) throw new Error('A planilha foi lida, mas não consegui salvar na nuvem.');
     _filtersPopulated = false;
     try{ populateFilters(); }catch{}
@@ -5281,6 +5333,7 @@ function pcStartCloudRealtime(){
       if(_syncTimer) return;
       const snap = await _binGet();
       if(!snap) return;
+      if(pcSnapshotMaisAntigoQueUpload(snap)) return;
       _applySnapshot(snap);
       try{ renderTable(); }catch(e){}
       try{ refreshDashboardAfterEdit(); }catch(e){}
@@ -5606,8 +5659,8 @@ function startEdit(e, idx, field){
         novoLink = linkAtual ? linkAtual + ' | ' + corrTag : corrTag;
         DATA.main[idx].link = novoLink;
         const edits2 = getEdits();
-        edits2[idx + '__link'] = novoLink;
-        if(r.codigo) edits2[r.codigo + '::link'] = novoLink;
+        edits2[pcEditKey(r, 'link')] = novoLink;
+        pcSanitizarEditsSoberanos(edits2, DATA.main);
         saveEdits(edits2);
       }
 
@@ -8960,14 +9013,67 @@ function pcEhIndicacaoInvalidaAlerta17(v){
   const norm = pcNormSiglaPessoa(v);
   return !bruto || !norm || ['N/A','NA','N.D.','ND','NÃO SE APLICA','NAO SE APLICA','-','—','INDICAR','INDICAR ADVOGADO','INDICARADVOGADO'].includes(bruto) || ['NA','ND','NSEAPLICA','NAOSEAPLICA','INDICAR','INDICARADVOGADO'].includes(norm);
 }
-function pcTemIndicacaoValidaAlerta17(r){
-  return !pcEhIndicacaoInvalidaAlerta17(r && r.adv_audiencia) || !pcEhIndicacaoInvalidaAlerta17(r && r.adv_preparo);
+function pcEhCorrespondenteAlerta17(v){
+  return String(v||'').trim().toUpperCase().startsWith('CORRESPONDENTE');
+}
+function pcSiglaProfissionalValidaAlerta17(v){
+  if(pcEhIndicacaoInvalidaAlerta17(v) || pcEhCorrespondenteAlerta17(v)) return false;
+  const s = pcNormSiglaPessoa(v);
+  return !!(typeof PROF !== 'undefined' && PROF && PROF[s] && PROF[s].email);
 }
 function pcPessoaPorSigla(sigla){
   if(pcEhIndicacaoInvalidaAlerta17(sigla)) return null;
+  if(pcEhCorrespondenteAlerta17(sigla)){
+    const dados = String(sigla||'').replace(/^\s*Correspondente\s*-?\s*/i,'').trim();
+    return { sigla:'CORRESPONDENTE', nome:dados ? 'Correspondente - ' + dados : 'Correspondente', email:'' };
+  }
   const s = pcNormSiglaPessoa(sigla);
   const p = (typeof PROF !== 'undefined' && PROF && PROF[s]) ? PROF[s] : null;
-  return { sigla:s, nome:(p && p.nome) || s, email:(p && p.email) || '' };
+  if(!p || !p.email) return null;
+  return { sigla:s, nome:p.nome || s, email:p.email || '' };
+}
+function pcDestinatariosAlerta17(r){
+  const advAud = r && r.adv_audiencia;
+  const advPrep = r && r.adv_preparo;
+  const pessoas = [];
+
+  // Regra especial: quando a audiência for feita por Correspondente, o caso DEVE aparecer,
+  // mas o e-mail deve ir somente para o responsável da pasta/preparo.
+  if(pcEhCorrespondenteAlerta17(advAud)){
+    const prep = pcPessoaPorSigla(advPrep);
+    if(prep && prep.email) pessoas.push(prep);
+  }else{
+    const aud = pcPessoaPorSigla(advAud);
+    const prep = pcPessoaPorSigla(advPrep);
+    if(aud && aud.email) pessoas.push(aud);
+    if(prep && prep.email) pessoas.push(prep);
+  }
+
+  const unicos = [];
+  const seen = new Set();
+  pessoas.forEach(p=>{
+    const email = String(p.email||'').trim().toLowerCase();
+    if(email && !seen.has(email)){
+      seen.add(email);
+      unicos.push(p);
+    }
+  });
+  return unicos;
+}
+function pcTemIndicacaoValidaAlerta17(r){
+  if(!r) return false;
+  const advAud = r.adv_audiencia;
+
+  // Sai do alerta quando não há designação real para a audiência: N/A, vazio, Indicar etc.
+  if(pcEhIndicacaoInvalidaAlerta17(advAud)) return false;
+
+  // Correspondente entra no alerta, mas exige responsável da pasta/preparo com e-mail.
+  if(pcEhCorrespondenteAlerta17(advAud)) return pcDestinatariosAlerta17(r).length > 0;
+
+  // Sigla interna só entra se for uma sigla existente com e-mail localizado.
+  if(!pcSiglaProfissionalValidaAlerta17(advAud)) return false;
+
+  return pcDestinatariosAlerta17(r).length > 0;
 }
 function pcNomeClienteAlerta17(r){
   return r?.cliente || r?.parte_principal || r?.reclamada || r?.empresa || '-';
@@ -9007,10 +9113,7 @@ function pcMontarCorpoAlerta17(r){
   return `Prezados(as),\n\nIdentificamos audiência designada para o próximo dia útil, com as seguintes responsabilidades:\n\n${responsaveis}\n\nDados da audiência:\nCliente: ${pcNomeClienteAlerta17(r)}\nParte contrária/Reclamante: ${r.parte_contraria || '-'}\nProcesso: ${r.processo || '-'}\nData/Horário: ${r.data || '-'} às ${r.horario || '-'}\nGrupo: ${r.grupo || '-'}\nComarca/UF: ${r.comarca || '-'}${r.estado ? '/' + r.estado : ''}\nVara/Turma: ${r.vara || '-'}\nTipo/Fase: ${r.tipo || '-'}${r.fase ? ' — ' + r.fase : ''}\nLink/Observações: ${r.link || '-'}\n\nChecklist obrigatório:\n1. Defesa protocolada, quando aplicável.\n2. Orientações conferidas/enviadas.\n3. Documentos e subsídios conferidos.\n4. Preposto/testemunhas alinhados, quando aplicável.\n5. Link, sala ou forma de participação confirmados.\n6. Conferir se há alguma pendência de preparo antes da audiência.\n\nSolicitamos a conferência das informações na Pauta de Audiências.\n\nAtenciosamente,\nControladoria Jurídica`; 
 }
 function pcMailtoAlerta17(r){
-  const pessoas = [pcPessoaPorSigla(r.adv_audiencia), pcPessoaPorSigla(r.adv_preparo)].filter(p=>p && p.email);
-  const unicos = [];
-  const seen = new Set();
-  pessoas.forEach(p=>{ if(!seen.has(p.email.toLowerCase())){seen.add(p.email.toLowerCase()); unicos.push(p);} });
+  const unicos = pcDestinatariosAlerta17(r);
   const to = unicos.map(p=>p.email).join(';');
   const assunto = `Alerta de audiência - próximo dia útil — ${r.horario || ''} — ${pcNomeClienteAlerta17(r)} — ${r.processo || ''}`;
   const corpo = pcMontarCorpoAlerta17(r);
@@ -9083,7 +9186,7 @@ function abrirAlertas17hAmanha(ev){
       <button type="button" class="alertas-designacao-close" onclick="fecharAlertas17hAmanha()">×</button>
     </div>
     <div class="alertas-designacao-info">
-      Clique em <b>“Abrir e-mail”</b> para cada audiência do próximo dia útil. O e-mail irá para quem fará a audiência e para quem fará o preparo, informando a função de cada um. Cópia padrão: <b>${PC_ALERTA_17H_CC}</b>.
+      Clique em <b>“Abrir e-mail”</b> para cada audiência do próximo dia útil. Casos com <b>N/A</b>, sem correspondente ou sem sigla válida não entram no alerta. Quando a audiência for por <b>Correspondente</b>, o e-mail será enviado <b>somente ao responsável da pasta/preparo</b>. Cópia padrão: <b>${PC_ALERTA_17H_CC}</b>.
     </div>
     <div class="alertas-designacao-lista">${cards}</div>
   </div>`;
@@ -9094,72 +9197,484 @@ function abrirAlertas17hAmanha(ev){
 
 
 
-<!-- === MOBILE NAV INTELIGENTE: recolhe ao descer e reaparece ao subir === -->
-<style id="pc-mobile-nav-inteligente">
-@media (max-width: 768px){
-  .bottom-nav{
-    transition: transform .24s ease, opacity .24s ease !important;
-    will-change: transform, opacity !important;
-  }
-  .bottom-nav.pc-nav-hidden{
-    transform: translateY(calc(100% + env(safe-area-inset-bottom, 0px) + 8px)) !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-  }
+<!-- === PATCH FINAL: MOBILE PREMIUM SEGURO + LOGIN ROBUSTO === -->
+<style id="pc-mobile-premium-safe-final">
+@media (max-width:768px){
+  :root{--pcm-bg:#F3F8FC;--pcm-card:#FFFFFF;--pcm-line:#D7E8F1;--pcm-dark:#003B5C;--pcm-blue:#006080;--pcm-cyan:#00A9E0;--pcm-text:#253944;--pcm-muted:#5F7E92;--pcm-shadow:0 8px 20px rgba(0,59,92,.08)}
+  html,body{background:var(--pcm-bg)!important;overflow-x:hidden!important;width:100%!important;}
+  #app,.main{background:var(--pcm-bg)!important;overflow-x:hidden!important;}
+  .main{padding:10px 10px 82px!important;}
+
+  /* Login preservado e clicável */
+  #login-screen{align-items:flex-start!important;padding:20px 0!important;overflow:auto!important;}
+  .login-box{width:min(92vw,420px)!important;padding:28px 24px 24px!important;border-radius:16px!important;}
+  .login-logo{padding:14px 16px!important;margin-bottom:22px!important;}
+  .login-logo img{height:40px!important;}
+  .login-role{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px!important;pointer-events:auto!important;}
+  .role-btn{display:flex!important;align-items:center!important;justify-content:center!important;min-height:52px!important;padding:8px 6px!important;border-radius:10px!important;font-size:12px!important;font-weight:800!important;pointer-events:auto!important;touch-action:manipulation!important;position:relative!important;z-index:5!important;}
+  .role-btn.active{background:#E8F8FC!important;border-color:var(--pcm-cyan)!important;color:var(--pcm-dark)!important;box-shadow:0 0 0 3px rgba(0,169,224,.12)!important;}
+  .login-btn,.public-btn,#login-user,#login-pass,#btn-toggle-pass{pointer-events:auto!important;position:relative!important;z-index:5!important;touch-action:manipulation!important;}
+
+  /* Topo mais leve */
+  .topbar{height:52px!important;padding:0 12px!important;border-bottom-width:3px!important;}
+  .topbar-logo img{height:28px!important;}
+  .topbar-divider,.topbar-title,.user-badge{display:none!important;}
+  .topbar-right{gap:6px!important;}
+  .logout-btn{font-size:0!important;width:34px!important;height:34px!important;padding:0!important;border-radius:10px!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;overflow:hidden!important;}
+  .logout-btn::first-letter{font-size:15px!important;}
+
+  /* Dashboard e cards */
+  .dash-header-row{display:block!important;margin-bottom:12px!important;}
+  .kpi-row{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important;overflow:visible!important;padding:0!important;}
+  .kpi-card,.stat-card,.dash-card,.grupo-summary-card,.pos-summary-card{border-radius:14px!important;box-shadow:var(--pcm-shadow)!important;border:1px solid var(--pcm-line)!important;border-top:3px solid var(--pcm-cyan)!important;padding:12px!important;min-width:0!important;}
+  .kpi-card{display:block!important;}
+  .kpi-icon{font-size:17px!important;margin-bottom:6px!important;display:block!important;}
+  .kpi-val,.stat-val,.gsc-big,.pos-summary-val{font-size:23px!important;line-height:1.05!important;color:var(--pcm-blue)!important;}
+  .kpi-label,.stat-label,.gsc-meta,.pos-summary-label{font-size:9px!important;line-height:1.2!important;color:var(--pcm-muted)!important;}
+  .dash-row-2col,.grupos-overview,.stats-grid,.pos-summary-grid{grid-template-columns:1fr!important;gap:10px!important;}
+  .dash-card-title,.section-title{font-size:11px!important;margin-bottom:10px!important;color:var(--pcm-dark)!important;}
+
+  /* Filtros mais compactos e elegantes */
+  .filters,.pos-filters{position:relative!important;top:auto!important;display:grid!important;grid-template-columns:1fr!important;gap:8px!important;background:#fff!important;border:1px solid var(--pcm-line)!important;border-left:4px solid var(--pcm-cyan)!important;border-radius:14px!important;box-shadow:var(--pcm-shadow)!important;padding:10px!important;margin-bottom:12px!important;overflow:hidden!important;}
+  .filters::before,.pos-filters::before{content:'Filtros e ações';font-size:10px;font-weight:900;letter-spacing:.7px;text-transform:uppercase;color:var(--pcm-dark);display:block;margin-bottom:2px;}
+  .filter-input,.filter-select,.pos-input,.pos-select{height:38px!important;border-radius:10px!important;font-size:12px!important;}
+  .filter-count{font-size:11px!important;margin-left:0!important;text-align:center!important;background:#F4FAFD!important;border:1px solid var(--pcm-line)!important;border-radius:999px!important;padding:6px 8px!important;}
+  .export-btn,.filter-clear-btn,.pos-export-btn,.pos-save-btn,.admin-add-btn,#btn-alerta-17h{height:38px!important;border-radius:10px!important;padding:0 12px!important;font-size:12px!important;font-weight:900!important;justify-content:center!important;}
+  .mobile-actions-row{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important;overflow:visible!important;width:100%!important;}
+
+  /* Pauta em cards com menor altura */
+  .table-wrap{background:transparent!important;border:none!important;box-shadow:none!important;overflow:visible!important;max-height:none!important;}
+  #main-table{min-width:0!important;width:100%!important;table-layout:auto!important;}
+  #main-table thead{display:none!important;}
+  #main-table tbody{display:flex!important;flex-direction:column!important;gap:9px!important;}
+  #main-table tbody tr{display:block!important;background:#fff!important;border:1px solid var(--pcm-line)!important;border-radius:14px!important;box-shadow:var(--pcm-shadow)!important;padding:11px 12px!important;max-width:100%!important;}
+  #main-table tbody tr:hover{border-color:var(--pcm-cyan)!important;background:#FBFEFF!important;}
+  #main-table tbody td{display:flex!important;align-items:flex-start!important;gap:8px!important;padding:3px 0!important;border:none!important;font-size:11px!important;line-height:1.35!important;color:var(--pcm-text)!important;white-space:normal!important;max-width:100%!important;}
+  #main-table tbody td::before{content:attr(data-label);min-width:74px!important;max-width:74px!important;flex:0 0 74px!important;font-size:8.5px!important;font-weight:900!important;letter-spacing:.55px!important;text-transform:uppercase!important;color:var(--pcm-muted)!important;}
+  #main-table tbody td.processo{font-size:10px!important;color:var(--pcm-blue)!important;font-weight:800!important;}
+  #main-table tbody td.parte{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;}
+  #main-table tbody td.col-hide-mobile{display:none!important;}
+  .badge,.pill,.link-badge{font-size:9px!important;padding:2px 7px!important;border-radius:999px!important;}
+
+  /* Modal mais limpo */
+  .modal-overlay{align-items:flex-end!important;background:rgba(0,59,92,.28)!important;}
+  .modal{width:100vw!important;max-width:100vw!important;height:88vh!important;max-height:88vh!important;border-radius:18px 18px 0 0!important;box-shadow:0 -12px 40px rgba(0,59,92,.18)!important;}
+  .modal-header{padding:16px 16px 12px!important;}
+  .modal-body{padding:14px 14px 22px!important;}
+  .modal-grid,#modal-body.modal-grid{grid-template-columns:1fr!important;gap:9px!important;}
+  .modal-field{padding:10px 11px!important;border-radius:12px!important;box-shadow:none!important;}
+  .modal-title{font-size:14px!important;}
+
+  /* Bottom nav inteligente: visual menor */
+  .bottom-nav{height:58px!important;background:rgba(255,255,255,.94)!important;backdrop-filter:blur(12px)!important;border-top:1px solid var(--pcm-line)!important;box-shadow:0 -8px 24px rgba(0,59,92,.10)!important;transition:transform .24s ease, opacity .24s ease!important;will-change:transform!important;}
+  .bottom-nav.pc-nav-hidden{transform:translateY(110%)!important;opacity:.18!important;pointer-events:none!important;}
+  .bottom-nav-btn{font-size:9px!important;font-weight:800!important;color:var(--pcm-muted)!important;gap:2px!important;padding:6px 3px!important;}
+  .bottom-nav-btn .bn-icon{font-size:18px!important;}
+  .bottom-nav-btn.active{color:var(--pcm-blue)!important;}
+
+  /* Drawer mobile */
+  #mobile-menu-drawer{border-radius:18px 18px 0 0!important;background:#fff!important;box-shadow:0 -12px 36px rgba(0,59,92,.16)!important;}
+  #mobile-menu-drawer button{color:var(--pcm-text)!important;background:#fff!important;}
 }
 </style>
-<script id="pc-mobile-nav-inteligente-js">
+<script id="pc-mobile-safe-final-js">
 (function(){
-  function instalarMobileNavInteligente(){
-    var nav = document.getElementById('bottom-nav') || document.querySelector('.bottom-nav');
-    if(!nav || nav.dataset.pcSmartNav === '1') return;
-    nav.dataset.pcSmartNav = '1';
-
-    var lastY = window.scrollY || document.documentElement.scrollTop || 0;
-    var ticking = false;
-    var minDelta = 8;
-
-    function isMobile(){
-      return window.matchMedia && window.matchMedia('(max-width: 768px)').matches;
-    }
-
-    function atualizar(){
-      var y = window.scrollY || document.documentElement.scrollTop || 0;
-      var diff = y - lastY;
-
-      if(!isMobile()){
-        nav.classList.remove('pc-nav-hidden');
-        lastY = y;
-        ticking = false;
-        return;
+  function onReady(fn){ if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn); else fn(); }
+  onReady(function(){
+    try{
+      var roleGroup = document.getElementById('login-role-group');
+      if(roleGroup){
+        roleGroup.style.pointerEvents = 'auto';
+        roleGroup.querySelectorAll('.role-btn').forEach(function(btn){
+          btn.style.pointerEvents = 'auto';
+          btn.style.position = 'relative';
+          btn.style.zIndex = '5';
+          btn.setAttribute('type','button');
+        });
+        roleGroup.addEventListener('click', function(ev){
+          var btn = ev.target && ev.target.closest ? ev.target.closest('.role-btn[data-role]') : null;
+          if(!btn) return;
+          ev.preventDefault();
+          var role = btn.getAttribute('data-role') || 'visualizador';
+          try{ selectedRoleLogin = role; }catch(e){ window.selectedRoleLogin = role; }
+          roleGroup.querySelectorAll('.role-btn').forEach(function(b){ b.classList.remove('active'); });
+          btn.classList.add('active');
+        }, true);
       }
-
-      if(y < 40){
-        nav.classList.remove('pc-nav-hidden');
-      }else if(diff > minDelta){
-        nav.classList.add('pc-nav-hidden');
-      }else if(diff < -minDelta){
-        nav.classList.remove('pc-nav-hidden');
+      var loginBtn = document.querySelector('.login-btn');
+      if(loginBtn){
+        loginBtn.style.pointerEvents = 'auto';
+        loginBtn.style.position = 'relative';
+        loginBtn.style.zIndex = '5';
+        loginBtn.setAttribute('type','button');
+        loginBtn.addEventListener('click', function(ev){
+          try{ if(typeof doLogin === 'function'){ ev.preventDefault(); doLogin(); } }catch(e){ console.error('Falha no login', e); }
+        }, false);
       }
+    }catch(e){ console.warn('Patch seguro do login não aplicado', e); }
 
-      lastY = y;
-      ticking = false;
-    }
-
-    window.addEventListener('scroll', function(){
-      if(!ticking){
-        window.requestAnimationFrame(atualizar);
-        ticking = true;
+    try{
+      var nav = document.getElementById('bottom-nav') || document.querySelector('.bottom-nav');
+      if(nav){
+        var lastY = window.scrollY || 0;
+        var ticking = false;
+        window.addEventListener('scroll', function(){
+          if(ticking) return;
+          ticking = true;
+          window.requestAnimationFrame(function(){
+            var y = window.scrollY || 0;
+            if(y > lastY + 10 && y > 90) nav.classList.add('pc-nav-hidden');
+            else if(y < lastY - 8) nav.classList.remove('pc-nav-hidden');
+            if(y < 40) nav.classList.remove('pc-nav-hidden');
+            lastY = y;
+            ticking = false;
+          });
+        }, {passive:true});
       }
-    }, {passive:true});
-
-    window.addEventListener('resize', atualizar, {passive:true});
-    nav.addEventListener('click', function(){ nav.classList.remove('pc-nav-hidden'); });
-  }
-
-  if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', instalarMobileNavInteligente);
-  else instalarMobileNavInteligente();
+    }catch(e){ console.warn('Patch bottom nav não aplicado', e); }
+  });
 })();
 </script>
+
+<!-- ═══════════════════════════════════════════════
+     MODO AUDIÊNCIA — Tab HTML
+═══════════════════════════════════════════════ -->
+<div class="tab-content" id="tab-audiencia-mode" style="display:none">
+  <div class="am-header" id="am-header">
+    <div class="am-header-title">
+      <span class="am-badge">⚖️</span>
+      <span>Modo Audiência</span>
+    </div>
+    <div class="am-filters-wrap">
+      <div class="am-filter-row">
+        <label class="am-label">Advogado</label>
+        <select class="am-select" id="am-adv-select">
+          <option value="">Todos os advogados</option>
+        </select>
+      </div>
+      <div class="am-filter-row">
+        <label class="am-label">Data</label>
+        <select class="am-select" id="am-data-select">
+          <option value="">Todas as datas</option>
+        </select>
+      </div>
+      <div class="am-counter" id="am-counter">—</div>
+    </div>
+  </div>
+  <div class="am-list" id="am-list">
+    <div class="am-empty">Selecione um advogado para ver a pauta.</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     MODO AUDIÊNCIA — CSS
+═══════════════════════════════════════════════ -->
+<style>
+.tab-content#tab-audiencia-mode {
+  --am-bg:       #F0F5FA;
+  --am-surface:  #ffffff;
+  --am-blue:     #003B5C;
+  --am-cyan:     #00A9E0;
+  --am-cyan-lt:  rgba(0,169,224,.10);
+  --am-green:    #27AE60;
+  --am-green-lt: rgba(39,174,96,.12);
+  --am-muted:    #7A95A8;
+  --am-line:     rgba(0,59,92,.10);
+  --am-shadow:   0 2px 10px rgba(0,59,92,.08);
+  --am-radius:   14px;
+  background: var(--am-bg);
+  min-height: 100vh;
+  padding: 0;
+  font-family: 'Sora', sans-serif;
+}
+.am-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: #fff;
+  border-bottom: 3px solid #00A9E0;
+  box-shadow: 0 4px 20px rgba(0,59,92,.12);
+  padding: 14px 16px 12px;
+}
+.am-header-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 800;
+  color: #003B5C;
+  margin-bottom: 12px;
+  letter-spacing: -.3px;
+}
+.am-badge { font-size: 20px; line-height: 1; }
+.am-filters-wrap { display: flex; flex-direction: column; gap: 8px; }
+.am-filter-row { display: flex; align-items: center; gap: 10px; }
+.am-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .8px;
+  text-transform: uppercase;
+  color: #7A95A8;
+  min-width: 64px;
+  flex: 0 0 64px;
+}
+.am-select {
+  flex: 1;
+  height: 40px;
+  background: #F4FAFD;
+  border: 1.5px solid rgba(0,169,224,.25);
+  border-radius: 10px;
+  padding: 0 32px 0 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #003B5C;
+  font-family: 'Sora', sans-serif;
+  outline: none;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath fill='%2300A9E0' d='M6 8 0 0h12z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+.am-select:focus { border-color: #00A9E0; box-shadow: 0 0 0 3px rgba(0,169,224,.12); }
+.am-counter { font-size: 11px; font-weight: 700; color: #7A95A8; text-align: right; padding: 2px 0; }
+.am-list { padding: 14px 12px 90px; display: flex; flex-direction: column; gap: 10px; }
+.am-empty { text-align: center; color: #7A95A8; padding: 60px 20px; font-size: 13px; line-height: 1.6; }
+.am-day-header { display: flex; align-items: center; gap: 8px; margin: 6px 0 2px; }
+.am-day-label {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .7px;
+  text-transform: uppercase;
+  color: #003B5C;
+  background: rgba(0,59,92,.07);
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+.am-day-count { font-size: 11px; color: #7A95A8; font-weight: 600; }
+.am-card {
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid rgba(0,59,92,.10);
+  border-left: 4px solid #00A9E0;
+  box-shadow: 0 2px 10px rgba(0,59,92,.08);
+  padding: 13px 14px 11px;
+  transition: border-left-color .15s;
+}
+.am-card.am-tipo-sessao     { border-left-color: #8B5CF6; }
+.am-card.am-tipo-pericia    { border-left-color: #E67E22; }
+.am-card.am-tipo-julgamento { border-left-color: #10B981; }
+.am-card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.am-hora {
+  font-size: 22px;
+  font-weight: 800;
+  color: #003B5C;
+  letter-spacing: -1px;
+  line-height: 1;
+  min-width: 54px;
+}
+.am-tipo-pill {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .5px;
+  background: rgba(0,169,224,.10);
+  color: #003B5C;
+  border-radius: 999px;
+  padding: 3px 9px;
+  text-transform: uppercase;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+.am-tipo-pill.sessao     { background: rgba(139,92,246,.10); color: #6D28D9; }
+.am-tipo-pill.pericia    { background: rgba(230,126,34,.12); color: #B45309; }
+.am-tipo-pill.julgamento { background: rgba(16,185,129,.12); color: #047857; }
+.am-cliente { font-size: 14px; font-weight: 800; color: #003B5C; margin-bottom: 3px; line-height: 1.3; }
+.am-parte   { font-size: 11.5px; color: #7A95A8; margin-bottom: 5px; line-height: 1.4; }
+.am-processo { font-size: 10.5px; font-family: 'IBM Plex Mono',monospace; color: #00A9E0; font-weight: 500; margin-bottom: 8px; }
+.am-meta { display: flex; flex-wrap: wrap; gap: 6px; }
+.am-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 600;
+  background: #F4FAFD;
+  border: 1px solid rgba(0,169,224,.15);
+  border-radius: 999px;
+  padding: 3px 9px;
+  color: #3A5A70;
+}
+.am-meta-item.adv-aud {
+  background: rgba(39,174,96,.12);
+  border-color: rgba(39,174,96,.2);
+  color: #1A6A3A;
+  font-weight: 700;
+}
+.am-link-btn {
+  display: block;
+  margin-top: 9px;
+  padding: 9px 14px;
+  background: #00A9E0;
+  color: #fff;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 800;
+  text-align: center;
+  text-decoration: none;
+  letter-spacing: .3px;
+  word-break: break-all;
+}
+.am-nao-sustenta { display: block; margin-top: 6px; font-size: 11px; color: #7A95A8; font-style: italic; text-align: center; }
+@media(min-width:600px){
+  .am-filters-wrap { flex-direction: row; flex-wrap: wrap; gap: 10px; }
+  .am-filter-row { flex: 1 1 200px; }
+}
+</style>
+
+<!-- ═══════════════════════════════════════════════
+     MODO AUDIÊNCIA — JavaScript
+═══════════════════════════════════════════════ -->
+<script>
+(function(){
+  function getPautaData(){
+    try{ if(window._pauta && window._pauta.length) return window._pauta; }catch(e){}
+    try{ if(window.PC_RECOVERY_HISTORICO_06052026 && window.PC_RECOVERY_HISTORICO_06052026.length)
+           return window.PC_RECOVERY_HISTORICO_06052026; }catch(e){}
+    return [];
+  }
+  function normAdv(s){ return (s||'').trim(); }
+  function tipoClass(t){
+    t=(t||'').toLowerCase();
+    if(t.includes('sess')) return 'sessao';
+    if(t.includes('peri')||t.includes('períci')) return 'pericia';
+    if(t.includes('julgamento')) return 'julgamento';
+    return '';
+  }
+  function borderClass(t){
+    var c=tipoClass(t);
+    return c==='sessao'?'am-tipo-sessao':c==='pericia'?'am-tipo-pericia':c==='julgamento'?'am-tipo-julgamento':'';
+  }
+  function formatDate(d){
+    if(!d)return d;
+    var p=d.split('/');if(p.length<3)return d;
+    try{
+      var dt=new Date(p[2]+'-'+p[1]+'-'+p[0]);
+      var dias=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+      return dias[dt.getDay()]+', '+p[0]+'/'+p[1];
+    }catch(e){return d;}
+  }
+  function isUrl(s){
+    s=(s||'').trim().toLowerCase();
+    return s.startsWith('http')||s.startsWith('www.')||s.startsWith('teams')||s.startsWith('zoom');
+  }
+  function renderCard(r){
+    var tipo=(r.tipo||'').trim();
+    var hora=(r.horario||'00:00').trim();
+    if(hora==='00:00')hora='TST/TRT';
+    var tc=tipoClass(tipo); var bc=borderClass(tipo);
+    var link=(r.link||'').trim();
+    var naoSustenta=link.toLowerCase().includes('não sustentare')||link.toLowerCase().includes('nao sustentare');
+    var advAud=normAdv(r.adv_audiencia||r.adv_aud||'');
+    var advPrep=normAdv(r.adv_preparo||'');
+    var metaHtml='';
+    if(r.comarca) metaHtml+='<span class="am-meta-item">📍 '+(r.comarca||'')+(r.estado?'/'+r.estado:'')+'</span>';
+    if(r.vara) metaHtml+='<span class="am-meta-item">🏛 '+r.vara+'</span>';
+    if(r.grupo) metaHtml+='<span class="am-meta-item">🗂 '+r.grupo+'</span>';
+    if(advPrep&&advPrep!==advAud) metaHtml+='<span class="am-meta-item">📋 '+advPrep+'</span>';
+    var advHtml=advAud&&advAud!=='N/A'?'<span class="am-meta-item adv-aud">⚖️ '+advAud+'</span>':'';
+    var linkHtml='';
+    if(isUrl(link)) linkHtml='<a href="'+link+'" target="_blank" class="am-link-btn">🔗 Entrar na sessão</a>';
+    else if(naoSustenta) linkHtml='<span class="am-nao-sustenta">📝 Não sustentaremos</span>';
+    else if(link&&link.length>2) linkHtml='<div style="margin-top:7px;font-size:11px;color:#3A5A70;background:#F4FAFD;border-radius:8px;padding:7px 10px;line-height:1.5">📎 '+link+'</div>';
+    return '<div class="am-card '+bc+'">'
+      +'<div class="am-card-top"><div class="am-hora">'+hora+'</div><div class="am-tipo-pill '+tc+'">'+tipo+'</div></div>'
+      +'<div class="am-cliente">'+(r.parte_principal||r.cliente||'—')+'</div>'
+      +(r.parte_contraria?'<div class="am-parte">vs. '+r.parte_contraria+'</div>':'')
+      +'<div class="am-processo">'+(r.processo||'')+'</div>'
+      +'<div class="am-meta">'+advHtml+metaHtml+'</div>'
+      +linkHtml+'</div>';
+  }
+  function renderAudienciaList(){
+    var dados=getPautaData();
+    var adv=(document.getElementById('am-adv-select')||{}).value||'';
+    var data=(document.getElementById('am-data-select')||{}).value||'';
+    var list=document.getElementById('am-list');
+    if(!list)return;
+    var filtered=dados.filter(function(r){
+      var a1=normAdv(r.adv_audiencia||r.adv_aud||'');
+      var a2=normAdv(r.adv_preparo||'');
+      var matchAdv=!adv||(a1.toLowerCase().includes(adv.toLowerCase())||a2.toLowerCase().includes(adv.toLowerCase()));
+      var matchData=!data||(r.data||'')=== data;
+      return matchAdv&&matchData;
+    });
+    filtered.sort(function(a,b){
+      var da=(a.data||'').split('/').reverse().join('');
+      var db=(b.data||'').split('/').reverse().join('');
+      if(da<db)return -1;if(da>db)return 1;
+      var ha=(a.horario||'00:00');var hb=(b.horario||'00:00');
+      return ha<hb?-1:ha>hb?1:0;
+    });
+    var counter=document.getElementById('am-counter');
+    if(counter)counter.textContent=filtered.length+' audiência'+(filtered.length===1?'':'s');
+    if(!filtered.length){
+      list.innerHTML='<div class="am-empty">Nenhuma audiência encontrada<br>para os filtros selecionados.</div>';
+      return;
+    }
+    var byData={};var dataOrder=[];
+    filtered.forEach(function(r){
+      var d=r.data||'—';
+      if(!byData[d]){byData[d]=[];dataOrder.push(d);}
+      byData[d].push(r);
+    });
+    var html='';
+    dataOrder.forEach(function(d){
+      var items=byData[d];
+      html+='<div class="am-day-header"><span class="am-day-label">'+formatDate(d)+'</span><span class="am-day-count">'+items.length+' aud.</span></div>';
+      items.forEach(function(r){html+=renderCard(r);});
+    });
+    list.innerHTML=html;
+  }
+  function populateSelects(){
+    var dados=getPautaData();
+    var advSet={};var dataSet={};
+    dados.forEach(function(r){
+      var a1=normAdv(r.adv_audiencia||r.adv_aud||'');
+      var a2=normAdv(r.adv_preparo||'');
+      [a1,a2].forEach(function(a){
+        if(a&&a!=='N/A'&&!a.toLowerCase().includes('indicar')&&!a.toLowerCase().includes('correspondente'))
+          advSet[a]=1;
+      });
+      if(r.data)dataSet[r.data]=1;
+    });
+    var advSel=document.getElementById('am-adv-select');
+    var dataSel=document.getElementById('am-data-select');
+    if(!advSel||!dataSel)return;
+    advSel.innerHTML='<option value="">Todos os advogados</option>';
+    Object.keys(advSet).sort().forEach(function(a){advSel.innerHTML+='<option value="'+a+'">'+a+'</option>';});
+    var datas=Object.keys(dataSet).sort(function(a,b){
+      var da=a.split('/').reverse().join('');var db=b.split('/').reverse().join('');
+      return da<db?-1:da>db?1:0;
+    });
+    dataSel.innerHTML='<option value="">Todas as datas</option>';
+    datas.forEach(function(d){dataSel.innerHTML+='<option value="'+d+'">'+formatDate(d)+'</option>';});
+    // Auto-seleciona hoje
+    var hoje=new Date();
+    var hojeStr=String(hoje.getDate()).padStart(2,'0')+'/'+String(hoje.getMonth()+1).padStart(2,'0')+'/'+hoje.getFullYear();
+    if(dataSet[hojeStr])dataSel.value=hojeStr;
+    advSel.onchange=renderAudienciaList;
+    dataSel.onchange=renderAudienciaList;
+  }
+  window.pcInitAudienciaMode=function(){
+    setTimeout(function(){
+      populateSelects();
+      renderAudienciaList();
+    },80);
+  };
+})();
+</script>
+
 </body>
 </html>
