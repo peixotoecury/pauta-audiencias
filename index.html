@@ -3131,13 +3131,13 @@ function getUsers(){
     {user:"michael.coqueiro@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:[],sigla:"MOC",nome:"Michael Oliveira Coqueiro"},
     {user:"marcel.alves@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:[],sigla:"MTM",nome:"Marcel Tadeu Matos Alves da Silva"},
     {user:"natalia.baliero@peixotoecury.com.br",pass:"123456",role:"editor",grupos:["Grupo E2"],sigla:"NBB",nome:"Natalia Bezerra Baliero"},
-    {user:"natalia.gaggini@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:["Grupo A2"],sigla:"NBG",nome:"Natália Biondi Gaggini Robles"},
+    {user:"natalia.gaggini@peixotoecury.com.br",pass:"123456",role:"editor",grupos:["Grupo A2"],sigla:"NBG",nome:"Natália Biondi Gaggini Robles"},
     {user:"nathalie.louise@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:["Grupo E1"],sigla:"NLO",nome:"Nathalie Louise dos Santos Rodrigues Dias"},
     {user:"nicolau.coelho@peixotoecury.com.br",pass:"123456",role:"editor",grupos:[],sigla:"NRG",nome:"Nicolau Rafael Guimarães Coelho"},
+    {user:"paloma.santos@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:["Grupo E1"],sigla:"PSI",nome:"Paloma da Silva Santos"},
     {user:"poliana.banqueri@peixotoecury.com.br",pass:"123456",role:"admin",grupos:[],sigla:"PBS",nome:"Poliana Banqueri da Silva Guimarães"},
     {user:"pedro.cury@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:[],sigla:"PJC",nome:"Pedro Jorge da Costa Nassar Cury"},
     {user:"adm-plt@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:[],sigla:"PLT",nome:"Pedro Felipe Leite"},
-    {user:"paloma.santos@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:["Grupo E1"],sigla:"PSI",nome:"Paloma da Silva Santos"},
     {user:"rafael.camargo@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:["Grupo E2"],sigla:"RCF",nome:"Rafael Camargo Felisbino"},
     {user:"rafael.ferreira@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:["Grupo B1"],sigla:"RFE",nome:"Rafael Rocha Ferreira"},
     {user:"raica.kwok@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:["Grupo B3"],sigla:"RFK",nome:"Raica Fernandes Kwok"},
@@ -4075,12 +4075,36 @@ function populateFilters(){
   ds.forEach(d=>{ const o=document.createElement('option'); o.value=d; o.textContent=d; dsel.appendChild(o); });
   // No default date filter — show full schedule
 
-  // Populate profissional filter — mantém Indicar Advogado disponível para todos
-  const profs = [...new Set(main.flatMap(r=>[r.adv_audiencia,r.adv_preparo]).filter(v=>v && String(v).trim()!==''))].sort();
+  // Populate profissional filter — usa PROF para siglas válidas, mantém correspondentes, remove lixo
+  window.PC_NOME_PARA_SIGLA = Object.fromEntries(
+    Object.entries(typeof PROF!=='undefined' ? PROF : {}).map(([s,p])=>[p.nome.trim(), s])
+  );
+  const PC_LIXO = /^(\d|Grupo )/i;
+  // Siglas válidas: 2-4 letras maiúsculas presentes no PROF
+  const siglasValidas = new Set(typeof PROF!=='undefined' ? Object.keys(PROF) : []);
+  const siglasSet = new Set();
+  const correspondentesSet = new Set();
+  main.flatMap(r=>[r.adv_audiencia, r.adv_preparo]).forEach(v=>{
+    v = String(v||'').trim();
+    if(!v || v==='Indicar Advogado' || v==='N/A' || PC_LIXO.test(v)) return;
+    if(v.toLowerCase().startsWith('correspondente')){ correspondentesSet.add(v); return; }
+    // Aceita se é sigla conhecida no PROF, ou converte nome completo para sigla
+    if(siglasValidas.has(v)){ siglasSet.add(v); return; }
+    const siglaDoNome = window.PC_NOME_PARA_SIGLA[v];
+    if(siglaDoNome) siglasSet.add(siglaDoNome);
+    // Descarta qualquer outra coisa (nomes não mapeados, "D" solto, números, etc.)
+  });
   const psel = document.getElementById('filter-prof');
-  ['Indicar Advogado','N/A', ...profs.filter(p=>p!=='Indicar Advogado' && p!=='N/A')].forEach(p=>{
+  const profLabel = s => {
+    const p = (typeof PROF!=='undefined') && PROF[s];
+    return p ? `${s} \u2014 ${p.nome}` : s;
+  };
+  ['Indicar Advogado','N/A',...[...siglasSet].sort(),...[...correspondentesSet].sort()].forEach(p=>{
     if(!Array.from(psel.options).some(o=>o.value===p)){
-      const o=document.createElement('option'); o.value=p; o.textContent=p; psel.appendChild(o);
+      const o=document.createElement('option');
+      o.value = p;
+      o.textContent = siglasSet.has(p) ? profLabel(p) : p;
+      psel.appendChild(o);
     }
   });
 
@@ -4147,7 +4171,16 @@ function getFiltered(){
       if(tipo==='Julgamento' && !t.includes('Julgamento') && !t.includes('Sessão')) return false;
       if(tipo==='Perícia' && !t.includes('Perícia')) return false;
     }
-    if(prof && r.adv_audiencia!==prof) return false;
+    if(prof){
+      if(prof.toLowerCase().startsWith('correspondente')){
+        if(r.adv_audiencia!==prof && r.adv_preparo!==prof) return false;
+      } else {
+        // Normaliza: converte nome completo para sigla se necessário
+        const _n2s = window.PC_NOME_PARA_SIGLA || {};
+        const norm = v => { v=String(v||'').trim(); return _n2s[v]||v; };
+        if(norm(r.adv_audiencia)!==prof && norm(r.adv_preparo)!==prof) return false;
+      }
+    }
     if(_filterStatus === 'indicar' && r.adv_audiencia !== 'Indicar Advogado') return false;
     if(_filterStatus === 'designado' && (!r.adv_audiencia || r.adv_audiencia === 'Indicar Advogado' || r.adv_audiencia === 'N/A' || r.adv_audiencia === '')) return false;
     if(_filterStatus === 'vazio' && (r.adv_audiencia && r.adv_audiencia.trim() !== '')) return false;
