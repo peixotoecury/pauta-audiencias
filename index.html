@@ -3211,27 +3211,29 @@ function saveCustomPass(email, pass){
 
 const PAUTA_GENERATION_DATE = '05/05/2026';
 
-// Primeiro dia da pauta oficial — exclui dias anteriores (29/04, 30/04) da pauta principal
-// Dias <= PAUTA_GENERATION_DATE são exclusivos do pós-audiência/pós-perícia e acumulado
-const PAUTA_START = (() => {
+// Primeiro dia da pauta oficial — recalculado sempre sobre a base vigente.
+// Isso evita puxar linhas retroativas quando DATA.main é substituído após upload/sincronização.
+function pcGetPautaStart(base){
+  const rows = Array.isArray(base) ? base : ((typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.main)) ? DATA.main : []);
   const [dd,mm,yy] = PAUTA_GENERATION_DATE.split('/');
-  const cutoff = new Date(+yy,+mm-1,+dd).getTime();
-  // Retorna a primeira data dos dados estritamente APÓS a data de geração
-  const dates = DATA.main.map(r => {
-    if(!r.data) return null;
-    const [d,m,y] = r.data.split('/');
-    return new Date(+y,+m-1,+d).getTime();
+  const cutoff = new Date(+yy, +mm - 1, +dd).getTime();
+  const dates = rows.map(r => {
+    const dt = pcDateFromPt(r && r.data);
+    return dt ? dt.getTime() : null;
   }).filter(Boolean);
   const sorted = [...new Set(dates)].sort((a,b)=>a-b);
-  return sorted.find(t => t > cutoff) || sorted[0];
-})();
+  return sorted.find(t => t > cutoff) || sorted[0] || cutoff;
+}
 
-// Registros apenas da pauta atual (estritamente após PAUTA_GENERATION_DATE)
+// Mantém compatibilidade com trechos antigos; filtros novos devem chamar pcGetPautaStart().
+const PAUTA_START = pcGetPautaStart(DATA.main || []);
+
+// Registros apenas da pauta atual, usando corte dinâmico da base vigente.
 function getPautaRecords() {
-  return DATA.main.filter(r => {
-    if(!r.data) return false;
-    const [dd,mm,yy] = r.data.split('/');
-    return new Date(+yy,+mm-1,+dd).getTime() >= PAUTA_START;
+  const start = pcGetPautaStart(DATA.main || []);
+  return (DATA.main || []).filter(r => {
+    const dt = pcDateFromPt(r && r.data);
+    return dt && dt.getTime() >= start;
   });
 }
 
@@ -3531,12 +3533,12 @@ function openGrupoDetail(grupo, card){
   // header
   const total = rows.length;
   const comAdv = rows.filter(r=>isRealAdv(r.adv_audiencia) && r.adv_audiencia !== 'Indicar Advogado').length;
-  const indicar = rows.filter(r=>r.adv_audiencia==='Indicar Advogado').length;
+  const indicar = rows.filter(r=>valorEhPendenteDesignacaoDashboard(r.adv_audiencia)).length;
   document.getElementById('gd-title').textContent = grupo;
   const vazioG2 = rows.filter(r=>!r.adv_audiencia || r.adv_audiencia.trim()==='').length;
   const naG2 = rows.filter(r=>r.adv_audiencia==='N/A').length;
-  const indicarG2 = rows.filter(r=>r.adv_audiencia==='Indicar Advogado').length;
-  const designadoG2 = total - vazioG2 - indicarG2 - naG2;
+  const indicarG2 = rows.filter(r=>valorEhPendenteDesignacaoDashboard(r.adv_audiencia)).length;
+  const designadoG2 = rows.filter(r=>valorEhDesignadoDashboard(r.adv_audiencia)).length;
   document.getElementById('gd-subtitle').textContent =
     `${total} audiências · ${designadoG2} designadas · ${indicarG2} pendentes · ${naG2} N/A · ${vazioG2} vazio`;
 
@@ -3778,7 +3780,7 @@ async function initApp(){
 
   // Update conflict badge excluding N/A
   const validConflictCount = (CONFLICTS||[]).filter(c=>{
-    if(c.data){ const [dd,mm,yy]=c.data.split('/'); if(new Date(+yy,+mm-1,+dd).getTime()<PAUTA_START) return false; }
+    if(c.data){ const [dd,mm,yy]=c.data.split('/'); if(new Date(+yy,+mm-1,+dd).getTime()<pcGetPautaStart(DATA.main || [])) return false; }
     const r1=DATA.main.find(r=>r.codigo===c.cod1);
     const r2=DATA.main.find(r=>r.codigo===c.cod2);
     if(!r1||!r2) return false;
@@ -3791,7 +3793,7 @@ async function initApp(){
   // ── KPIs ──
   const total = main.length;
   const comAdv = main.filter(r=>r.adv_audiencia && r.adv_audiencia!=='Indicar Advogado' && r.adv_audiencia!=='N/A').length;
-  const indicar = main.filter(r=>r.adv_audiencia==='Indicar Advogado').length;
+  const indicar = main.filter(r=>valorEhPendenteDesignacaoDashboard(r.adv_audiencia)).length;
   const dias = new Set(main.map(r=>r.data).filter(Boolean)).size;
   const estados = new Set(main.map(r=>r.estado).filter(Boolean)).size;
   document.getElementById('stat-total').textContent = total;
@@ -3984,7 +3986,7 @@ async function initApp(){
     const n=gc[g]; const pct = Math.round(n/maxCount*100);
     const totPct = Math.round(n/total*100);
     const rowsG = main.filter(r=>r.grupo===g);
-    const indicarG = rowsG.filter(r=>r.adv_audiencia==='Indicar Advogado').length;
+    const indicarG = rowsG.filter(r=>valorEhPendenteDesignacaoDashboard(r.adv_audiencia)).length;
     const naG = rowsG.filter(r=>r.adv_audiencia==='N/A').length;
     const vazioG = rowsG.filter(r=>!r.adv_audiencia||r.adv_audiencia.trim()==='').length;
     const designadoG = rowsG.filter(r=>isRealAdv(r.adv_audiencia)&&r.adv_audiencia!=='Indicar Advogado').length;
@@ -4189,7 +4191,7 @@ function getFiltered(){
         if(norm(r.adv_audiencia)!==prof && norm(r.adv_preparo)!==prof) return false;
       }
     }
-    if(_filterStatus === 'indicar' && r.adv_audiencia !== 'Indicar Advogado') return false;
+    if(_filterStatus === 'indicar' && !valorEhPendenteDesignacaoDashboard(r.adv_audiencia)) return false;
     if(_filterStatus === 'designado' && (!r.adv_audiencia || r.adv_audiencia === 'Indicar Advogado' || r.adv_audiencia === 'N/A' || r.adv_audiencia === '')) return false;
     if(_filterStatus === 'vazio' && (r.adv_audiencia && r.adv_audiencia.trim() !== '')) return false;
     if(_filterStatus === 'na' && r.adv_audiencia !== 'N/A') return false;
@@ -4227,10 +4229,10 @@ function renderTable(){
       && r.adv_audiencia && r.adv_audiencia !== 'N/A'
       && r.adv_audiencia !== 'Indicar Advogado'
       && !r.adv_audiencia.startsWith('Correspondente')
-      && (()=>{ if(!r.data) return false; const [dd,mm,yy]=r.data.split('/'); return new Date(+yy,+mm-1,+dd).getTime()>=PAUTA_START; })()
+      && (()=>{ if(!r.data) return false; const [dd,mm,yy]=r.data.split('/'); return new Date(+yy,+mm-1,+dd).getTime()>=pcGetPautaStart(DATA.main || []); })()
       && CONFLICTS.some(c=>(c.cod1===r.codigo||c.cod2===r.codigo)
           && c.adv === r.adv_audiencia
-          && (()=>{ if(!c.data) return false; const [dd,mm,yy]=c.data.split('/'); return new Date(+yy,+mm-1,+dd).getTime()>=PAUTA_START; })());
+          && (()=>{ if(!c.data) return false; const [dd,mm,yy]=c.data.split('/'); return new Date(+yy,+mm-1,+dd).getTime()>=pcGetPautaStart(DATA.main || []); })());
     const conflictBadge = hasConflict ? ' <span style="display:inline-block;background:#c0392b;color:#fff;border-radius:3px;padding:1px 5px;font-size:9px;font-weight:700;margin-left:4px;vertical-align:middle">⚠ CONFLITO</span>' : '';
     const advPre = r.adv_preparo || '';
     const clienteNome = (typeof clienteDaLinha === 'function') ? clienteDaLinha(r) : ((typeof clienteCanonico === 'function') ? clienteCanonico(r.parte_principal) : (r.parte_principal || '—'));
@@ -6530,7 +6532,7 @@ function renderConflitos(){
     // Date filter — same cutoff as getPautaRecords
     if(c.data){
       const [dd,mm,yy] = c.data.split('/');
-      if(new Date(+yy,+mm-1,+dd).getTime() < PAUTA_START) return false;
+      if(new Date(+yy,+mm-1,+dd).getTime() < pcGetPautaStart(DATA.main || [])) return false;
     }
     const r1 = DATA.main.find(r=>r.codigo===c.cod1);
     const r2 = DATA.main.find(r=>r.codigo===c.cod2);
@@ -8889,8 +8891,12 @@ function isAlertaDesignacaoAPartirDe07052026(r){
 }
 
 function getAudienciasSemDesignacao(){
-  const base = (typeof DATA !== "undefined" && DATA && Array.isArray(DATA.main)) ? DATA.main : [];
-  return base.filter(r => isSemDesignacao(r) && isAlertaDesignacaoAPartirDe07052026(r));
+  const base = (typeof getPautaRecords === "function") ? getPautaRecords() : ((typeof DATA !== "undefined" && DATA && Array.isArray(DATA.main)) ? DATA.main : []);
+  const start = pcGetPautaStart(base);
+  return base.filter(r => {
+    const dt = parseDataBRAlertaDesignacao(r && r.data);
+    return isSemDesignacao(r) && dt && dt.getTime() >= start;
+  });
 }
 
 function montarCorpoAlertaDesignacao(linhasGrupo){
@@ -8904,7 +8910,7 @@ function montarCorpoAlertaDesignacao(linhasGrupo){
    Observação/Link: ${r.link || "-"}`)
     .join("\n\n");
 
-  return `Prezados,\n\nIdentificamos audiência(s) futura(s), a partir de 07/05/2026, pendente(s) de designação sob sua responsabilidade na pauta completa, incluindo campos vazios e registros marcados como "Indicar Advogado".\n\n${linhas}\n\nFavor regularizar a designação na pauta.\n\nEste alerta deverá ser reiterado diariamente até a regularização.\n\nControladoria Jurídica`;
+  return `Prezados,\n\nIdentificamos audiência(s) futura(s), a partir da pauta atual sincronizada, pendente(s) de designação sob sua responsabilidade na pauta completa, incluindo campos vazios e registros marcados como "Indicar Advogado".\n\n${linhas}\n\nFavor regularizar a designação na pauta.\n\nEste alerta deverá ser reiterado diariamente até a regularização.\n\nControladoria Jurídica`;
 }
 
 function montarMailtoAlertaDesignacao(email, linhasGrupo){
@@ -8939,7 +8945,7 @@ function abrirDashboardDesignacoesPendentes(ev){
   if(ev && ev.stopPropagation) ev.stopPropagation();
   const pendentes = getAudienciasSemDesignacao();
   if(!pendentes.length){
-    alert("Nenhuma audiência pendente de designação encontrada a partir de 07/05/2026. 🎉");
+    alert("Nenhuma audiência pendente de designação encontrada a partir da pauta atual sincronizada. 🎉");
     return;
   }
 
@@ -9041,7 +9047,7 @@ function dispararAlertasDesignacao(ev){
   if(ev && ev.stopPropagation) ev.stopPropagation();
   const pendentes = getAudienciasSemDesignacao();
   if(!pendentes.length){
-    alert("Nenhuma audiência pendente de designação encontrada a partir de 07/05/2026. 🎉");
+    alert("Nenhuma audiência pendente de designação encontrada a partir da pauta atual sincronizada. 🎉");
     return;
   }
 
@@ -9101,7 +9107,7 @@ function dispararAlertasDesignacao(ev){
         <button type="button" class="alertas-designacao-close" onclick="fecharPainelAlertasDesignacao()">×</button>
       </div>
       <div class="alertas-designacao-info">
-        Clique em <b>“Abrir e-mail deste responsável”</b> para abrir apenas um e-mail por vez. Serão incluídas somente audiências pendentes a partir de 07/05/2026. A cópia para <b>${CC_ALERTA_DESIGNACAO}</b> já vai preenchida.
+        Clique em <b>“Abrir e-mail deste responsável”</b> para abrir apenas um e-mail por vez. Serão incluídas somente audiências pendentes a partir da pauta atual sincronizada. A cópia para <b>${CC_ALERTA_DESIGNACAO}</b> já vai preenchida.
       </div>
       <div class="alertas-designacao-lista">${cards}</div>
     </div>`;
