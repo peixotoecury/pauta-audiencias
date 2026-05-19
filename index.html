@@ -167,93 +167,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:13
 .gsc-adv-tag b{color:var(--cyan);}
 
 /* ── BOTÃO CONTRATAR CORRESPONDENTE ── */
-.am-contratar-btn{
-  width:100%;
-  background:linear-gradient(135deg,rgba(0,174,239,.15),rgba(0,174,239,.08));
-  border:1px solid rgba(0,174,239,.3);
-  color:var(--cyan);
-  padding:9px 12px;
-  border-radius:var(--radius);
-  font-size:12px;
-  font-weight:600;
-  cursor:pointer;
-  transition:all .2s;
-  font-family:var(--font);
-  letter-spacing:.3px;
-}
-.am-contratar-btn:hover{
-  background:linear-gradient(135deg,rgba(0,174,239,.25),rgba(0,174,239,.18));
-  border-color:rgba(0,174,239,.5);
-  transform:translateY(-1px);
-}
-
-/* ── MODAL CORRESPONDENTE ── */
-#modal-correspondente-bg{
-  display:none;
-  position:fixed;inset:0;
-  background:rgba(0,0,0,.6);
-  z-index:1001;
-  backdrop-filter:blur(2px);
-}
-#modal-correspondente-bg.active{display:flex;align-items:center;justify-content:center;}
-.modal-correspondente{
-  background:var(--surface);
-  border:1px solid var(--border);
-  border-radius:var(--radius-lg);
-  max-width:600px;
-  width:96vw;
-  max-height:85vh;
-  overflow-y:auto;
-  box-shadow:0 0 60px rgba(0,174,239,.15), 0 24px 80px rgba(0,0,0,.6);
-  display:flex;flex-direction:column;
-}
-.modal-correspondente-header{
-  padding:20px 24px;
-  border-bottom:1px solid var(--border2);
-  display:flex;align-items:center;justify-content:space-between;
-  flex-shrink:0;
-}
-.modal-correspondente-header h3{
-  font-size:16px;font-weight:700;color:var(--white);
-}
-.modal-correspondente-close{
-  background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;transition:color .2s;
-}
-.modal-correspondente-close:hover{color:var(--text);}
-.modal-correspondente-content{
-  padding:24px;
-  flex:1;overflow-y:auto;
-}
-.mc-form-group{
-  display:flex;flex-direction:column;margin-bottom:16px;
-}
-.mc-form-group label{
-  font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;
-}
-.mc-form-group input,.mc-form-group select{
-  background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:9px 12px;color:var(--text);font-size:12px;font-family:var(--font);outline:none;transition:border .2s;
-}
-.mc-form-group input:focus,.mc-form-group select:focus{
-  border-color:var(--cyan);box-shadow:0 0 0 2px var(--cyan-lt);
-}
-.mc-form-group input::placeholder{color:var(--muted2);}
-.mc-form-grid{
-  display:grid;grid-template-columns:1fr 1fr;gap:12px;
-}
-.mc-form-grid.full{grid-template-columns:1fr;}
-.mc-info-box{
-  background:var(--cyan-lt);border:1px solid rgba(0,174,239,.3);border-radius:var(--radius);padding:12px;margin-bottom:16px;font-size:11px;color:var(--text);line-height:1.5;
-}
-.modal-correspondente-footer{
-  padding:16px 24px;border-top:1px solid var(--border2);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;
-}
-.mc-btn{
-  padding:9px 16px;border-radius:var(--radius);font-size:12px;font-weight:600;cursor:pointer;border:none;transition:all .2s;font-family:var(--font);
-}
-.mc-btn-primary{background:var(--cyan);color:var(--bg);letter-spacing:.3px;}
-.mc-btn-primary:hover{background:#22C4FF;transform:translateY(-1px);box-shadow:0 4px 16px var(--cyan-glow);}
-.mc-btn-secondary{background:transparent;color:var(--muted);border:1px solid var(--border2);}
-.mc-btn-secondary:hover{border-color:var(--cyan);color:var(--cyan);}
+/* Estilos removidos para correspondente */
 
 .rank-section{display:flex;flex-direction:column;gap:16px;margin-top:4px;}
 .rank-block{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-lg);padding:14px 16px;}
@@ -2178,6 +2092,18 @@ tr.alerta-sem-designacao{
 
 </head>
 <body>
+<!-- TELA DE CARREGAMENTO INICIAL -->
+<div id="splash-screen" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(ellipse at 30% 20%, #0D2A45 0%, #0B1E2D 65%);z-index:2000;">
+  <div style="text-align:center;color:#E8F4FD;">
+    <div style="font-size:28px;margin-bottom:20px;">⚖️</div>
+    <div style="font-size:16px;font-weight:600;margin-bottom:12px;">Sincronizando dados...</div>
+    <div style="width:60px;height:3px;background:rgba(0,174,239,.2);border-radius:2px;margin:0 auto;overflow:hidden;">
+      <div style="height:100%;background:linear-gradient(90deg,transparent,#00AEEF,transparent);animation:splash-load 1.5s infinite;width:100%;"></div>
+    </div>
+  </div>
+  <style>@keyframes splash-load{0%{transform:translateX(-100%);}100%{transform:translateX(100%);}}</style>
+</div>
+<script>window.addEventListener('load',function(){setTimeout(function(){var splash=document.getElementById('splash-screen');if(splash)splash.style.opacity='0';setTimeout(function(){if(splash)splash.remove();},300);},300);});</script>
 <!-- ══════════ LOGIN ══════════ -->
 <div id="login-screen">
 <div class="login-box">
@@ -2449,7 +2375,7 @@ tr.alerta-sem-designacao{
 <th>Data</th><th>Hora</th><th>Grupo</th><th>Processo</th>
 <th>Cliente</th><th>Parte Contrária</th><th>Comarca</th><th>Vara/Turma</th><th>Tipo</th><th>Fase</th>
 <th>Adv. Audiência <span class="edit-badge" id="edit-badge" style="display:none">✏️ editável</span></th><th>Adv. Preparo</th>
-<th>Link/Obs.</th><th class="col-hide-mobile">📧 Convite</th><th class="col-hide-mobile">📧 Correspondente</th>
+<th>Link/Obs.</th><th class="col-hide-mobile">📧 Convite</th>
 </tr>
 </thead>
 <tbody id="main-tbody"></tbody>
@@ -4447,7 +4373,6 @@ function renderTable(){
       <td data-label="Adv. Prep." class="col-hide-mobile" style="font-size:11px">${preCell}</td>
       <td data-label="Link" style="font-size:11px;max-width:200px">${linkCell}</td>
       <td data-label="Convite" class="col-hide-mobile" style="white-space:nowrap">${conviteInline}</td>
-      <td data-label="Correspondente" class="col-hide-mobile" style="white-space:nowrap;text-align:center"><button style="display:inline-flex;align-items:center;gap:4px;background:rgba(0,174,239,.15);color:var(--cyan);border:1px solid rgba(0,174,239,.3);border-radius:5px;padding:4px 9px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .2s" onclick="event.stopPropagation();abrirModalCorrespondente('${escapeHtml(r.processo||'')}','${escapeHtml(r.parte_principal||'')}','${escapeHtml(r.parte_contraria||'')}','${escapeHtml(r.data||'')}','${escapeHtml(r.horario||'')}','${escapeHtml(r.comarca||'')}','${escapeHtml(r.estado||'')}')" onmouseover="this.style.background='rgba(0,174,239,.25)';this.style.borderColor='rgba(0,174,239,.5)'" onmouseout="this.style.background='rgba(0,174,239,.15)';this.style.borderColor='rgba(0,174,239,.3)'">📧 Contratar</button></td>
     </tr>`;
   }).join('');
 }
@@ -7211,7 +7136,6 @@ function buildPosCard(r, rec) {
       <div class="pos-card-badges">
         ${isDone ? '<span class="pos-badge-done">✅ Preenchido</span>' : '<span class="pos-badge-pending">⏳ Pendente</span>'}
         ${rec?.acordo === 'sim' ? '<span class="pos-badge-novo" style="background:rgba(39,174,96,.15);color:#4CAF70;border-color:rgba(39,174,96,.3)">🤝 Acordo</span>' : ''}
-        <button style="display:inline-flex;align-items:center;gap:4px;background:rgba(0,174,239,.15);color:var(--cyan);border:1px solid rgba(0,174,239,.3);border-radius:5px;padding:4px 9px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .2s;margin-left:8px" onclick="event.stopPropagation();abrirModalCorrespondente('${escapeHtml(r.processo||'')}','${escapeHtml(r.parte_principal||'')}','${escapeHtml(r.parte_contraria||'')}','${escapeHtml(r.data||'')}','${escapeHtml(r.horario||'')}','${escapeHtml(r.comarca||'')}','${escapeHtml(r.estado||'')}')">📧 Correspondente</button>
         <span style="color:var(--muted);font-size:18px">${isDone ? '▲' : '▼'}</span>
       </div>
     </div>
@@ -8592,34 +8516,7 @@ ${rowsHtml}
 </style>
 
 <!-- MODAL SOLICITAÇÃO DE CORRESPONDENTE -->
-<div id="modal-correspondente-bg">
-  <div class="modal-correspondente">
-    <div class="modal-correspondente-header">
-      <h3>📧 Solicitar Correspondente</h3>
-      <button class="modal-correspondente-close" onclick="fecharModalCorrespondente()">×</button>
-    </div>
-    <div class="modal-correspondente-content">
-      <div class="mc-info-box">
-        Preencha seus dados para gerar uma solicitação ao email de audiências trabalhistas para contratar correspondente.
-      </div>
-      
-      <form id="form-correspondente" onsubmit="return false;">
-        <!-- Dados da Audiência (pré-preenchidos) -->
-        <div class="mc-form-grid full"><div class="mc-form-group"><label>Processo</label><input type="text" id="mc-processo" readonly style="background:var(--surface2);color:var(--muted);"></div></div>
-        <div class="mc-form-grid"><div class="mc-form-group"><label>Cliente/Parte Principal</label><input type="text" id="mc-cliente" readonly style="background:var(--surface2);color:var(--muted);"></div><div class="mc-form-group"><label>Parte Contrária</label><input type="text" id="mc-parte-contraria" readonly style="background:var(--surface2);color:var(--muted);"></div></div>
-        <div class="mc-form-grid"><div class="mc-form-group"><label>Data da Audiência</label><input type="text" id="mc-data" readonly style="background:var(--surface2);color:var(--muted);"></div><div class="mc-form-group"><label>Horário</label><input type="text" id="mc-horario" readonly style="background:var(--surface2);color:var(--muted);"></div></div>
-        <div class="mc-form-grid"><div class="mc-form-group"><label>Comarca</label><input type="text" id="mc-comarca" readonly style="background:var(--surface2);color:var(--muted);"></div><div class="mc-form-group"><label>Estado</label><input type="text" id="mc-estado" readonly style="background:var(--surface2);color:var(--muted);"></div></div>
-        <hr style="border:none;border-top:1px solid var(--border2);margin:20px 0;">
-        <div class="mc-form-grid full"><div class="mc-form-group"><label>Seu Nome (Advogado/a)</label><input type="text" id="mc-advogado" placeholder="Seu nome completo" required></div></div>
-        <div class="mc-form-grid full"><div class="mc-form-group"><label>Seu E-mail</label><input type="email" id="mc-email" placeholder="seu.email@empresa.com" required></div></div>
-        <div class="mc-form-grid full"><div class="mc-form-group"><label>Data da Solicitação</label><input type="date" id="mc-data-solicitacao" required></div></div>
-        <div class="mc-form-grid full"><div class="mc-form-group"><label>Observações (opcional)</label><textarea id="mc-observacoes" placeholder="Ex: Preferência de correspondente, informações adicionais..." style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:9px 12px;color:var(--text);font-size:12px;font-family:var(--mono);outline:none;resize:vertical;min-height:60px;"></textarea></div></div>
-        <div id="mc-preview" style="display:block;margin-top:16px;padding:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);max-height:350px;overflow-y:auto;"><pre id="mc-preview-text" style="font-family:var(--mono);font-size:11px;color:var(--muted);white-space:pre-wrap;word-wrap:break-word;margin:0;line-height:1.6;"></pre></div>
-      </form>
-    </div>
-    <div class="modal-correspondente-footer"><button class="mc-btn mc-btn-secondary" onclick="fecharModalCorrespondente()">Fechar</button><button class="mc-btn mc-btn-primary" onclick="gerarEmailCorrespondente(event)">📧 Enviar Solicitação</button></div>
-  </div>
-</div>
+<div id="modal-correspondente-bg"></div>
 
 
 </body>
@@ -9285,6 +9182,16 @@ function abrirEmailAlertaDesignacaoPorGrupo(grupoNormalizado){
   window.location.href = montarMailtoAlertaDesignacao(email, rows);
 }
 
+function copiarCorpoAlertaDesignacaoPorGrupo(grupoNormalizado){
+  const rows = getAudienciasSemDesignacao().filter(r => normalizarGrupoAlertaDesignacao(r.grupo) === grupoNormalizado);
+  if(!rows.length) return;
+  const corpo = montarCorpoAlertaDesignacao(rows);
+  navigator.clipboard?.writeText(corpo).then(() => {
+    if(typeof showToast === "function") showToast("Texto do alerta do grupo copiado.");
+    else alert("Texto do alerta copiado.");
+  }).catch(() => alert(corpo));
+}
+
 function dispararAlertasDesignacao(ev){
   if(ev && ev.stopPropagation) ev.stopPropagation();
   const pendentes = getAudienciasSemDesignacao();
@@ -9293,43 +9200,44 @@ function dispararAlertasDesignacao(ev){
     return;
   }
 
+  // Agrupar por GRUPO para permitir envios individuais
   const agrupado = {};
   pendentes.forEach(r => {
-    const email = getEmailAlertaDesignacao(r.grupo);
-    if(!agrupado[email]) agrupado[email] = [];
-    agrupado[email].push(r);
+    const g = normalizarGrupoAlertaDesignacao(r.grupo) || "Sem grupo";
+    if(!agrupado[g]) agrupado[g] = [];
+    agrupado[g].push(r);
   });
 
-  const emails = Object.keys(agrupado).filter(Boolean).sort((a,b)=>a.localeCompare(b));
-  if(!emails.length){
-    alert("Há audiências pendentes, mas nenhum responsável foi localizado para os grupos encontrados.");
+  const grupos = Object.keys(agrupado).filter(Boolean).sort((a,b)=>a.localeCompare(b));
+  if(!grupos.length){
+    alert("Há audiências pendentes, mas nenhum grupo foi localizado.");
     return;
   }
 
-  window.__alertasDesignacaoPorEmail = {};
-  emails.forEach(email => { window.__alertasDesignacaoPorEmail[email] = { rows: agrupado[email] }; });
+  window.__alertasDesignacaoPorGrupo = {};
+  grupos.forEach(grupo => { window.__alertasDesignacaoPorGrupo[grupo] = { rows: agrupado[grupo] }; });
 
   const total = pendentes.length;
-  const cards = emails.map(email => {
-    const rows = agrupado[email];
-    const grupos = [...new Set(rows.map(r => normalizarGrupoAlertaDesignacao(r.grupo)).filter(Boolean))].join(", ");
+  const cards = grupos.map(grupo => {
+    const rows = agrupado[grupo];
+    const email = getEmailAlertaDesignacao(grupo);
     const preview = rows.slice(0,4).map(r => `
-      <li><b>${r.data || "-"} ${r.horario || "-"}</b> · ${r.grupo || "-"} · ${r.processo || "-"}<br><span>${r.parte_principal || "-"} x ${r.parte_contraria || "-"}</span></li>`).join("");
-    const mais = rows.length > 4 ? `<div class="alerta-card-mais">+ ${rows.length - 4} pendência(s) neste e-mail</div>` : "";
+      <li><b>${r.data || "-"} ${r.horario || "-"}</b> · ${r.processo || "-"}<br><span>${r.parte_principal || "-"} x ${r.parte_contraria || "-"}</span></li>`).join("");
+    const mais = rows.length > 4 ? `<div class="alerta-card-mais">+ ${rows.length - 4} pendência(s) neste grupo</div>` : "";
     return `
       <div class="alerta-card-email">
         <div class="alerta-card-top">
           <div>
-            <div class="alerta-card-email-destino">${email}</div>
-            <div class="alerta-card-meta">${rows.length} pendência(s) · Grupo(s): ${grupos || "-"}</div>
+            <div class="alerta-card-email-destino">Grupo ${grupo}</div>
+            <div class="alerta-card-meta">${rows.length} pendência(s) · Para: ${email}</div>
           </div>
           <div class="alerta-card-count">${rows.length}</div>
         </div>
         <ul class="alerta-card-lista">${preview}</ul>
         ${mais}
         <div class="alerta-card-actions">
-          <button type="button" class="alerta-btn-primary" onclick="abrirEmailAlertaDesignacao('${email.replace(/'/g,"\'")}')">Abrir e-mail deste responsável</button>
-          <button type="button" class="alerta-btn-secondary" onclick="copiarCorpoAlertaDesignacao('${email.replace(/'/g,"\'")}')">Copiar texto</button>
+          <button type="button" class="alerta-btn-primary" onclick="abrirEmailAlertaDesignacaoPorGrupo('${grupo.replace(/'/g,"\'")}')">Abrir e-mail deste grupo</button>
+          <button type="button" class="alerta-btn-secondary" onclick="copiarCorpoAlertaDesignacaoPorGrupo('${grupo.replace(/'/g,"\'")}')">Copiar texto</button>
         </div>
       </div>`;
   }).join("");
@@ -9344,12 +9252,12 @@ function dispararAlertasDesignacao(ev){
         <div>
           <div class="alertas-designacao-kicker">Controladoria Jurídica</div>
           <h2>Alertas de pendências de designação</h2>
-          <p>${total} audiência(s) pendente(s), organizadas em ${emails.length} e-mail(s) separado(s) por responsável.</p>
+          <p>${total} audiência(s) pendente(s), organizadas em ${grupos.length} grupo(s) separado(s) para envio individual.</p>
         </div>
         <button type="button" class="alertas-designacao-close" onclick="fecharPainelAlertasDesignacao()">×</button>
       </div>
       <div class="alertas-designacao-info">
-        Clique em <b>“Abrir e-mail deste responsável”</b> para abrir apenas um e-mail por vez. Serão incluídas somente audiências pendentes a partir da pauta atual sincronizada. A cópia para <b>${CC_ALERTA_DESIGNACAO}</b> já vai preenchida.
+        Clique em <b>“Abrir e-mail deste grupo”</b> para enviar alertas de um grupo específico. Serão incluídas somente audiências pendentes a partir da pauta atual sincronizada. A cópia para <b>${CC_ALERTA_DESIGNACAO}</b> já vai preenchida.
       </div>
       <div class="alertas-designacao-lista">${cards}</div>
     </div>`;
@@ -10118,7 +10026,6 @@ function abrirAlertas17hAmanha(ev){
     if(isUrl(link)) linkHtml='<a href="'+link+'" target="_blank" class="am-link-btn">🔗 Entrar na sessão</a>';
     else if(naoSustenta) linkHtml='<span class="am-nao-sustenta">📝 Não sustentaremos</span>';
     else if(link&&link.length>2) linkHtml='<div style="margin-top:7px;font-size:11px;color:#3A5A70;background:#F4FAFD;border-radius:8px;padding:7px 10px;line-height:1.5">📎 '+link+'</div>';
-    var contratarBtn='<button class="am-contratar-btn" onclick="abrirModalCorrespondente(\''+escapeHtml(r.processo||'')+'\',\''+escapeHtml(r.cliente||'')+'\',\''+escapeHtml(r.parte_contraria||'')+'\',\''+escapeHtml(r.data||'')+'\',\''+escapeHtml(r.horario||'')+'\',\''+escapeHtml(r.comarca||'')+'\',\''+escapeHtml(r.estado||'')+'\')">📧 Contratar Correspondente</button>';
     return '<div class="am-card '+bc+'">'
       +'<div class="am-card-top"><div class="am-hora">'+hora+'</div><div class="am-tipo-pill '+tc+'">'+tipo+'</div></div>'
       +'<div class="am-cliente">'+(r.parte_principal||r.cliente||'—')+'</div>'
@@ -10126,7 +10033,6 @@ function abrirAlertas17hAmanha(ev){
       +'<div class="am-processo">'+(r.processo||'')+'</div>'
       +'<div class="am-meta">'+advHtml+metaHtml+'</div>'
       +linkHtml
-      +'<div style="margin-top:10px;">'+contratarBtn+'</div>'
       +'</div>';
   }
   function renderAudienciaList(){
@@ -10224,119 +10130,6 @@ function abrirAlertas17hAmanha(ev){
   // ═════════════════════════════════════════════════════════════════════════════
   // FUNÇÕES PARA MODAL DE SOLICITAÇÃO DE CORRESPONDENTE
   // ═════════════════════════════════════════════════════════════════════════════
-  window.abrirModalCorrespondente=function(processo,cliente,parteContraria,data,horario,comarca,estado){
-    var modal=document.getElementById('modal-correspondente-bg');
-    if(!modal)return;
-    
-    // Preenche campos da audiência
-    document.getElementById('mc-processo').value=processo;
-    document.getElementById('mc-cliente').value=cliente;
-    document.getElementById('mc-parte-contraria').value=parteContraria;
-    document.getElementById('mc-data').value=data;
-    document.getElementById('mc-horario').value=horario;
-    document.getElementById('mc-comarca').value=comarca;
-    document.getElementById('mc-estado').value=estado;
-    
-    // Limpa preview
-    document.getElementById('mc-preview').style.display='none';
-    document.getElementById('mc-btn-copiar').style.display='none';
-    
-    // Auto-fill data atual
-    var today=new Date();
-    document.getElementById('mc-data-solicitacao').valueAsDate=new Date(today.getFullYear(),today.getMonth(),today.getDate());
-    
-    // Abre modal
-    modal.classList.add('active');
-  };
-  
-  window.fecharModalCorrespondente=function(){
-    var modal=document.getElementById('modal-correspondente-bg');
-    if(!modal)return;
-    modal.classList.remove('active');
-  };
-  
-  window.gerarEmailCorrespondente=function(e){
-    e.preventDefault();
-    
-    if(!document.getElementById('mc-advogado').value){alert('⚠️ Preencha Advogado(a) Responsável');return;}
-    if(!document.getElementById('mc-email').value){alert('⚠️ Preencha E-mail');return;}
-    
-    var processo=document.getElementById('mc-processo').value;
-    var cliente=document.getElementById('mc-cliente').value;
-    var parteContraria=document.getElementById('mc-parte-contraria').value;
-    var data=document.getElementById('mc-data').value;
-    var horario=document.getElementById('mc-horario').value;
-    var comarca=document.getElementById('mc-comarca').value;
-    var estado=document.getElementById('mc-estado').value;
-    var advogado=document.getElementById('mc-advogado').value;
-    var email=document.getElementById('mc-email').value;
-    var observacoes=document.getElementById('mc-observacoes').value;
-    var dataSolicitacao=document.getElementById('mc-data-solicitacao').value;
-    
-    var emailContent=`SOLICITAÇÃO DE CONTRATAÇÃO DE CORRESPONDENTE
-
-Prezados,
-
-Solicitamos a contratação de correspondente jurídico para a audiência abaixo:
-
-═══════════════════════════════════════════════════════════════════════════════
-DADOS DA AUDIÊNCIA
-═══════════════════════════════════════════════════════════════════════════════
-
-Processo: ${processo||'—'}
-Cliente/Parte Principal: ${cliente||'—'}
-Parte Contrária: ${parteContraria||'—'}
-Data da Audiência: ${data||'—'}
-Horário: ${horario||'—'}
-Comarca: ${comarca||'—'} / ${estado||'—'}
-
-═══════════════════════════════════════════════════════════════════════════════
-SOLICITANTE
-═══════════════════════════════════════════════════════════════════════════════
-
-Advogado(a): ${advogado}
-E-mail: ${email}
-Data da Solicitação: ${dataSolicitacao||'—'}
-
-${observacoes?'═══════════════════════════════════════════════════════════════════════════════\nOBSERVAÇÕES\n═══════════════════════════════════════════════════════════════════════════════\n\n'+observacoes+'\n\n═════════════════════════════════════════════════════════════════════════════':''}
-
-Favor providenciar a contratação do correspondente e confirmar quando disponível.
-
-Atenciosamente,
-${advogado}`;
-
-    // Mostrar preview
-    document.getElementById('mc-preview-text').textContent=emailContent;
-    document.getElementById('mc-preview').style.display='block';
-    
-    // Mudar botão para "Copiar e Enviar"
-    var btn=document.querySelector('.mc-btn-primary[onclick="gerarEmailCorrespondente(event)"]');
-    if(btn){
-      btn.style.display='none';
-    }
-    
-    // Mostrar botão de copiar e abrir email
-    var btnEnviar=document.createElement('button');
-    btnEnviar.className='mc-btn mc-btn-primary';
-    btnEnviar.style.display='inline-block';
-    btnEnviar.textContent='📋 Copiar Texto';
-    btnEnviar.onclick=function(ev){
-      ev.preventDefault();
-      navigator.clipboard.writeText(emailContent).then(function(){
-        alert('✅ Texto copiado! \n\nAgora abra seu email e:\n1. Acesse: audiencias@peixotocury.com.br\n2. Cole o texto copiado no corpo\n3. Clique enviar');
-        fecharModalCorrespondente();
-      }).catch(function(){
-        alert('Erro ao copiar. Selecione o texto manualmente do preview abaixo.');
-      });
-    };
-    
-    // Encontrar rodapé e adicionar botão
-    var footer=document.querySelector('.modal-correspondente-footer');
-    if(footer && !footer.querySelector('#mc-btn-copy-text')){
-      btnEnviar.id='mc-btn-copy-text';
-      footer.appendChild(btnEnviar);
-    }
-  };
   
 })();
 </script>
