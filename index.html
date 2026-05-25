@@ -2607,7 +2607,7 @@ button.lp-submit-btn:hover{background:linear-gradient(135deg,#0d2540 0%,#1f4770 
 <button class="filter-clear-btn" id="filter-clear-btn" onclick="clearFilters()" style="display:none">✕ Limpar filtros</button>
 <span class="filter-count" id="filter-count"></span>
 <button class="export-btn" onclick="exportarExcel()" title="Exportar pauta filtrada para Excel (.xlsx)">📥 Excel (.xlsx)</button>
-<button class="export-btn" id="btn-contratacoes" onclick="exportarContratacoes()" title="Exportar solicitações de correspondente desta sessão" style="display:none;background:#1a6b3c;color:#fff">📊 Contratações (0)</button>
+<button class="export-btn" id="btn-contratacoes" onclick="abrirPainelContratacoes()" title="Painel de solicitações de correspondente" style="background:#1a6b3c;color:#fff">📊 Contratações (<span id="cnt-contratacoes">0</span>)</button>
 <button class="export-btn" id="btn-upload-pauta" onclick="pcAbrirUploadPauta(event)" title="Atualizar a pauta pelo upload da planilha" style="background:var(--cyan);color:var(--bg)">⬆️ Atualizar pauta</button>
 <button class="export-btn" id="btn-alertas-designacao" onclick="dispararAlertasDesignacao(event)" title="Enviar alertas das audiências sem designação por grupo" style="background:#C0392B">🚨 Alertas Designação</button>
 <button class="export-btn" id="btn-alerta-17h" onclick="abrirAlertas17hAmanha(event)" title="Enviar alerta de preparação das audiências do próximo dia útil" style="background:#003B5C;color:#fff">✉️ Alerta - 17h</button>
@@ -8284,10 +8284,115 @@ function enviarEmailRedesig(){
   if(typeof showToast==='function') showToast('📧 Email de '+tipo+' aberto no Outlook!');
 }
 
+/* ── Painel de Contratações ──────────────────────────────────── */
+function _pcGetDados(){
+  try{ return JSON.parse(localStorage.getItem('pc_contratacoes')||'[]'); }catch(e){ return window._solicitacoesCorrespondente||[]; }
+}
+
+function abrirPainelContratacoes(){
+  var dados=_pcGetDados();
+  var hoje=new Date().toLocaleDateString('pt-BR');
+
+  // KPIs
+  var total=dados.length;
+  var advSet=new Set(dados.map(function(r){return r.correspondente||''}));
+  advSet.delete('');
+  var totalAdv=advSet.size;
+  var prepostos=dados.filter(function(r){return (r.tipo_contratacao||'').toLowerCase().indexOf('preposto')>=0;}).length;
+  var todayCount=dados.filter(function(r){
+    if(!r.horario_envio) return false;
+    var d=r.horario_envio.split(' ')[0];
+    return d===hoje;
+  }).length;
+
+  // Tabela
+  var linhasHtml=dados.length?dados.slice().reverse().map(function(r,i){
+    return '<tr>'
+      +'<td>'+(dados.length-i)+'</td>'
+      +'<td>'+escH(r.horario_envio||'')+'</td>'
+      +'<td>'+escH(r.solicitante||'')+'</td>'
+      +'<td>'+escH(r.processo||'')+'</td>'
+      +'<td>'+escH(r.data_audiencia||'')+' '+escH(r.horario||'')+'</td>'
+      +'<td>'+escH(r.comarca||'')+'/'+escH(r.estado||'')+'</td>'
+      +'<td>'+escH(r.tipo_contratacao||'')+'</td>'
+      +'<td>'+escH(r.correspondente||'')+'</td>'
+      +'</tr>';
+  }).join(''):'<tr><td colspan="8" style="text-align:center;color:#888;padding:20px">Nenhuma solicitação registrada</td></tr>';
+
+  function escH(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  var html='<div id="pc-painel-bg" onclick="if(event.target===this)fecharPainelContratacoes()" style="'
+    +'position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px">'
+    +'<div style="background:#fff;border-radius:12px;max-width:960px;width:100%;max-height:90vh;overflow:auto;box-shadow:0 8px 40px rgba(0,0,0,.35)">'
+
+    // Header
+    +'<div style="background:#1a6b3c;color:#fff;padding:18px 24px;border-radius:12px 12px 0 0;display:flex;align-items:center;justify-content:space-between">'
+    +'<div><b style="font-size:18px">📊 Painel de Contratações de Correspondente</b>'
+    +'<div style="font-size:12px;opacity:.85;margin-top:2px">Registro persistente — atualizado a cada solicitação</div></div>'
+    +'<button onclick="fecharPainelContratacoes()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:16px">✕</button>'
+    +'</div>'
+
+    // KPI cards
+    +'<div style="display:flex;gap:16px;padding:20px 24px 0;flex-wrap:wrap">'
+    +_pcKpi('Total de Solicitações','#003B5C',total,'📋')
+    +_pcKpi('Correspondentes','#006080',totalAdv,'👤')
+    +_pcKpi('Prepostos','#005a9e',prepostos,'🏢')
+    +_pcKpi('Enviadas Hoje','#1a6b3c',todayCount,'📅')
+    +'</div>'
+
+    // Ações
+    +'<div style="padding:16px 24px 0;display:flex;gap:10px;flex-wrap:wrap">'
+    +'<button onclick="exportarContratacoes()" style="background:#1a6b3c;color:#fff;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px">⬇️ Baixar Excel</button>'
+    +'<button onclick="limparContratacoes()" style="background:#C0392B;color:#fff;border:none;padding:8px 18px;border-radius:6px;cursor:pointer;font-size:13px">🗑️ Limpar histórico</button>'
+    +'</div>'
+
+    // Tabela
+    +'<div style="padding:16px 24px 20px;overflow-x:auto">'
+    +'<table style="width:100%;border-collapse:collapse;font-size:13px">'
+    +'<thead><tr style="background:#f0f7f4;color:#003B5C">'
+    +'<th style="padding:8px 10px;text-align:left;border-bottom:2px solid #1a6b3c">#</th>'
+    +'<th style="padding:8px 10px;text-align:left;border-bottom:2px solid #1a6b3c">Enviado em</th>'
+    +'<th style="padding:8px 10px;text-align:left;border-bottom:2px solid #1a6b3c">Solicitante</th>'
+    +'<th style="padding:8px 10px;text-align:left;border-bottom:2px solid #1a6b3c">Processo</th>'
+    +'<th style="padding:8px 10px;text-align:left;border-bottom:2px solid #1a6b3c">Data/Hora Aud.</th>'
+    +'<th style="padding:8px 10px;text-align:left;border-bottom:2px solid #1a6b3c">Comarca/UF</th>'
+    +'<th style="padding:8px 10px;text-align:left;border-bottom:2px solid #1a6b3c">Tipo</th>'
+    +'<th style="padding:8px 10px;text-align:left;border-bottom:2px solid #1a6b3c">Correspondente</th>'
+    +'</tr></thead><tbody>'+linhasHtml+'</tbody></table></div>'
+    +'</div></div>';
+
+  var el=document.getElementById('pc-painel-bg');
+  if(el) el.remove();
+  document.body.insertAdjacentHTML('beforeend',html);
+}
+
+function _pcKpi(label,color,value,icon){
+  return '<div style="flex:1;min-width:150px;background:'+color+';color:#fff;border-radius:10px;padding:16px 18px">'
+    +'<div style="font-size:22px;margin-bottom:4px">'+icon+'</div>'
+    +'<div style="font-size:28px;font-weight:700;line-height:1">'+value+'</div>'
+    +'<div style="font-size:12px;opacity:.85;margin-top:4px">'+label+'</div>'
+    +'</div>';
+}
+
+function fecharPainelContratacoes(){
+  var el=document.getElementById('pc-painel-bg');
+  if(el) el.remove();
+}
+
+function limparContratacoes(){
+  if(!confirm('Limpar todo o histórico de contratações? Esta ação não pode ser desfeita.')) return;
+  try{ localStorage.removeItem('pc_contratacoes'); }catch(e){}
+  window._solicitacoesCorrespondente=[];
+  var _cnt=document.getElementById('cnt-contratacoes');
+  if(_cnt) _cnt.textContent='0';
+  fecharPainelContratacoes();
+  if(typeof showToast==='function') showToast('Histórico de contratações limpo.');
+}
+
 function exportarContratacoes(){
-  var dados=window._solicitacoesCorrespondente||[];
+  var dados=_pcGetDados();
   if(!dados.length){
-    (typeof showToast==='function')?showToast('Nenhuma solicitação de correspondente nesta sessão.'):alert('Nenhuma solicitação de correspondente nesta sessão.');
+    (typeof showToast==='function')?showToast('Nenhuma solicitação registrada.'):alert('Nenhuma solicitação registrada.');
     return;
   }
   var linhas=dados.map(function(r){
@@ -10557,24 +10662,24 @@ function abrirAlertas17hAmanha(ev){
       +'Favor providenciar a contratação e confirmar quando disponível.\n\n'
       +'Atenciosamente,\n'+advogado;
 
-    // Armazenar solicitação na sessão
-    if(!window._solicitacoesCorrespondente) window._solicitacoesCorrespondente=[];
-    window._solicitacoesCorrespondente.push({
-      processo:processo, cliente:cliente, parte_contraria:parteContraria,
-      data_audiencia:data, horario:horario, comarca:comarca, estado:estado,
-      tipo_contratacao:tipoContratacao,
-      correspondente:correspondente, email_correspondente:emailCorrespondente,
-      solicitante:advogado, email_solicitante:email,
-      observacoes:observacoes, horario_envio:horarioEnvio
-    });
+    // Armazenar solicitação no localStorage (persistente entre sessões/usuários da máquina)
+    try{
+      var _arr=JSON.parse(localStorage.getItem('pc_contratacoes')||'[]');
+      _arr.push({
+        processo:processo, cliente:cliente, parte_contraria:parteContraria,
+        data_audiencia:data, horario:horario, comarca:comarca, estado:estado,
+        tipo_contratacao:tipoContratacao,
+        correspondente:correspondente, email_correspondente:emailCorrespondente,
+        solicitante:advogado, email_solicitante:email,
+        observacoes:observacoes, horario_envio:horarioEnvio
+      });
+      localStorage.setItem('pc_contratacoes',JSON.stringify(_arr));
+      window._solicitacoesCorrespondente=_arr;
+    }catch(e){}
 
-    // Atualizar botão de contratações
-    var btnC=document.getElementById('btn-contratacoes');
-    if(btnC){
-      var n=window._solicitacoesCorrespondente.length;
-      btnC.textContent='📊 Contratações ('+n+')';
-      btnC.style.display='';
-    }
+    // Atualizar contador do botão
+    var _cnt=document.getElementById('cnt-contratacoes');
+    if(_cnt) _cnt.textContent=window._solicitacoesCorrespondente.length;
 
     // Enviar email diretamente para audiências trabalhistas
     var assunto='[CORRESPONDENTE] '+processo+' — '+data+' — '+comarca+'/'+estado+' — '+tipoContratacao;
@@ -10728,5 +10833,21 @@ function abrirAlertas17hAmanha(ev){
     <div class="modal-correspondente-footer"><button class="mc-btn mc-btn-secondary" onclick="fecharModalCorrespondente()">Fechar</button><button class="mc-btn mc-btn-primary" onclick="gerarEmailCorrespondente(event)">📧 Enviar Solicitação</button></div>
   </div>
 </div>
+
+<!-- RESTAURAR CONTRATAÇÕES DO localStorage AO CARREGAR -->
+<script id="pc-contratacoes-init">
+(function(){
+  function _initContratacoes(){
+    try{
+      var arr=JSON.parse(localStorage.getItem('pc_contratacoes')||'[]');
+      window._solicitacoesCorrespondente=arr;
+      var el=document.getElementById('cnt-contratacoes');
+      if(el) el.textContent=arr.length;
+    }catch(e){}
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',_initContratacoes);
+  else _initContratacoes();
+})();
+</script>
 
 </body>
