@@ -8290,9 +8290,11 @@ function exportarContratacoes(){
       'Horário':r.horario||'',
       'Comarca':r.comarca||'',
       'Estado':r.estado||'',
-      'Advogado(a)':r.advogado||'',
+      'Tipo de Contratação':r.tipo_contratacao||'',
+      'Correspondente':r.correspondente||'',
+      'E-mail Correspondente':r.email_correspondente||'',
+      'Solicitante':r.solicitante||'',
       'E-mail Solicitante':r.email_solicitante||'',
-      'Data da Solicitação':r.data_solicitacao||'',
       'Observações':r.observacoes||'',
       'Horário do Envio':r.horario_envio||''
     };
@@ -10466,17 +10468,22 @@ function abrirAlertas17hAmanha(ev){
     
     // Limpa preview e campos de sessão anterior
     document.getElementById('mc-preview').style.display='none';
-    document.getElementById('mc-advogado').value='';
-    document.getElementById('mc-email').value='';
+    document.getElementById('mc-correspondente').value='';
+    document.getElementById('mc-email-correspondente').value='';
+    document.getElementById('mc-tipo-contratacao').value='';
     document.getElementById('mc-observacoes').value='';
-    var existingCopyBtn=document.getElementById('mc-btn-copy-text');
-    if(existingCopyBtn) existingCopyBtn.remove();
-    var oldPrimBtn=document.querySelector('.mc-btn-primary[style*="display: none"]');
-    if(oldPrimBtn) oldPrimBtn.style.display='';
-    
-    // Auto-fill data atual
-    var today=new Date();
-    document.getElementById('mc-data-solicitacao').valueAsDate=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+
+    // Auto-fill solicitante com usuário logado
+    var nomeLogado=''; var emailLogado='';
+    try{
+      if(window.currentUserSigla && window.PROF && window.PROF[window.currentUserSigla]){
+        nomeLogado=window.PROF[window.currentUserSigla].nome||'';
+        emailLogado=window.PROF[window.currentUserSigla].email||'';
+      }
+      if(!emailLogado && window.currentUserEmail) emailLogado=window.currentUserEmail;
+    }catch(err){}
+    document.getElementById('mc-advogado').value=nomeLogado;
+    document.getElementById('mc-email').value=emailLogado;
     
     // Abre modal
     modal.classList.add('active');
@@ -10491,8 +10498,13 @@ function abrirAlertas17hAmanha(ev){
   window.gerarEmailCorrespondente=function(e){
     e.preventDefault();
 
-    if(!document.getElementById('mc-advogado').value){alert('⚠️ Preencha Advogado(a) Responsável');return;}
-    if(!document.getElementById('mc-email').value){alert('⚠️ Preencha E-mail');return;}
+    var advogado=document.getElementById('mc-advogado').value.trim();
+    var email=document.getElementById('mc-email').value.trim();
+    var tipoContratacao=document.getElementById('mc-tipo-contratacao').value;
+
+    if(!advogado){alert('⚠️ Preencha o Solicitante');return;}
+    if(!email){alert('⚠️ Preencha o Seu E-mail');return;}
+    if(!tipoContratacao){alert('⚠️ Selecione o Tipo de Contratação');return;}
 
     var processo=document.getElementById('mc-processo').value;
     var cliente=document.getElementById('mc-cliente').value;
@@ -10501,10 +10513,10 @@ function abrirAlertas17hAmanha(ev){
     var horario=document.getElementById('mc-horario').value;
     var comarca=document.getElementById('mc-comarca').value;
     var estado=document.getElementById('mc-estado').value;
-    var advogado=document.getElementById('mc-advogado').value;
-    var email=document.getElementById('mc-email').value;
-    var observacoes=document.getElementById('mc-observacoes').value;
-    var dataSolicitacao=document.getElementById('mc-data-solicitacao').value;
+    var correspondente=document.getElementById('mc-correspondente').value.trim();
+    var emailCorrespondente=document.getElementById('mc-email-correspondente').value.trim();
+    var observacoes=document.getElementById('mc-observacoes').value.trim();
+    var horarioEnvio=new Date().toLocaleString('pt-BR');
 
     var obsBloco=observacoes
       ? '═══════════════════════════════════════════════════════════════════════════════\nOBSERVAÇÕES\n═══════════════════════════════════════════════════════════════════════════════\n\n'+observacoes+'\n\n'
@@ -10521,13 +10533,19 @@ function abrirAlertas17hAmanha(ev){
       +'Horário: '+(horario||'—')+'\n'
       +'Comarca: '+(comarca||'—')+' / '+(estado||'—')+'\n\n'
       +'═══════════════════════════════════════════════════════════════════════════════\n'
+      +'CONTRATAÇÃO\n'
+      +'═══════════════════════════════════════════════════════════════════════════════\n\n'
+      +'Tipo: '+tipoContratacao+'\n'
+      +(correspondente?'Correspondente: '+correspondente+'\n':'')
+      +(emailCorrespondente?'E-mail correspondente: '+emailCorrespondente+'\n':'')
+      +'\n═══════════════════════════════════════════════════════════════════════════════\n'
       +'SOLICITANTE\n'
       +'═══════════════════════════════════════════════════════════════════════════════\n\n'
-      +'Advogado(a): '+advogado+'\n'
+      +'Nome: '+advogado+'\n'
       +'E-mail: '+email+'\n'
-      +'Data da Solicitação: '+(dataSolicitacao||'—')+'\n\n'
+      +'Data/Hora: '+horarioEnvio+'\n\n'
       +obsBloco
-      +'Favor providenciar a contratação do correspondente e confirmar quando disponível.\n\n'
+      +'Favor providenciar a contratação e confirmar quando disponível.\n\n'
       +'Atenciosamente,\n'+advogado;
 
     // Armazenar solicitação na sessão
@@ -10535,9 +10553,10 @@ function abrirAlertas17hAmanha(ev){
     window._solicitacoesCorrespondente.push({
       processo:processo, cliente:cliente, parte_contraria:parteContraria,
       data_audiencia:data, horario:horario, comarca:comarca, estado:estado,
-      advogado:advogado, email_solicitante:email,
-      data_solicitacao:dataSolicitacao, observacoes:observacoes,
-      horario_envio:new Date().toLocaleString('pt-BR')
+      tipo_contratacao:tipoContratacao,
+      correspondente:correspondente, email_correspondente:emailCorrespondente,
+      solicitante:advogado, email_solicitante:email,
+      observacoes:observacoes, horario_envio:horarioEnvio
     });
 
     // Atualizar botão de contratações
@@ -10549,10 +10568,10 @@ function abrirAlertas17hAmanha(ev){
     }
 
     // Enviar email diretamente para audiências trabalhistas
-    var assunto='[CORRESPONDENTE] '+processo+' — '+data+' — '+comarca+'/'+estado;
+    var assunto='[CORRESPONDENTE] '+processo+' — '+data+' — '+comarca+'/'+estado+' — '+tipoContratacao;
     var toEmail='audiencias@peixotocury.com.br';
-    var mailto='mailto:'+toEmail;
-    mailto+='?cc='+encodeURIComponent(email);
+    var cc=emailCorrespondente?email+','+emailCorrespondente:email;
+    var mailto='mailto:'+toEmail+'?cc='+encodeURIComponent(cc);
     mailto+='&subject='+encodeURIComponent(assunto);
     mailto+='&body='+encodeURIComponent(emailContent);
     window.location.href=mailto;
@@ -10674,16 +10693,27 @@ function abrirAlertas17hAmanha(ev){
         Preencha seus dados para gerar uma solicitação ao email de audiências trabalhistas para contratar correspondente.
       </div>
       <form id="form-correspondente" onsubmit="return false;">
+        <!-- Dados da audiência (somente leitura) -->
         <div class="mc-form-grid full"><div class="mc-form-group"><label>Processo</label><input type="text" id="mc-processo" readonly style="background:var(--surface2);color:var(--muted);"></div></div>
         <div class="mc-form-grid"><div class="mc-form-group"><label>Cliente/Parte Principal</label><input type="text" id="mc-cliente" readonly style="background:var(--surface2);color:var(--muted);"></div><div class="mc-form-group"><label>Parte Contrária</label><input type="text" id="mc-parte-contraria" readonly style="background:var(--surface2);color:var(--muted);"></div></div>
         <div class="mc-form-grid"><div class="mc-form-group"><label>Data da Audiência</label><input type="text" id="mc-data" readonly style="background:var(--surface2);color:var(--muted);"></div><div class="mc-form-group"><label>Horário</label><input type="text" id="mc-horario" readonly style="background:var(--surface2);color:var(--muted);"></div></div>
         <div class="mc-form-grid"><div class="mc-form-group"><label>Comarca</label><input type="text" id="mc-comarca" readonly style="background:var(--surface2);color:var(--muted);"></div><div class="mc-form-group"><label>Estado</label><input type="text" id="mc-estado" readonly style="background:var(--surface2);color:var(--muted);"></div></div>
-        <hr style="border:none;border-top:1px solid var(--border2);margin:20px 0;">
-        <div class="mc-form-grid full"><div class="mc-form-group"><label>Seu Nome (Advogado/a)</label><input type="text" id="mc-advogado" placeholder="Seu nome completo" required></div></div>
-        <div class="mc-form-grid full"><div class="mc-form-group"><label>Seu E-mail</label><input type="email" id="mc-email" placeholder="seu.email@empresa.com" required></div></div>
-        <div class="mc-form-grid full"><div class="mc-form-group"><label>Data da Solicitação</label><input type="date" id="mc-data-solicitacao" required></div></div>
-        <div class="mc-form-grid full"><div class="mc-form-group"><label>Observações (opcional)</label><textarea id="mc-observacoes" placeholder="Ex: Preferência de correspondente, informações adicionais..." style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:9px 12px;color:var(--text);font-size:12px;font-family:var(--mono);outline:none;resize:vertical;min-height:60px;"></textarea></div></div>
-        <div id="mc-preview" style="display:none;margin-top:16px;padding:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);max-height:350px;overflow-y:auto;"><pre id="mc-preview-text" style="font-family:var(--mono);font-size:11px;color:var(--muted);white-space:pre-wrap;word-wrap:break-word;margin:0;line-height:1.6;"></pre></div>
+        <hr style="border:none;border-top:1px solid var(--border2);margin:16px 0;">
+        <!-- Dados do solicitante -->
+        <div class="mc-form-grid"><div class="mc-form-group"><label>Solicitante *</label><input type="text" id="mc-advogado" placeholder="Seu nome completo" required></div><div class="mc-form-group"><label>Seu E-mail *</label><input type="email" id="mc-email" placeholder="seu.email@empresa.com" required></div></div>
+        <hr style="border:none;border-top:1px solid var(--border2);margin:16px 0;">
+        <!-- Dados do correspondente -->
+        <div class="mc-form-grid"><div class="mc-form-group"><label>Correspondente a contratar</label><input type="text" id="mc-correspondente" placeholder="Nome do correspondente (se já definido)"></div><div class="mc-form-group"><label>E-mail do correspondente</label><input type="email" id="mc-email-correspondente" placeholder="email@correspondente.com"></div></div>
+        <div class="mc-form-grid full"><div class="mc-form-group"><label>Tipo de contratação *</label>
+          <select id="mc-tipo-contratacao" required style="width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:8px 12px;font-size:12px;color:var(--text);font-family:var(--mono);outline:none;">
+            <option value="">— Selecionar —</option>
+            <option value="Advogado">Advogado</option>
+            <option value="Preposto">Preposto</option>
+            <option value="Advogado e Preposto">Advogado e Preposto</option>
+          </select>
+        </div></div>
+        <div class="mc-form-grid full"><div class="mc-form-group"><label>Observações (opcional)</label><textarea id="mc-observacoes" placeholder="Ex: Preferência de correspondente, valor máximo, informações adicionais..." style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:9px 12px;color:var(--text);font-size:12px;font-family:var(--mono);outline:none;resize:vertical;min-height:60px;"></textarea></div></div>
+        <div id="mc-preview" style="display:none;"></div>
       </form>
     </div>
     <div class="modal-correspondente-footer"><button class="mc-btn mc-btn-secondary" onclick="fecharModalCorrespondente()">Fechar</button><button class="mc-btn mc-btn-primary" onclick="gerarEmailCorrespondente(event)">📧 Enviar Solicitação</button></div>
