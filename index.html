@@ -8847,75 +8847,6 @@ ${rowsHtml}
 }
 </style>
 
-<!-- MODAL REDESIGNAÇÃO / CANCELAMENTO -->
-<div id="modal-redesig-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;padding:20px">
-  <div style="background:var(--surface);border:1px solid var(--border2);border-radius:14px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.5)">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid var(--border2)">
-      <h3 style="font-size:14px;font-weight:700;color:var(--text);margin:0">📅 Comunicar Redesignação / Cancelamento</h3>
-      <button onclick="fecharModalRedesig()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0;line-height:1">×</button>
-    </div>
-    <div style="padding:18px 20px">
-      <div style="background:rgba(230,126,34,.08);border:1px solid rgba(230,126,34,.25);border-radius:8px;padding:10px 14px;font-size:12px;color:#E67E22;margin-bottom:16px">
-        Preencha os dados e clique em <b>Enviar</b> — o email será aberto diretamente no Outlook endereçado à Controladoria.
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-        <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Processo</label><input id="rd-processo" type="text" readonly style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--muted);font-family:inherit;box-sizing:border-box"></div>
-        <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Data original</label><input id="rd-data" type="text" readonly style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--muted);font-family:inherit;box-sizing:border-box"></div>
-      </div>
-      <div style="margin-bottom:10px"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Parte Principal</label><input id="rd-parte" type="text" readonly style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--muted);font-family:inherit;box-sizing:border-box"></div>
-      <hr style="border:none;border-top:1px solid var(--border2);margin:14px 0">
-      <div style="margin-bottom:10px">
-        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Tipo de comunicação *</label>
-        <select id="rd-tipo" style="width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:7px 10px;font-size:12px;color:var(--text);font-family:inherit">
-          <option value="Redesignação">Redesignação (nova data marcada)</option>
-          <option value="Cancelamento">Cancelamento (sem nova data)</option>
-        </select>
-      </div>
-      <div id="rd-nova-data-wrap" style="margin-bottom:10px">
-        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Nova data da audiência</label>
-        <input id="rd-nova-data" type="date" style="width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:7px 10px;font-size:12px;color:var(--text);font-family:inherit;box-sizing:border-box">
-      </div>
-      <div style="margin-bottom:10px">
-        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Motivo / Observações *</label>
-        <textarea id="rd-motivo" placeholder="Informe o motivo da redesignação ou cancelamento..." style="width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:8px 10px;font-size:12px;color:var(--text);font-family:inherit;outline:none;resize:vertical;min-height:70px;box-sizing:border-box"></textarea>
-      </div>
-    </div>
-    <div style="display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--border2)">
-      <button onclick="fecharModalRedesig()" style="padding:8px 18px;background:var(--surface2);border:1px solid var(--border2);color:var(--muted);border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Fechar</button>
-      <button onclick="enviarEmailRedesig()" style="padding:8px 18px;background:#E67E22;border:none;color:#fff;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">📧 Enviar para Controladoria</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL SOLICITAÇÃO DE CORRESPONDENTE -->
-<div id="modal-correspondente-bg">
-  <div class="modal-correspondente">
-    <div class="modal-correspondente-header">
-      <h3>📧 Solicitar Correspondente</h3>
-      <button class="modal-correspondente-close" onclick="fecharModalCorrespondente()">×</button>
-    </div>
-    <div class="modal-correspondente-content">
-      <div class="mc-info-box">
-        Preencha seus dados para gerar uma solicitação ao email de audiências trabalhistas para contratar correspondente.
-      </div>
-      
-      <form id="form-correspondente" onsubmit="return false;">
-        <!-- Dados da Audiência (pré-preenchidos) -->
-        <div class="mc-form-grid full"><div class="mc-form-group"><label>Processo</label><input type="text" id="mc-processo" readonly style="background:var(--surface2);color:var(--muted);"></div></div>
-        <div class="mc-form-grid"><div class="mc-form-group"><label>Cliente/Parte Principal</label><input type="text" id="mc-cliente" readonly style="background:var(--surface2);color:var(--muted);"></div><div class="mc-form-group"><label>Parte Contrária</label><input type="text" id="mc-parte-contraria" readonly style="background:var(--surface2);color:var(--muted);"></div></div>
-        <div class="mc-form-grid"><div class="mc-form-group"><label>Data da Audiência</label><input type="text" id="mc-data" readonly style="background:var(--surface2);color:var(--muted);"></div><div class="mc-form-group"><label>Horário</label><input type="text" id="mc-horario" readonly style="background:var(--surface2);color:var(--muted);"></div></div>
-        <div class="mc-form-grid"><div class="mc-form-group"><label>Comarca</label><input type="text" id="mc-comarca" readonly style="background:var(--surface2);color:var(--muted);"></div><div class="mc-form-group"><label>Estado</label><input type="text" id="mc-estado" readonly style="background:var(--surface2);color:var(--muted);"></div></div>
-        <hr style="border:none;border-top:1px solid var(--border2);margin:20px 0;">
-        <div class="mc-form-grid full"><div class="mc-form-group"><label>Seu Nome (Advogado/a)</label><input type="text" id="mc-advogado" placeholder="Seu nome completo" required></div></div>
-        <div class="mc-form-grid full"><div class="mc-form-group"><label>Seu E-mail</label><input type="email" id="mc-email" placeholder="seu.email@empresa.com" required></div></div>
-        <div class="mc-form-grid full"><div class="mc-form-group"><label>Data da Solicitação</label><input type="date" id="mc-data-solicitacao" required></div></div>
-        <div class="mc-form-grid full"><div class="mc-form-group"><label>Observações (opcional)</label><textarea id="mc-observacoes" placeholder="Ex: Preferência de correspondente, informações adicionais..." style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:9px 12px;color:var(--text);font-size:12px;font-family:var(--mono);outline:none;resize:vertical;min-height:60px;"></textarea></div></div>
-        <div id="mc-preview" style="display:block;margin-top:16px;padding:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);max-height:350px;overflow-y:auto;"><pre id="mc-preview-text" style="font-family:var(--mono);font-size:11px;color:var(--muted);white-space:pre-wrap;word-wrap:break-word;margin:0;line-height:1.6;"></pre></div>
-      </form>
-    </div>
-    <div class="modal-correspondente-footer"><button class="mc-btn mc-btn-secondary" onclick="fecharModalCorrespondente()">Fechar</button><button class="mc-btn mc-btn-primary" onclick="gerarEmailCorrespondente(event)">📧 Enviar Solicitação</button></div>
-  </div>
-</div>
 
 
 </body>
@@ -10690,5 +10621,73 @@ function abrirAlertas17hAmanha(ev){
   }
 }
 </style>
+
+<!-- MODAL REDESIGNAÇÃO / CANCELAMENTO -->
+<div id="modal-redesig-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--surface);border:1px solid var(--border2);border-radius:14px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.5)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid var(--border2)">
+      <h3 style="font-size:14px;font-weight:700;color:var(--text);margin:0">📅 Comunicar Redesignação / Cancelamento</h3>
+      <button onclick="fecharModalRedesig()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0;line-height:1">×</button>
+    </div>
+    <div style="padding:18px 20px">
+      <div style="background:rgba(230,126,34,.08);border:1px solid rgba(230,126,34,.25);border-radius:8px;padding:10px 14px;font-size:12px;color:#E67E22;margin-bottom:16px">
+        Preencha os dados e clique em <b>Enviar</b> — o email será aberto diretamente no Outlook endereçado à Controladoria.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Processo</label><input id="rd-processo" type="text" readonly style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--muted);font-family:inherit;box-sizing:border-box"></div>
+        <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Data original</label><input id="rd-data" type="text" readonly style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--muted);font-family:inherit;box-sizing:border-box"></div>
+      </div>
+      <div style="margin-bottom:10px"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Parte Principal</label><input id="rd-parte" type="text" readonly style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--muted);font-family:inherit;box-sizing:border-box"></div>
+      <hr style="border:none;border-top:1px solid var(--border2);margin:14px 0">
+      <div style="margin-bottom:10px">
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Tipo de comunicação *</label>
+        <select id="rd-tipo" style="width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:7px 10px;font-size:12px;color:var(--text);font-family:inherit">
+          <option value="Redesignação">Redesignação (nova data marcada)</option>
+          <option value="Cancelamento">Cancelamento (sem nova data)</option>
+        </select>
+      </div>
+      <div id="rd-nova-data-wrap" style="margin-bottom:10px">
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Nova data da audiência</label>
+        <input id="rd-nova-data" type="date" style="width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:7px 10px;font-size:12px;color:var(--text);font-family:inherit;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Motivo / Observações *</label>
+        <textarea id="rd-motivo" placeholder="Informe o motivo da redesignação ou cancelamento..." style="width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:8px 10px;font-size:12px;color:var(--text);font-family:inherit;outline:none;resize:vertical;min-height:70px;box-sizing:border-box"></textarea>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--border2)">
+      <button onclick="fecharModalRedesig()" style="padding:8px 18px;background:var(--surface2);border:1px solid var(--border2);color:var(--muted);border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Fechar</button>
+      <button onclick="enviarEmailRedesig()" style="padding:8px 18px;background:#E67E22;border:none;color:#fff;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">📧 Enviar para Controladoria</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SOLICITAÇÃO DE CORRESPONDENTE -->
+<div id="modal-correspondente-bg">
+  <div class="modal-correspondente">
+    <div class="modal-correspondente-header">
+      <h3>📧 Solicitar Correspondente</h3>
+      <button class="modal-correspondente-close" onclick="fecharModalCorrespondente()">×</button>
+    </div>
+    <div class="modal-correspondente-content">
+      <div class="mc-info-box">
+        Preencha seus dados para gerar uma solicitação ao email de audiências trabalhistas para contratar correspondente.
+      </div>
+      <form id="form-correspondente" onsubmit="return false;">
+        <div class="mc-form-grid full"><div class="mc-form-group"><label>Processo</label><input type="text" id="mc-processo" readonly style="background:var(--surface2);color:var(--muted);"></div></div>
+        <div class="mc-form-grid"><div class="mc-form-group"><label>Cliente/Parte Principal</label><input type="text" id="mc-cliente" readonly style="background:var(--surface2);color:var(--muted);"></div><div class="mc-form-group"><label>Parte Contrária</label><input type="text" id="mc-parte-contraria" readonly style="background:var(--surface2);color:var(--muted);"></div></div>
+        <div class="mc-form-grid"><div class="mc-form-group"><label>Data da Audiência</label><input type="text" id="mc-data" readonly style="background:var(--surface2);color:var(--muted);"></div><div class="mc-form-group"><label>Horário</label><input type="text" id="mc-horario" readonly style="background:var(--surface2);color:var(--muted);"></div></div>
+        <div class="mc-form-grid"><div class="mc-form-group"><label>Comarca</label><input type="text" id="mc-comarca" readonly style="background:var(--surface2);color:var(--muted);"></div><div class="mc-form-group"><label>Estado</label><input type="text" id="mc-estado" readonly style="background:var(--surface2);color:var(--muted);"></div></div>
+        <hr style="border:none;border-top:1px solid var(--border2);margin:20px 0;">
+        <div class="mc-form-grid full"><div class="mc-form-group"><label>Seu Nome (Advogado/a)</label><input type="text" id="mc-advogado" placeholder="Seu nome completo" required></div></div>
+        <div class="mc-form-grid full"><div class="mc-form-group"><label>Seu E-mail</label><input type="email" id="mc-email" placeholder="seu.email@empresa.com" required></div></div>
+        <div class="mc-form-grid full"><div class="mc-form-group"><label>Data da Solicitação</label><input type="date" id="mc-data-solicitacao" required></div></div>
+        <div class="mc-form-grid full"><div class="mc-form-group"><label>Observações (opcional)</label><textarea id="mc-observacoes" placeholder="Ex: Preferência de correspondente, informações adicionais..." style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:9px 12px;color:var(--text);font-size:12px;font-family:var(--mono);outline:none;resize:vertical;min-height:60px;"></textarea></div></div>
+        <div id="mc-preview" style="display:none;margin-top:16px;padding:12px;background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);max-height:350px;overflow-y:auto;"><pre id="mc-preview-text" style="font-family:var(--mono);font-size:11px;color:var(--muted);white-space:pre-wrap;word-wrap:break-word;margin:0;line-height:1.6;"></pre></div>
+      </form>
+    </div>
+    <div class="modal-correspondente-footer"><button class="mc-btn mc-btn-secondary" onclick="fecharModalCorrespondente()">Fechar</button><button class="mc-btn mc-btn-primary" onclick="gerarEmailCorrespondente(event)">📧 Enviar Solicitação</button></div>
+  </div>
+</div>
 
 </body>
