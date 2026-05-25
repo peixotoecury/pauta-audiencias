@@ -2598,6 +2598,7 @@ button.lp-submit-btn:hover{background:linear-gradient(135deg,#0d2540 0%,#1f4770 
 <button class="filter-clear-btn" id="filter-clear-btn" onclick="clearFilters()" style="display:none">✕ Limpar filtros</button>
 <span class="filter-count" id="filter-count"></span>
 <button class="export-btn" onclick="exportarExcel()" title="Exportar pauta filtrada para Excel (.xlsx)">📥 Excel (.xlsx)</button>
+<button class="export-btn" id="btn-contratacoes" onclick="exportarContratacoes()" title="Exportar solicitações de correspondente desta sessão" style="display:none;background:#1a6b3c;color:#fff">📊 Contratações (0)</button>
 <button class="export-btn" id="btn-upload-pauta" onclick="pcAbrirUploadPauta(event)" title="Atualizar a pauta pelo upload da planilha" style="background:var(--cyan);color:var(--bg)">⬆️ Atualizar pauta</button>
 <button class="export-btn" id="btn-alertas-designacao" onclick="dispararAlertasDesignacao(event)" title="Enviar alertas das audiências sem designação por grupo" style="background:#C0392B">🚨 Alertas Designação</button>
 <button class="export-btn" id="btn-alerta-17h" onclick="abrirAlertas17hAmanha(event)" title="Enviar alerta de preparação das audiências do próximo dia útil" style="background:#003B5C;color:#fff">✉️ Alerta - 17h</button>
@@ -8210,6 +8211,36 @@ function exportarExcel(){
   if(typeof showToast === 'function') showToast('📥 Pauta Completa exportada em Excel no padrão oficial!');
 }
 
+function exportarContratacoes(){
+  var dados=window._solicitacoesCorrespondente||[];
+  if(!dados.length){
+    (typeof showToast==='function')?showToast('Nenhuma solicitação de correspondente nesta sessão.'):alert('Nenhuma solicitação de correspondente nesta sessão.');
+    return;
+  }
+  var linhas=dados.map(function(r){
+    return {
+      'Processo':r.processo||'',
+      'Cliente/Parte Principal':r.cliente||'',
+      'Parte Contrária':r.parte_contraria||'',
+      'Data da Audiência':r.data_audiencia||'',
+      'Horário':r.horario||'',
+      'Comarca':r.comarca||'',
+      'Estado':r.estado||'',
+      'Advogado(a)':r.advogado||'',
+      'E-mail Solicitante':r.email_solicitante||'',
+      'Data da Solicitação':r.data_solicitacao||'',
+      'Observações':r.observacoes||'',
+      'Horário do Envio':r.horario_envio||''
+    };
+  });
+  var ws=XLSX.utils.json_to_sheet(linhas);
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Contratações');
+  var dt=new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');
+  XLSX.writeFile(wb,'Contratacoes_Correspondente_'+dt+'.xlsx');
+  if(typeof showToast==='function') showToast('📊 Excel de contratações exportado!');
+}
+
 function exportarPosExcel() {
   const rows = getPastAudiencias();
   const posData = getPosData();
@@ -10418,10 +10449,10 @@ function abrirAlertas17hAmanha(ev){
   
   window.gerarEmailCorrespondente=function(e){
     e.preventDefault();
-    
+
     if(!document.getElementById('mc-advogado').value){alert('⚠️ Preencha Advogado(a) Responsável');return;}
     if(!document.getElementById('mc-email').value){alert('⚠️ Preencha E-mail');return;}
-    
+
     var processo=document.getElementById('mc-processo').value;
     var cliente=document.getElementById('mc-cliente').value;
     var parteContraria=document.getElementById('mc-parte-contraria').value;
@@ -10433,70 +10464,59 @@ function abrirAlertas17hAmanha(ev){
     var email=document.getElementById('mc-email').value;
     var observacoes=document.getElementById('mc-observacoes').value;
     var dataSolicitacao=document.getElementById('mc-data-solicitacao').value;
-    
-    var emailContent=`SOLICITAÇÃO DE CONTRATAÇÃO DE CORRESPONDENTE
 
-Prezados,
+    var obsBloco=observacoes
+      ? '═══════════════════════════════════════════════════════════════════════════════\nOBSERVAÇÕES\n═══════════════════════════════════════════════════════════════════════════════\n\n'+observacoes+'\n\n'
+      : '';
 
-Solicitamos a contratação de correspondente jurídico para a audiência abaixo:
+    var emailContent='SOLICITAÇÃO DE CONTRATAÇÃO DE CORRESPONDENTE\n\nPrezados,\n\nSolicitamos a contratação de correspondente jurídico para a audiência abaixo:\n\n'
+      +'═══════════════════════════════════════════════════════════════════════════════\n'
+      +'DADOS DA AUDIÊNCIA\n'
+      +'═══════════════════════════════════════════════════════════════════════════════\n\n'
+      +'Processo: '+(processo||'—')+'\n'
+      +'Cliente/Parte Principal: '+(cliente||'—')+'\n'
+      +'Parte Contrária: '+(parteContraria||'—')+'\n'
+      +'Data da Audiência: '+(data||'—')+'\n'
+      +'Horário: '+(horario||'—')+'\n'
+      +'Comarca: '+(comarca||'—')+' / '+(estado||'—')+'\n\n'
+      +'═══════════════════════════════════════════════════════════════════════════════\n'
+      +'SOLICITANTE\n'
+      +'═══════════════════════════════════════════════════════════════════════════════\n\n'
+      +'Advogado(a): '+advogado+'\n'
+      +'E-mail: '+email+'\n'
+      +'Data da Solicitação: '+(dataSolicitacao||'—')+'\n\n'
+      +obsBloco
+      +'Favor providenciar a contratação do correspondente e confirmar quando disponível.\n\n'
+      +'Atenciosamente,\n'+advogado;
 
-═══════════════════════════════════════════════════════════════════════════════
-DADOS DA AUDIÊNCIA
-═══════════════════════════════════════════════════════════════════════════════
+    // Armazenar solicitação na sessão
+    if(!window._solicitacoesCorrespondente) window._solicitacoesCorrespondente=[];
+    window._solicitacoesCorrespondente.push({
+      processo:processo, cliente:cliente, parte_contraria:parteContraria,
+      data_audiencia:data, horario:horario, comarca:comarca, estado:estado,
+      advogado:advogado, email_solicitante:email,
+      data_solicitacao:dataSolicitacao, observacoes:observacoes,
+      horario_envio:new Date().toLocaleString('pt-BR')
+    });
 
-Processo: ${processo||'—'}
-Cliente/Parte Principal: ${cliente||'—'}
-Parte Contrária: ${parteContraria||'—'}
-Data da Audiência: ${data||'—'}
-Horário: ${horario||'—'}
-Comarca: ${comarca||'—'} / ${estado||'—'}
-
-═══════════════════════════════════════════════════════════════════════════════
-SOLICITANTE
-═══════════════════════════════════════════════════════════════════════════════
-
-Advogado(a): ${advogado}
-E-mail: ${email}
-Data da Solicitação: ${dataSolicitacao||'—'}
-
-${observacoes?'═══════════════════════════════════════════════════════════════════════════════\nOBSERVAÇÕES\n═══════════════════════════════════════════════════════════════════════════════\n\n'+observacoes+'\n\n═════════════════════════════════════════════════════════════════════════════':''}
-
-Favor providenciar a contratação do correspondente e confirmar quando disponível.
-
-Atenciosamente,
-${advogado}`;
-
-    // Mostrar preview
-    document.getElementById('mc-preview-text').textContent=emailContent;
-    document.getElementById('mc-preview').style.display='block';
-    
-    // Mudar botão para "Copiar e Enviar"
-    var btn=document.querySelector('.mc-btn-primary[onclick="gerarEmailCorrespondente(event)"]');
-    if(btn){
-      btn.style.display='none';
+    // Atualizar botão de contratações
+    var btnC=document.getElementById('btn-contratacoes');
+    if(btnC){
+      var n=window._solicitacoesCorrespondente.length;
+      btnC.textContent='📊 Contratações ('+n+')';
+      btnC.style.display='';
     }
-    
-    // Mostrar botão de copiar e abrir email
-    var btnEnviar=document.createElement('button');
-    btnEnviar.className='mc-btn mc-btn-primary';
-    btnEnviar.style.display='inline-block';
-    btnEnviar.textContent='📋 Copiar Texto';
-    btnEnviar.onclick=function(ev){
-      ev.preventDefault();
-      navigator.clipboard.writeText(emailContent).then(function(){
-        alert('✅ Texto copiado! \n\nAgora abra seu email e:\n1. Acesse: audiencias@peixotocury.com.br\n2. Cole o texto copiado no corpo\n3. Clique enviar');
-        fecharModalCorrespondente();
-      }).catch(function(){
-        alert('Erro ao copiar. Selecione o texto manualmente do preview abaixo.');
-      });
-    };
-    
-    // Encontrar rodapé e adicionar botão
-    var footer=document.querySelector('.modal-correspondente-footer');
-    if(footer && !footer.querySelector('#mc-btn-copy-text')){
-      btnEnviar.id='mc-btn-copy-text';
-      footer.appendChild(btnEnviar);
-    }
+
+    // Enviar email diretamente para audiências trabalhistas
+    var assunto='[CORRESPONDENTE] '+processo+' — '+data+' — '+comarca+'/'+estado;
+    var toEmail='audiencias@peixotocury.com.br';
+    var mailto='mailto:'+toEmail;
+    mailto+='?cc='+encodeURIComponent(email);
+    mailto+='&subject='+encodeURIComponent(assunto);
+    mailto+='&body='+encodeURIComponent(emailContent);
+    window.location.href=mailto;
+
+    fecharModalCorrespondente();
   };
   
 })();
