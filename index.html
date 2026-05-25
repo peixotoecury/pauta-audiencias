@@ -511,15 +511,15 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:13
 
 /* ─── FILTERS ─── */
 .filters{
-  display:flex;gap:10px;
+  display:flex;flex-direction:column;gap:8px;
   margin-bottom:16px;
-  flex-wrap:wrap;
-  align-items:center;
   background:var(--surface);
   border:1px solid var(--border2);
   border-radius:var(--radius-lg);
   padding:12px 16px;
 }
+.filter-inputs-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+.filter-btns-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
 .filter-select,.filter-input{
   background:var(--bg2);
   border:1px solid var(--border2);
@@ -867,7 +867,9 @@ td.parte{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
   td.parte{max-width:130px;}
 
   /* ─── FILTERS: horizontal scroll ─── */
-  .filters{flex-wrap:nowrap;overflow-x:auto;gap:8px;padding:10px 12px;-webkit-overflow-scrolling:touch;}
+  .filters{gap:6px;padding:10px 12px;}
+  .filter-inputs-row{flex-wrap:nowrap;overflow-x:auto;gap:8px;-webkit-overflow-scrolling:touch;}
+  .filter-btns-row{flex-wrap:nowrap;overflow-x:auto;gap:6px;-webkit-overflow-scrolling:touch;}
   .filter-input{min-width:180px;}
   .filter-select{min-width:130px;}
 
@@ -1180,16 +1182,18 @@ td.parte{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
 
   /* ─── FILTROS MOBILE ─── */
   .filters{
-    flex-direction:column;gap:8px;padding:10px 12px;
+    flex-direction:column;gap:6px;padding:10px 12px;
     position:sticky;top:0;z-index:10;
     background:var(--bg2);
     border-radius:0;border-left:none;border-right:none;
   }
-  .filter-input{min-width:0;width:100%;}
-  .filter-select{width:100%;}
+  .filter-inputs-row{flex-wrap:nowrap;overflow-x:auto;gap:6px;-webkit-overflow-scrolling:touch;}
+  .filter-btns-row{flex-wrap:nowrap;overflow-x:auto;gap:6px;-webkit-overflow-scrolling:touch;}
+  .filter-input{min-width:160px;}
+  .filter-select{min-width:120px;}
   .filter-count{margin-left:0;}
   /* Botões de ação: rolagem horizontal */
-  .filters .export-btn{ flex-shrink:0; font-size:11px; padding:6px 10px; white-space:nowrap; }
+  .filter-btns-row .export-btn{ flex-shrink:0; font-size:11px; padding:6px 10px; white-space:nowrap; }
   .mobile-actions-row{
     display:flex; gap:6px; overflow-x:auto; width:100%;
     padding-bottom:2px; -webkit-overflow-scrolling:touch;
@@ -2588,6 +2592,7 @@ button.lp-submit-btn:hover{background:linear-gradient(135deg,#0d2540 0%,#1f4770 
 <div id="tab-pauta" style="display:none">
 <div class="section-title pauta-completa-title">🎯 Pauta Completa</div>
 <div class="filters" id="main-filters">
+<div class="filter-inputs-row">
 <input class="filter-input" id="search-main" placeholder="🔍 Buscar processo, cliente, parte, comarca, advogado..." type="text"/>
 <select class="filter-select" id="filter-grupo">
 <option value="">Todos os grupos</option>
@@ -2604,23 +2609,29 @@ button.lp-submit-btn:hover{background:linear-gradient(135deg,#0d2540 0%,#1f4770 
 <select class="filter-select" id="filter-prof">
 <option value="">Todos os profissionais</option>
 </select>
+<select class="filter-select" id="filter-resp-pasta">
+<option value="">Todos os resp. pasta</option>
+</select>
 <button class="filter-clear-btn" id="filter-clear-btn" onclick="clearFilters()" style="display:none">✕ Limpar filtros</button>
 <span class="filter-count" id="filter-count"></span>
-<button class="export-btn" onclick="exportarExcel()" title="Exportar pauta filtrada para Excel (.xlsx)">📥 Excel (.xlsx)</button>
-<button class="export-btn" id="btn-contratacoes" onclick="abrirPainelContratacoes()" title="Painel de solicitações de correspondente" style="background:#1a6b3c;color:#fff">📊 Contratações (<span id="cnt-contratacoes">0</span>)</button>
+</div>
+<div class="filter-btns-row">
 <button class="export-btn" id="btn-upload-pauta" onclick="pcAbrirUploadPauta(event)" title="Atualizar a pauta pelo upload da planilha" style="background:var(--cyan);color:var(--bg)">⬆️ Atualizar pauta</button>
 <button class="export-btn" id="btn-alertas-designacao" onclick="dispararAlertasDesignacao(event)" title="Enviar alertas das audiências sem designação por grupo" style="background:#C0392B">🚨 Alertas Designação</button>
 <button class="export-btn" id="btn-alerta-17h" onclick="abrirAlertas17hAmanha(event)" title="Enviar alerta de preparação das audiências do próximo dia útil" style="background:#003B5C;color:#fff">✉️ Alerta - 17h</button>
 <button class="export-btn" id="btn-dashboard-designacoes" onclick="abrirDashboardDesignacoesPendentes(event)" title="Ver dashboard de designações pendentes por grupo">📊 Dashboard Designações</button>
+<button class="export-btn" onclick="exportarExcel()" title="Exportar pauta filtrada para Excel (.xlsx)">📥 Excel (.xlsx)</button>
+<button class="export-btn" id="btn-contratacoes" onclick="abrirPainelContratacoes()" title="Painel de solicitações de correspondente" style="background:#1a6b3c;color:#fff">📊 Contratações (<span id="cnt-contratacoes">0</span>)</button>
+</div>
 </div>
 <div class="table-wrap">
 <table id="main-table">
 <thead>
 <tr>
-<th>Data</th><th>Hora</th><th>Grupo</th><th>Processo</th>
-<th>Cliente</th><th>Parte Contrária</th><th>Comarca</th><th>Vara/Turma</th><th>Tipo</th><th>Fase</th>
-<th>Adv. Audiência <span class="edit-badge" id="edit-badge" style="display:none">✏️ editável</span></th><th>Adv. Preparo</th>
-<th>Link/Obs.</th><th class="col-hide-mobile">📧 Convite</th><th class="col-hide-mobile">📧 Correspondente</th>
+<th style="width:72px;min-width:72px">Data</th><th style="width:52px;min-width:52px">Hora</th><th style="width:68px;min-width:68px">Grupo</th><th style="width:150px;min-width:130px">Processo</th>
+<th style="width:130px;min-width:100px">Cliente</th><th style="width:120px;min-width:90px">Parte Contrária</th><th style="width:110px;min-width:90px">Comarca</th><th style="width:110px;min-width:80px">Vara/Turma</th><th style="width:180px;min-width:140px">Tipo</th><th style="width:80px;min-width:60px">Fase</th>
+<th style="width:120px;min-width:100px">Adv. Audiência <span class="edit-badge" id="edit-badge" style="display:none">✏️ editável</span></th><th style="width:110px;min-width:90px">Adv. Preparo</th>
+<th style="width:130px;min-width:100px">Link/Obs.</th><th class="col-hide-mobile" style="width:80px;min-width:70px">📧 Convite</th><th class="col-hide-mobile" style="width:100px;min-width:90px">📧 Correspondente</th>
 </tr>
 </thead>
 <tbody id="main-tbody"></tbody>
@@ -4449,8 +4460,27 @@ function populateFilters(){
     }
   });
 
+  // Populate responsável da pasta (adv_preparo) filter
+  const rsel = document.getElementById('filter-resp-pasta');
+  if(rsel){
+    const respSet = new Set();
+    main.forEach(r=>{
+      const v = String(r.adv_preparo||'').trim();
+      if(!v || v==='Indicar Advogado' || v==='N/A' || PC_LIXO.test(v)) return;
+      if(siglasValidas.has(v)){ respSet.add(v); return; }
+      const s2 = window.PC_NOME_PARA_SIGLA[v];
+      if(s2) respSet.add(s2);
+    });
+    [...respSet].sort().forEach(s=>{
+      if(!Array.from(rsel.options).some(o=>o.value===s)){
+        const o=document.createElement('option');
+        o.value=s; o.textContent=profLabel(s); rsel.appendChild(o);
+      }
+    });
+  }
+
   // add listeners — only once
-  ['search-main','filter-grupo','filter-data','filter-tipo','filter-prof'].forEach(id=>{
+  ['search-main','filter-grupo','filter-data','filter-tipo','filter-prof','filter-resp-pasta'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.addEventListener(el.tagName==='INPUT'?'input':'change', ()=>{ _filterStatus=''; renderTable(); updateClearBtn(); });
   });
@@ -4462,7 +4492,8 @@ function hasActiveFilters(){
     document.getElementById('filter-grupo').value ||
     document.getElementById('filter-data').value ||
     document.getElementById('filter-tipo').value ||
-    document.getElementById('filter-prof').value;
+    document.getElementById('filter-prof').value ||
+    (document.getElementById('filter-resp-pasta') && document.getElementById('filter-resp-pasta').value);
 }
 
 function updateClearBtn(){
@@ -4476,6 +4507,7 @@ function clearFilters(){
   document.getElementById('filter-data').value='';
   document.getElementById('filter-tipo').value='';
   document.getElementById('filter-prof').value='';
+  const rp=document.getElementById('filter-resp-pasta'); if(rp) rp.value='';
   _filterStatus = '';
   updateClearBtn();
   renderTable();
@@ -4498,6 +4530,7 @@ function getFiltered(){
   const data = document.getElementById('filter-data').value;
   const tipo = document.getElementById('filter-tipo').value;
   const prof = document.getElementById('filter-prof').value;
+  const respPasta = (document.getElementById('filter-resp-pasta') || {}).value || '';
   return getPautaRecords().filter(r=>{
     // Visualizador/consulta pública devem enxergar a Pauta Completa.
     // O filtro automático por sigla só deve existir se algum perfil específico for criado para acesso individual.
@@ -4522,6 +4555,11 @@ function getFiltered(){
         const norm = v => { v=String(v||'').trim(); return _n2s[v]||v; };
         if(norm(r.adv_audiencia)!==prof) return false;
       }
+    }
+    if(respPasta){
+      const _n2s = window.PC_NOME_PARA_SIGLA || {};
+      const normRP = v => { v=String(v||'').trim(); return _n2s[v]||v; };
+      if(normRP(r.adv_preparo)!==respPasta) return false;
     }
     if(_filterStatus === 'indicar' && !valorEhPendenteDesignacaoDashboard(r.adv_audiencia)) return false;
     if(_filterStatus === 'designado' && (!r.adv_audiencia || r.adv_audiencia === 'Indicar Advogado' || r.adv_audiencia === 'N/A' || r.adv_audiencia === '')) return false;
@@ -4611,7 +4649,7 @@ function renderTable(){
       <td data-label="Cliente" class="parte" title="${r.parte_principal}" style="font-weight:700;color:#003B5C">${clienteNome}</td>
       <td data-label="Contrária" class="parte col-hide-mobile" title="${r.parte_contraria}">${r.parte_contraria||'—'}</td>
       <td data-label="Comarca" style="color:var(--muted);font-size:11px;white-space:nowrap">${r.comarca}/${r.estado}</td>
-      <td data-label="Vara" class="col-hide-mobile" style="color:var(--muted);font-size:11px;white-space:nowrap">${r.vara||'—'}</td>
+      <td data-label="Vara" class="col-hide-mobile" title="${r.vara||''}" style="color:var(--muted);font-size:11px;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.vara||'—'}</td>
       <td data-label="Tipo" style="min-width:160px">${tipoBadge(r.tipo)}</td>
       <td data-label="Fase" class="col-hide-mobile" style="color:var(--muted);font-size:11px">${r.fase||'—'}</td>
       <td data-label="Adv. Aud." style="font-size:11px">${audCell}</td>
