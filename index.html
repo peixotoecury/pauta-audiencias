@@ -7258,7 +7258,7 @@ function getPastAudiencias() {
   // Exclui casos sem indicação real (N/A, Indicar Advogado, vazio).
   return getPostRecords().filter(r => {
     if (!r.data) return false;
-    const isAudiencia = !String(r.tipo||'').startsWith('Perícia') && !String(r.tipo||'').toLowerCase().includes('perícia') && !String(r.tipo||'').toLowerCase().includes('pericia') && !String(r.tipo||'').includes('Julgamento - Vara') && !String(r.tipo||'').includes('Julgamento - Vara do Trabalho - Súmula');
+    const isAudiencia = !String(r.tipo||'').startsWith('Perícia') && !String(r.tipo||'').toLowerCase().includes('perícia') && !String(r.tipo||'').toLowerCase().includes('pericia') && !String(r.tipo||'').includes('Julgamento - Vara') && !String(r.tipo||'').includes('Julgamento - Vara do Trabalho - Súmula') && !String(r.tipo||'').includes('Sessão de Julgamento');
     const temIndicacao = r.adv_audiencia && r.adv_audiencia !== 'N/A' && r.adv_audiencia !== 'Indicar Advogado' && r.adv_audiencia.trim() !== '';
     return isAudiencia && isWithinD1Window(r.data) && temIndicacao;
   });
@@ -8007,6 +8007,10 @@ function renderResponsavel(){
 
           const horBadge = `<span style="color:var(--cyan);font-size:10px;font-weight:700;min-width:38px;flex-shrink:0">${r.horario}</span>`;
           
+          const isRespLogado = (typeof currentUserSigla!=='undefined' && currentUserSigla===resp) || (typeof currentRole!=='undefined' && currentRole==='admin');
+          const redesigBtn = isRespLogado
+            ? `<button onclick="event.stopPropagation();abrirModalRedesig('${(r.codigo||'').replace(/'/g,"\\'")}','${(r.processo||'').replace(/'/g,"\\'")}','${(r.parte_principal||'').replace(/'/g,"\\'")}','${(r.data||'').replace(/'/g,"\\'")}','${(r.horario||'').replace(/'/g,"\\'")}','${(r.comarca||'').replace(/'/g,"\\'")}','${resp}')" title="Comunicar redesignação ou cancelamento à Controladoria" style="flex-shrink:0;display:inline-flex;align-items:center;gap:3px;background:rgba(230,126,34,.15);border:1px solid rgba(230,126,34,.35);color:#E67E22;border-radius:5px;padding:3px 8px;font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap">📅 Redesig.</button>`
+            : '';
           return `<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 10px;background:var(--bg2);border-radius:7px;margin-bottom:5px;border-left:3px solid ${advColor}">
             ${horBadge}
             <div style="flex:1;min-width:0">
@@ -8015,6 +8019,7 @@ function renderResponsavel(){
               <div style="font-size:10px;color:${advColor};margin-top:2px;font-weight:600">${advIcon}${advLabel}</div>
             </div>
             ${r.link&&r.link.startsWith('http')?`<a href="${r.link.split(' ')[0]}" target="_blank" onclick="event.stopPropagation()" style="flex-shrink:0;display:inline-flex;align-items:center;gap:3px;background:rgba(0,174,239,.15);border:1px solid rgba(0,174,239,.3);color:var(--cyan);border-radius:5px;padding:3px 8px;font-size:10px;font-weight:600;text-decoration:none;white-space:nowrap">🔗</a>`:''}
+            ${redesigBtn}
           </div>`;
         }).join('')}
       </div>`;
@@ -8209,6 +8214,65 @@ function exportarExcel(){
   const cfg = pautaCompletaOficialConfig(rows);
   baixarXlsx(cfg, 'Pauta_de_Audiencias_OFICIAL');
   if(typeof showToast === 'function') showToast('📥 Pauta Completa exportada em Excel no padrão oficial!');
+}
+
+function abrirModalRedesig(codigo,processo,parte,data,horario,comarca,resp){
+  var modal=document.getElementById('modal-redesig-bg');
+  if(!modal) return;
+  document.getElementById('rd-processo').value=processo;
+  document.getElementById('rd-data').value=data+(horario?' às '+horario:'');
+  document.getElementById('rd-parte').value=parte;
+  document.getElementById('rd-motivo').value='';
+  document.getElementById('rd-nova-data').value='';
+  document.getElementById('rd-tipo').value='Redesignação';
+  document.getElementById('rd-nova-data-wrap').style.display='';
+  modal.setAttribute('data-resp',resp);
+  modal.setAttribute('data-codigo',codigo);
+  modal.setAttribute('data-comarca',comarca);
+  // Toggle nova-data row when type changes
+  document.getElementById('rd-tipo').onchange=function(){
+    document.getElementById('rd-nova-data-wrap').style.display=this.value==='Cancelamento'?'none':'';
+  };
+  modal.style.display='flex';
+}
+function fecharModalRedesig(){
+  var modal=document.getElementById('modal-redesig-bg');
+  if(modal) modal.style.display='none';
+}
+function enviarEmailRedesig(){
+  var tipo=document.getElementById('rd-tipo').value;
+  var motivo=(document.getElementById('rd-motivo').value||'').trim();
+  if(!motivo){alert('⚠️ Informe o motivo.');return;}
+  var processo=document.getElementById('rd-processo').value;
+  var dataOrig=document.getElementById('rd-data').value;
+  var parte=document.getElementById('rd-parte').value;
+  var novaData=document.getElementById('rd-nova-data').value;
+  var modal=document.getElementById('modal-redesig-bg');
+  var resp=modal.getAttribute('data-resp')||'';
+  var comarca=modal.getAttribute('data-comarca')||'';
+  var nomeResp=(typeof PROF!=='undefined'&&PROF[resp])?PROF[resp].nome:resp;
+  var emailResp=(typeof PROF!=='undefined'&&PROF[resp]&&PROF[resp].email)?PROF[resp].email:'';
+  var novaDataFmt=novaData?novaData.split('-').reverse().join('/'):'—';
+  var assunto='['+tipo.toUpperCase()+'] '+processo+' — '+dataOrig;
+  var corpo='Comunicação de '+tipo+'\n'
+    +'==================================================\n\n'
+    +'Processo: '+processo+'\n'
+    +'Parte Principal: '+parte+'\n'
+    +'Data/Horário original: '+dataOrig+'\n'
+    +'Comarca: '+comarca+'\n'
+    +'Tipo: '+tipo+'\n'
+    +(tipo==='Redesignação'?'Nova Data: '+novaDataFmt+'\n':'')
+    +'\nMotivo:\n'+motivo+'\n\n'
+    +'Responsável: '+nomeResp+' ['+resp+']\n\n'
+    +'—\nEnviado pelo sistema LAWgico · Pauta de Audiências';
+  var to='controladoria@peixotoecury.com.br';
+  var mailto='mailto:'+to;
+  if(emailResp) mailto+='?cc='+encodeURIComponent(emailResp);
+  mailto+=(emailResp?'&':'?')+'subject='+encodeURIComponent(assunto);
+  mailto+='&body='+encodeURIComponent(corpo);
+  window.location.href=mailto;
+  fecharModalRedesig();
+  if(typeof showToast==='function') showToast('📧 Email de '+tipo+' aberto no Outlook!');
 }
 
 function exportarContratacoes(){
@@ -8782,6 +8846,46 @@ ${rowsHtml}
   }
 }
 </style>
+
+<!-- MODAL REDESIGNAÇÃO / CANCELAMENTO -->
+<div id="modal-redesig-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center;padding:20px">
+  <div style="background:var(--surface);border:1px solid var(--border2);border-radius:14px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.5)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid var(--border2)">
+      <h3 style="font-size:14px;font-weight:700;color:var(--text);margin:0">📅 Comunicar Redesignação / Cancelamento</h3>
+      <button onclick="fecharModalRedesig()" style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer;padding:0;line-height:1">×</button>
+    </div>
+    <div style="padding:18px 20px">
+      <div style="background:rgba(230,126,34,.08);border:1px solid rgba(230,126,34,.25);border-radius:8px;padding:10px 14px;font-size:12px;color:#E67E22;margin-bottom:16px">
+        Preencha os dados e clique em <b>Enviar</b> — o email será aberto diretamente no Outlook endereçado à Controladoria.
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+        <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Processo</label><input id="rd-processo" type="text" readonly style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--muted);font-family:inherit;box-sizing:border-box"></div>
+        <div><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Data original</label><input id="rd-data" type="text" readonly style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--muted);font-family:inherit;box-sizing:border-box"></div>
+      </div>
+      <div style="margin-bottom:10px"><label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Parte Principal</label><input id="rd-parte" type="text" readonly style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:12px;color:var(--muted);font-family:inherit;box-sizing:border-box"></div>
+      <hr style="border:none;border-top:1px solid var(--border2);margin:14px 0">
+      <div style="margin-bottom:10px">
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Tipo de comunicação *</label>
+        <select id="rd-tipo" style="width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:7px 10px;font-size:12px;color:var(--text);font-family:inherit">
+          <option value="Redesignação">Redesignação (nova data marcada)</option>
+          <option value="Cancelamento">Cancelamento (sem nova data)</option>
+        </select>
+      </div>
+      <div id="rd-nova-data-wrap" style="margin-bottom:10px">
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Nova data da audiência</label>
+        <input id="rd-nova-data" type="date" style="width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:7px 10px;font-size:12px;color:var(--text);font-family:inherit;box-sizing:border-box">
+      </div>
+      <div style="margin-bottom:10px">
+        <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:4px">Motivo / Observações *</label>
+        <textarea id="rd-motivo" placeholder="Informe o motivo da redesignação ou cancelamento..." style="width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:6px;padding:8px 10px;font-size:12px;color:var(--text);font-family:inherit;outline:none;resize:vertical;min-height:70px;box-sizing:border-box"></textarea>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--border2)">
+      <button onclick="fecharModalRedesig()" style="padding:8px 18px;background:var(--surface2);border:1px solid var(--border2);color:var(--muted);border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Fechar</button>
+      <button onclick="enviarEmailRedesig()" style="padding:8px 18px;background:#E67E22;border:none;color:#fff;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">📧 Enviar para Controladoria</button>
+    </div>
+  </div>
+</div>
 
 <!-- MODAL SOLICITAÇÃO DE CORRESPONDENTE -->
 <div id="modal-correspondente-bg">
@@ -10429,9 +10533,15 @@ function abrirAlertas17hAmanha(ev){
     document.getElementById('mc-comarca').value=comarca;
     document.getElementById('mc-estado').value=estado;
     
-    // Limpa preview
+    // Limpa preview e campos de sessão anterior
     document.getElementById('mc-preview').style.display='none';
-    document.getElementById('mc-btn-copiar').style.display='none';
+    document.getElementById('mc-advogado').value='';
+    document.getElementById('mc-email').value='';
+    document.getElementById('mc-observacoes').value='';
+    var existingCopyBtn=document.getElementById('mc-btn-copy-text');
+    if(existingCopyBtn) existingCopyBtn.remove();
+    var oldPrimBtn=document.querySelector('.mc-btn-primary[style*="display: none"]');
+    if(oldPrimBtn) oldPrimBtn.style.display='';
     
     // Auto-fill data atual
     var today=new Date();
