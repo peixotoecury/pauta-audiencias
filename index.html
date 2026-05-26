@@ -4646,7 +4646,7 @@ function renderTable(){
     return `<tr class="${semDesignacaoAlerta ? 'alerta-sem-designacao' : ''}" onclick="openModal(${realIdx})" style="${hasConflict?'background:rgba(192,57,43,.07);border-left:3px solid #c0392b':''}">
       <td data-label="Data" style="white-space:nowrap;font-weight:500">${r.data}</td>
       <td data-label="Hora" style="white-space:nowrap;color:var(--cyan)">${r.horario}${conflictBadge}</td>
-      <td data-label="Grupo"><span style="color:var(--cyan);font-weight:600;font-size:11px">${r.grupo}</span></td>
+      <td data-label="Grupo" style="white-space:nowrap"><span style="color:var(--cyan);font-weight:600;font-size:11px">${r.grupo}</span></td>
       <td data-label="Processo" class="processo">${r.processo}</td>
       <td data-label="Cliente" class="parte" title="${r.parte_principal}" style="font-weight:700;color:#003B5C">${clienteNome}</td>
       <td data-label="Contrária" class="parte col-hide-mobile" title="${r.parte_contraria}">${r.parte_contraria||'—'}</td>
