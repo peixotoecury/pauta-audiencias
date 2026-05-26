@@ -866,12 +866,12 @@ td.parte{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
   td,th{padding:8px 10px !important;}
   td.parte{max-width:130px;}
 
-  /* ─── FILTERS: horizontal scroll ─── */
+  /* ─── FILTERS: wrap vertical ─── */
   .filters{gap:6px;padding:10px 12px;}
-  .filter-inputs-row{flex-wrap:nowrap;overflow-x:auto;gap:8px;-webkit-overflow-scrolling:touch;}
-  .filter-btns-row{flex-wrap:nowrap;overflow-x:auto;gap:6px;-webkit-overflow-scrolling:touch;}
-  .filter-input{min-width:180px;}
-  .filter-select{min-width:130px;}
+  .filter-inputs-row{flex-wrap:wrap;gap:6px;}
+  .filter-btns-row{flex-wrap:wrap;gap:6px;}
+  .filter-input{width:100%;min-width:0;}
+  .filter-select{flex:1 1 calc(50% - 3px);min-width:120px;}
 
   /* ─── MODAL: full screen ─── */
   .modal{
@@ -1183,21 +1183,16 @@ td.parte{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
   /* ─── FILTROS MOBILE ─── */
   .filters{
     flex-direction:column;gap:6px;padding:10px 12px;
-    position:sticky;top:0;z-index:10;
     background:var(--bg2);
     border-radius:0;border-left:none;border-right:none;
   }
-  .filter-inputs-row{flex-wrap:nowrap;overflow-x:auto;gap:6px;-webkit-overflow-scrolling:touch;}
-  .filter-btns-row{flex-wrap:nowrap;overflow-x:auto;gap:6px;-webkit-overflow-scrolling:touch;}
-  .filter-input{min-width:160px;}
-  .filter-select{min-width:120px;}
+  .filter-inputs-row{flex-wrap:wrap;gap:6px;}
+  .filter-btns-row{flex-wrap:wrap;gap:6px;}
+  .filter-input{width:100%;min-width:0;}
+  .filter-select{flex:1 1 calc(50% - 3px);min-width:120px;}
   .filter-count{margin-left:0;}
-  /* Botões de ação: rolagem horizontal */
-  .filter-btns-row .export-btn{ flex-shrink:0; font-size:11px; padding:6px 10px; white-space:nowrap; }
-  .mobile-actions-row{
-    display:flex; gap:6px; overflow-x:auto; width:100%;
-    padding-bottom:2px; -webkit-overflow-scrolling:touch;
-  }
+  .filter-btns-row .export-btn{flex:1 1 calc(50% - 3px);font-size:11px;padding:6px 10px;white-space:nowrap;text-align:center;}
+  .mobile-actions-row{display:flex;flex-wrap:wrap;gap:6px;width:100%;}
 
   /* ─── TABELA → CARDS MOBILE ─── */
   .table-wrap{border:none;border-radius:0;background:transparent;max-height:none;overflow:visible;}
