@@ -7518,7 +7518,6 @@ function buildPosCard(r, rec) {
         ${isDone ? '<span class="pos-badge-done">✅ Preenchido</span>' : '<span class="pos-badge-pending">⏳ Pendente</span>'}
         ${alerteBadge}
         ${rec?.acordo === 'sim' ? '<span class="pos-badge-novo" style="background:rgba(39,174,96,.15);color:#4CAF70;border-color:rgba(39,174,96,.3)">🤝 Acordo</span>' : ''}
-        <button style="display:inline-flex;align-items:center;gap:4px;background:rgba(0,174,239,.15);color:var(--cyan);border:1px solid rgba(0,174,239,.3);border-radius:5px;padding:4px 9px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .2s;margin-left:8px" onclick="event.stopPropagation();abrirModalCorrespondente('${escapeHtml(r.processo||'')}','${escapeHtml(r.parte_principal||'')}','${escapeHtml(r.parte_contraria||'')}','${escapeHtml(r.data||'')}','${escapeHtml(r.horario||'')}','${escapeHtml(r.comarca||'')}','${escapeHtml(r.estado||'')}')">📧 Correspondente</button>
         <span style="color:var(--muted);font-size:18px">${isDone ? '▲' : '▼'}</span>
       </div>
     </div>
