@@ -3477,7 +3477,7 @@ function getUsers(){
     {user:"ellenmary.silva@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:["Grupo E1"],sigla:"EMM",nome:"Ellen Mary Maciel Silva"},
     {user:"evandro.vessoni@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:["Grupo B1"],sigla:"EVV",nome:"Evandro Vecchio Vessoni"},
     {user:"erick.nakama@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:["Grupo A2"],sigla:"EYN",nome:"Erick Yuji Nakama"},
-    {user:"fabiana.gomes@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:[],sigla:"FCG",nome:"Fabiana Gomes"},
+    {user:"fabiana.gomes@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:["Grupo E2"],sigla:"FCG",nome:"Fabiana Gomes"},
     {user:"fabiano.filho@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:["Grupo E2"],sigla:"FFI",nome:"Fabiano Fritz Ferreira Filho"},
     {user:"fabricio.silva@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:["Grupo E1"],sigla:"FLS",nome:"Fabrício Lima da Silva"},
     {user:"fatima.ferreira@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:[],sigla:"FMF",nome:"Fátima Malveis Ferreira"},
@@ -4920,12 +4920,15 @@ function _buildLocalSnapshot(){
   let historico=[];
   try{ historico = (typeof getHistorico === 'function') ? (getHistorico() || []) : JSON.parse(localStorage.getItem('pauta_historico_v1')||'[]'); }catch{}
 
+  let contratacoes=[];
+  try{ contratacoes=JSON.parse(localStorage.getItem('pc_contratacoes')||'[]'); }catch{}
+
   return {
           pauta_main: (DATA && Array.isArray(DATA.main)) ? DATA.main : [],
           historico,
           pauta_updated_at: new Date().toISOString(),
           designacoes:desig,designacoes_meta:pcGetDesignMeta(),designacoes_log:pcGetDesignLog(),designacoes_conflitos:pcGetDesignConflicts(),pos_audiencia:posAud,pos_pericia:posPericia,
-          notas,pt,ctrl,preparo_info:prepInfo};
+          notas,pt,ctrl,preparo_info:prepInfo,contratacoes};
 }
 
 
@@ -5045,6 +5048,22 @@ function _applySnapshot(snap){
   if(snap.pt)         Object.entries(snap.pt).forEach(([c,v])=>{ try{localStorage.setItem('pt_'+c,JSON.stringify(v));}catch{} });
   if(snap.ctrl)       Object.entries(snap.ctrl).forEach(([c,v])=>{ try{localStorage.setItem('ctrl_aud_'+c,JSON.stringify(v));}catch{} });
   if(snap.preparo_info) Object.entries(snap.preparo_info).forEach(([c,v])=>{ try{localStorage.setItem('preparo_info_'+c,v);}catch{} });
+
+  if(Array.isArray(snap.contratacoes) && snap.contratacoes.length){
+    try{
+      const loc=JSON.parse(localStorage.getItem('pc_contratacoes')||'[]');
+      const byKey=new Map();
+      [...snap.contratacoes,...loc].forEach(c=>{
+        const k=(c.processo||'')+'|'+(c.horario_envio||'')+'|'+(c.data_audiencia||'');
+        if(!byKey.has(k)) byKey.set(k,c);
+      });
+      const merged=Array.from(byKey.values());
+      localStorage.setItem('pc_contratacoes',JSON.stringify(merged));
+      window._solicitacoesCorrespondente=merged;
+      var _cntEl=document.getElementById('cnt-contratacoes');
+      if(_cntEl) _cntEl.textContent=merged.length;
+    }catch(e){ console.warn('Restore contratacoes falhou',e); }
+  }
 }
 
 function _scheduleSave(){
