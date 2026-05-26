@@ -2766,6 +2766,14 @@ button.lp-submit-btn:hover{background:linear-gradient(135deg,#0d2540 0%,#1f4770 
     </div>
 </div>
 </div>
+<style>
+.pos-subtab-bar{display:flex;gap:6px;padding:14px 20px 0;flex-wrap:wrap;}
+.pos-subtab{padding:7px 18px;border-radius:7px;border:1.5px solid var(--border2);background:var(--surface);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .18s;font-family:var(--font);display:inline-flex;align-items:center;gap:6px;}
+.pos-subtab:hover{border-color:var(--cyan);color:var(--cyan);}
+.pos-subtab.active{background:var(--cyan);color:#fff;border-color:var(--cyan);}
+.pos-subtab .st-cnt{background:rgba(255,255,255,.25);border-radius:10px;padding:1px 7px;font-size:11px;font-weight:700;}
+.pos-subtab:not(.active) .st-cnt{background:var(--surface2);color:var(--text);}
+</style>
 <!-- PÓS-AUDIÊNCIA TAB -->
 <div id="tab-pos" style="display:none">
 <div class="pos-diretoria-wrap">
@@ -2790,6 +2798,12 @@ button.lp-submit-btn:hover{background:linear-gradient(135deg,#0d2540 0%,#1f4770 
 <div class="pos-summary-card"><div class="pos-summary-val" id="pos-kpi-acordo" style="color:var(--green)">0</div><div class="pos-summary-label">Com Acordo</div></div>
 <div class="pos-summary-card"><div class="pos-summary-val" id="pos-kpi-prazo" style="color:var(--orange)">0</div><div class="pos-summary-label">Com Prazo em Ata</div></div>
 </div>
+<!-- Sub-abas Pendentes / Preenchidas -->
+<div class="pos-subtab-bar">
+  <button class="pos-subtab active" id="pos-subtab-todos" onclick="setPosSubtab('todos')">Todas <span class="st-cnt" id="pos-st-cnt-todos">0</span></button>
+  <button class="pos-subtab" id="pos-subtab-pending" onclick="setPosSubtab('pending')">⏳ Pendentes <span class="st-cnt" id="pos-st-cnt-pending">0</span></button>
+  <button class="pos-subtab" id="pos-subtab-done" onclick="setPosSubtab('done')">✅ Preenchidas <span class="st-cnt" id="pos-st-cnt-done">0</span></button>
+</div>
 <!-- Filters + Export -->
 <div class="pos-filters">
 <select class="filter-select" id="pos-filter-dia" onchange="renderPos()" style="min-width:120px">
@@ -2798,7 +2812,7 @@ button.lp-submit-btn:hover{background:linear-gradient(135deg,#0d2540 0%,#1f4770 
 <select class="filter-select" id="pos-filter-grupo" onchange="renderPos()" style="min-width:130px">
 <option value="">Todos os grupos</option>
 </select>
-<select class="filter-select" id="pos-filter-status" onchange="renderPos()" style="min-width:130px">
+<select class="filter-select" id="pos-filter-status" onchange="renderPos()" style="display:none">
 <option value="">Todos</option>
 <option value="done">✅ Preenchido</option>
 <option value="pending">⏳ Pendente</option>
@@ -2836,10 +2850,15 @@ button.lp-submit-btn:hover{background:linear-gradient(135deg,#0d2540 0%,#1f4770 
 <div class="pos-summary-card"><div class="pos-summary-val" id="pericia-kpi-tecnica" style="color:var(--orange)">0</div><div class="pos-summary-label">Técnicas</div></div>
 <div class="pos-summary-card"><div class="pos-summary-val" id="pericia-kpi-pendente" style="color:var(--red)">0</div><div class="pos-summary-label">Pendentes</div></div>
 </div>
+<div class="pos-subtab-bar">
+  <button class="pos-subtab active" id="per-subtab-todos" onclick="setPericiaSubtab('todos')">Todas <span class="st-cnt" id="per-st-cnt-todos">0</span></button>
+  <button class="pos-subtab" id="per-subtab-pending" onclick="setPericiaSubtab('pending')">⏳ Pendentes <span class="st-cnt" id="per-st-cnt-pending">0</span></button>
+  <button class="pos-subtab" id="per-subtab-done" onclick="setPericiaSubtab('done')">✅ Preenchidas <span class="st-cnt" id="per-st-cnt-done">0</span></button>
+</div>
 <div class="pos-filters">
 <select class="filter-select" id="pericia-filter-dia" onchange="renderPericia()" style="min-width:120px"><option value="">Todos os dias</option></select>
 <select class="filter-select" id="pericia-filter-grupo" onchange="renderPericia()" style="min-width:130px"><option value="">Todos os grupos</option></select>
-<select class="filter-select" id="pericia-filter-status" onchange="renderPericia()" style="min-width:130px">
+<select class="filter-select" id="pericia-filter-status" onchange="renderPericia()" style="display:none">
 <option value="">Todos</option><option value="done">✅ Preenchido</option><option value="pending">⏳ Pendente</option>
 </select>
 <input class="filter-input" id="pericia-search" oninput="renderPericia()" placeholder="🔍 Buscar processo, parte ou perito..." style="flex:1;min-width:200px"/>
@@ -3265,6 +3284,7 @@ function buildDynamicConflicts() {
   });
   const parseMin = t => { if(!t) return -1; const [h,m]=String(t).split(':').map(Number); return isNaN(h)?-1:h*60+(m||0); };
   const isPresencial = r => { const t=String(r.tipo||'').toLowerCase(); return t.includes('presencial') && !t.includes('telepresencial'); };
+  const normVara = s => String(s||'').trim().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
   const out = [];
   Object.values(byAdvDay).forEach(group => {
     if(group.length < 2) return;
@@ -3272,6 +3292,8 @@ function buildDynamicConflicts() {
     for(let i=0;i<group.length;i++){
       for(let j=i+1;j<group.length;j++){
         const r1=group[i], r2=group[j];
+        const v1n=normVara(r1.vara), v2n=normVara(r2.vara);
+        if(v1n && v2n && v1n===v2n) continue;
         const t1=parseMin(r1.horario), t2=parseMin(r2.horario);
         const diff = (t1>=0&&t2>=0) ? t2-t1 : -1;
         const diffConflict = diff>=0 && diff<120;
@@ -7394,6 +7416,21 @@ function updatePostDiretoria(prefix, rows, dataStore){
   }
 }
 
+function setPosSubtab(val){
+  document.querySelectorAll('#tab-pos .pos-subtab').forEach(b=>b.classList.remove('active'));
+  document.getElementById(val==='pending'?'pos-subtab-pending':val==='done'?'pos-subtab-done':'pos-subtab-todos')?.classList.add('active');
+  const sel=document.getElementById('pos-filter-status');
+  if(sel) sel.value = val==='todos'?'':val;
+  renderPos();
+}
+function setPericiaSubtab(val){
+  document.querySelectorAll('#tab-pericia .pos-subtab').forEach(b=>b.classList.remove('active'));
+  document.getElementById(val==='pending'?'per-subtab-pending':val==='done'?'per-subtab-done':'per-subtab-todos')?.classList.add('active');
+  const sel=document.getElementById('pericia-filter-status');
+  if(sel) sel.value = val==='todos'?'':val;
+  renderPericia();
+}
+
 function renderPos() {
   initPosFilters();
   
@@ -7426,6 +7463,9 @@ function renderPos() {
   document.getElementById('pos-kpi-total').textContent = totalDone;
   document.getElementById('pos-kpi-acordo').textContent = totalAcordo;
   document.getElementById('pos-kpi-prazo').textContent = totalPrazo;
+  const _psTot=document.getElementById('pos-st-cnt-todos'); if(_psTot) _psTot.textContent=allRows.length;
+  const _psDone=document.getElementById('pos-st-cnt-done'); if(_psDone) _psDone.textContent=totalDone;
+  const _psPend=document.getElementById('pos-st-cnt-pending'); if(_psPend) _psPend.textContent=allRows.length-totalDone;
   
   document.getElementById('pos-count').textContent = rows.length + ' audiência' + (rows.length !== 1 ? 's' : '');
   
@@ -7839,10 +7879,14 @@ function renderPericia(){
   if(statusF==='done') rows=rows.filter(r=>data[r.codigo]);
   if(statusF==='pending') rows=rows.filter(r=>!data[r.codigo]);
   const all=getPastPericias();
-  document.getElementById('pericia-kpi-total').textContent = all.filter(r=>data[r.codigo]).length;
+  const _perDone=all.filter(r=>data[r.codigo]).length;
+  document.getElementById('pericia-kpi-total').textContent = _perDone;
   document.getElementById('pericia-kpi-medica').textContent = all.filter(r=>data[r.codigo]?.tipo_pericia==='medica').length;
   document.getElementById('pericia-kpi-tecnica').textContent = all.filter(r=>data[r.codigo]?.tipo_pericia==='tecnica').length;
   document.getElementById('pericia-kpi-pendente').textContent = all.filter(r=>!data[r.codigo]).length;
+  const _prTot=document.getElementById('per-st-cnt-todos'); if(_prTot) _prTot.textContent=all.length;
+  const _prDone=document.getElementById('per-st-cnt-done'); if(_prDone) _prDone.textContent=_perDone;
+  const _prPend=document.getElementById('per-st-cnt-pending'); if(_prPend) _prPend.textContent=all.length-_perDone;
   document.getElementById('pericia-count').textContent = rows.length + ' perícia' + (rows.length!==1?'s':'');
   const list=document.getElementById('pericia-list');
   if(!rows.length){ list.innerHTML='<div class="pos-empty"><div class="pe-icon">🔬</div><div class="pe-text">Nenhuma perícia encontrada para os filtros selecionados.</div></div>'; return; }
