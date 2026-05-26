@@ -3293,10 +3293,15 @@ function buildDynamicConflicts() {
       for(let j=i+1;j<group.length;j++){
         const r1=group[i], r2=group[j];
         const v1n=normVara(r1.vara), v2n=normVara(r2.vara);
+        // mesma vara explícita → sem conflito
         if(v1n && v2n && v1n===v2n) continue;
+        // vara vazia + mesma comarca + ambas telepresenciais → mesmo local virtual → sem conflito
+        const ambosTelepres = !isPresencial(r1) && !isPresencial(r2);
+        if(ambosTelepres && (r1.comarca||'').toUpperCase()===(r2.comarca||'').toUpperCase()) continue;
         const t1=parseMin(r1.horario), t2=parseMin(r2.horario);
         const diff = (t1>=0&&t2>=0) ? t2-t1 : -1;
-        const diffConflict = diff>=0 && diff<120;
+        // regra dos 2h aplica só quando ao menos uma é presencial
+        const diffConflict = diff>=0 && diff<120 && !ambosTelepres;
         const comarcaConflict = (r1.comarca||'').toUpperCase() !== (r2.comarca||'').toUpperCase() && (isPresencial(r1) || isPresencial(r2));
         if(!diffConflict && !comarcaConflict) continue;
         out.push({
