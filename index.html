@@ -7359,15 +7359,26 @@ function isWithinD1Window(dataStr){
   return hoje >= start && hoje <= limite;
 }
 
+// Dias desde a audiência (0=hoje, null=futura ou inválida)
+function diasDesdeAudiencia(dataStr) {
+  const d = parsePtDateForPost(dataStr);
+  if(!d || isNaN(d)) return null;
+  const hoje = new Date(); hoje.setHours(0,0,0,0);
+  const aud = new Date(d); aud.setHours(0,0,0,0);
+  if(aud > hoje) return null;
+  return Math.floor((hoje - aud) / 86400000);
+}
+
 function getPastAudiencias() {
-  // Controle de pós: exibe somente audiências elegíveis do dia até D+1.
-  // Assim o advogado tem o dia da audiência e o dia seguinte para preencher.
-  // Exclui casos sem indicação real (N/A, Indicar Advogado, vazio).
+  const posData = getPosData();
   return getPostRecords().filter(r => {
     if (!r.data) return false;
     const isAudiencia = !String(r.tipo||'').startsWith('Perícia') && !String(r.tipo||'').toLowerCase().includes('perícia') && !String(r.tipo||'').toLowerCase().includes('pericia') && !String(r.tipo||'').includes('Julgamento - Vara') && !String(r.tipo||'').includes('Julgamento - Vara do Trabalho - Súmula') && !String(r.tipo||'').includes('Sessão de Julgamento');
     const temIndicacao = r.adv_audiencia && r.adv_audiencia !== 'N/A' && r.adv_audiencia !== 'Indicar Advogado' && r.adv_audiencia.trim() !== '';
-    return isAudiencia && isWithinD1Window(r.data) && temIndicacao;
+    if (!isAudiencia || !temIndicacao) return false;
+    if (posData[r.codigo]) return true; // preenchida → sempre mostra
+    const dias = diasDesdeAudiencia(r.data);
+    return dias !== null && dias <= 30;
   });
 }
 
@@ -7487,7 +7498,15 @@ function renderPos() {
 function buildPosCard(r, rec) {
   const isDone = !!rec;
   const advNome = PROF[r.adv_audiencia] ? PROF[r.adv_audiencia].nome : (r.adv_audiencia || '—');
-  
+  let alerteBadge = '';
+  if (!isDone) {
+    const diasD = diasDesdeAudiencia(r.data);
+    if (diasD !== null) {
+      const rest = 30 - diasD;
+      if (rest <= 0) alerteBadge = '<span style="display:inline-block;background:#c0392b;color:#fff;border-radius:5px;padding:3px 8px;font-size:11px;font-weight:700;margin-right:4px">🚨 Prazo esgotado</span>';
+      else if (rest <= 7) alerteBadge = `<span style="display:inline-block;background:rgba(230,126,34,.18);color:#e67e22;border:1px solid rgba(230,126,34,.45);border-radius:5px;padding:3px 8px;font-size:11px;font-weight:700;margin-right:4px">⚠️ Vence em ${rest}d</span>`;
+    }
+  }
   return `<div class="pos-card" id="poscard-${r.codigo}">
     <div class="pos-card-header" onclick="togglePosCard('${r.codigo}')">
       <div class="pos-card-meta">
@@ -7497,6 +7516,7 @@ function buildPosCard(r, rec) {
       </div>
       <div class="pos-card-badges">
         ${isDone ? '<span class="pos-badge-done">✅ Preenchido</span>' : '<span class="pos-badge-pending">⏳ Pendente</span>'}
+        ${alerteBadge}
         ${rec?.acordo === 'sim' ? '<span class="pos-badge-novo" style="background:rgba(39,174,96,.15);color:#4CAF70;border-color:rgba(39,174,96,.3)">🤝 Acordo</span>' : ''}
         <button style="display:inline-flex;align-items:center;gap:4px;background:rgba(0,174,239,.15);color:var(--cyan);border:1px solid rgba(0,174,239,.3);border-radius:5px;padding:4px 9px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .2s;margin-left:8px" onclick="event.stopPropagation();abrirModalCorrespondente('${escapeHtml(r.processo||'')}','${escapeHtml(r.parte_principal||'')}','${escapeHtml(r.parte_contraria||'')}','${escapeHtml(r.data||'')}','${escapeHtml(r.horario||'')}','${escapeHtml(r.comarca||'')}','${escapeHtml(r.estado||'')}')">📧 Correspondente</button>
         <span style="color:var(--muted);font-size:18px">${isDone ? '▲' : '▼'}</span>
@@ -7855,12 +7875,14 @@ function savePericiaData(d){ localStorage.setItem(PERICIA_KEY, JSON.stringify(d)
 function savePericiaCodigo(codigo, record){ const d=getPericiaData(); d[codigo]=record; savePericiaData(d); }
 function isPericiaRow(r){ return String(r.tipo||'').toLowerCase().includes('perícia') || String(r.tipo||'').toLowerCase().includes('pericia'); }
 function getPastPericias(){
-  // Controle de pós-perícia: exibe somente perícias elegíveis do dia até D+1.
-  // Exclui casos sem indicação real (N/A, Indicar Advogado, vazio).
+  const periciaData = getPericiaData();
   return getPostRecords().filter(r=>{
     if(!r.data || !isPericiaRow(r)) return false;
     const temIndicacao = r.adv_audiencia && r.adv_audiencia !== 'N/A' && r.adv_audiencia !== 'Indicar Advogado' && r.adv_audiencia.trim() !== '';
-    return isWithinD1Window(r.data) && temIndicacao;
+    if(!temIndicacao) return false;
+    if(periciaData[r.codigo]) return true; // preenchida → sempre mostra
+    const dias = diasDesdeAudiencia(r.data);
+    return dias !== null && dias <= 30;
   });
 }
 function initPericiaFilters(){
@@ -7900,6 +7922,15 @@ function renderPericia(){
 function buildPericiaCard(r,rec){
   const done=!!rec; const advNome=PROF[r.adv_audiencia]?PROF[r.adv_audiencia].nome:(r.adv_audiencia||'');
   const advLinha = advNome && advNome !== 'N/A' ? `Advogado da pauta: ${advNome} · ${r.grupo}` : `${r.grupo}`;
+  let alerteBadgeP = '';
+  if (!done) {
+    const diasD = diasDesdeAudiencia(r.data);
+    if (diasD !== null) {
+      const rest = 30 - diasD;
+      if (rest <= 0) alerteBadgeP = '<span style="display:inline-block;background:#c0392b;color:#fff;border-radius:5px;padding:3px 8px;font-size:11px;font-weight:700;margin-right:4px">🚨 Prazo esgotado</span>';
+      else if (rest <= 7) alerteBadgeP = `<span style="display:inline-block;background:rgba(230,126,34,.18);color:#e67e22;border:1px solid rgba(230,126,34,.45);border-radius:5px;padding:3px 8px;font-size:11px;font-weight:700;margin-right:4px">⚠️ Vence em ${rest}d</span>`;
+    }
+  }
   return `<div class="pos-card" id="periciacard-${r.codigo}">
     <div class="pos-card-header" onclick="togglePericiaCard('${r.codigo}')">
       <div class="pos-card-meta">
@@ -7907,7 +7938,7 @@ function buildPericiaCard(r,rec){
         <div class="pos-card-sub">${r.data} ${r.horario} · ${r.tipo} · ${r.comarca}/${r.estado} · ${r.processo}</div>
         <div class="pos-card-sub" style="margin-top:3px;color:var(--cyan)">${advLinha}</div>
       </div>
-      <div class="pos-card-badges">${done?'<span class="pos-badge-done">✅ Preenchido</span>':'<span class="pos-badge-pending">⏳ Pendente</span>'}<span style="color:var(--muted);font-size:18px">${done?'▲':'▼'}</span></div>
+      <div class="pos-card-badges">${done?'<span class="pos-badge-done">✅ Preenchido</span>':'<span class="pos-badge-pending">⏳ Pendente</span>'}${alerteBadgeP}<span style="color:var(--muted);font-size:18px">${done?'▲':'▼'}</span></div>
     </div>
     <div class="pos-form${done?' open':''}" id="periciaform-${r.codigo}">${buildPericiaForm(r,rec)}</div>
   </div>`;
