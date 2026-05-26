@@ -3251,6 +3251,37 @@ function getPostRecords() {
   });
 }
 const CONFLICTS = [{"data":"12/05/2026","adv":"MBF","adv_interno1":"ARC","adv_interno2":"RRU","hora1":"08:00","comarca1":"ARAXÁ","tipo1":"Audiência Inicial - Telepresencial","cod1":"103468","hora2":"09:55","comarca2":"FERNANDÓPOLIS","tipo2":"Audiência Una- Telepresencial","cod2":"104658","diff_min":115}];
+
+// ── CONFLITOS DINÂMICOS — mesmo profissional, mesmo dia, 2+ audiências ──────
+function buildDynamicConflicts() {
+  const records = getPautaRecords ? getPautaRecords() : (DATA.main || []);
+  const byAdvDay = {};
+  records.forEach(r => {
+    const adv = r.adv_audiencia;
+    if(!adv || adv==='N/A' || adv==='—' || adv==='Indicar Advogado' || String(adv).startsWith('Correspondente')) return;
+    const key = (r.data||'') + '||' + adv;
+    (byAdvDay[key] = byAdvDay[key] || []).push(r);
+  });
+  const parseMin = t => { if(!t) return -1; const [h,m]=String(t).split(':').map(Number); return isNaN(h)?-1:h*60+(m||0); };
+  const out = [];
+  Object.values(byAdvDay).forEach(group => {
+    if(group.length < 2) return;
+    group.sort((a,b)=>parseMin(a.horario)-parseMin(b.horario));
+    for(let i=0;i<group.length;i++){
+      for(let j=i+1;j<group.length;j++){
+        const r1=group[i], r2=group[j];
+        const t1=parseMin(r1.horario), t2=parseMin(r2.horario);
+        out.push({
+          data:r1.data, adv:r1.adv_audiencia,
+          hora1:r1.horario||'—', comarca1:r1.comarca||'—', tipo1:r1.tipo||'—', cod1:r1.codigo,
+          hora2:r2.horario||'—', comarca2:r2.comarca||'—', tipo2:r2.tipo||'—', cod2:r2.codigo,
+          diff_min:(t1>=0&&t2>=0)?t2-t1:0
+        });
+      }
+    }
+  });
+  return out;
+}
 const COMARCA_STATS = [{"comarca": "SANTO ANDRÉ", "total": 82}, {"comarca": "SÃO PAULO", "total": 32}, {"comarca": "PAULÍNIA", "total": 21}, {"comarca": "SÃO BERNARDO DO CAMPO", "total": 16}, {"comarca": "SÃO JOSÉ DOS CAMPOS", "total": 14}, {"comarca": "CAMPINAS", "total": 13}, {"comarca": "RIBEIRÃO PIRES", "total": 12}, {"comarca": "RIO DE JANEIRO", "total": 11}, {"comarca": "SÃO JOSÉ DO RIO PRETO", "total": 11}, {"comarca": "MOGI GUAÇU", "total": 7}, {"comarca": "CAÇAPAVA", "total": 7}, {"comarca": "FERNANDÓPOLIS", "total": 6}, {"comarca": "ARUJÁ", "total": 6}, {"comarca": "BARUERI", "total": 5}, {"comarca": "FRUTAL", "total": 5}, {"comarca": "ARAXÁ", "total": 5}, {"comarca": "MAUÁ", "total": 5}, {"comarca": "CASCAVEL", "total": 5}, {"comarca": "ITUIUTABA", "total": 4}, {"comarca": "ARAGUARI", "total": 4}, {"comarca": "MANHUAÇU", "total": 4}, {"comarca": "ARAÇATUBA", "total": 4}, {"comarca": "PATROCÍNIO", "total": 4}, {"comarca": "FORMOSA", "total": 3}, {"comarca": "HORTOLÂNDIA", "total": 3}, {"comarca": "SANTOS", "total": 3}, {"comarca": "ITURAMA", "total": 3}, {"comarca": "PIRACICABA", "total": 3}, {"comarca": "DRACENA", "total": 3}, {"comarca": "GUARAÍ", "total": 3}, {"comarca": "RIO GRANDE", "total": 3}, {"comarca": "CAMPO NOVO DOS PARECIS", "total": 2}, {"comarca": "CANDEIAS", "total": 2}, {"comarca": "PRESIDENTE PRUDENTE", "total": 2}, {"comarca": "SALVADOR", "total": 2}, {"comarca": "GOIÂNIA", "total": 2}, {"comarca": "OSASCO", "total": 2}, {"comarca": "MOGI MIRIM", "total": 2}, {"comarca": "LONDRINA", "total": 2}, {"comarca": "MONTENEGRO", "total": 2}, {"comarca": "CONTAGEM", "total": 2}, {"comarca": "PARANAGUÁ", "total": 2}, {"comarca": "COTIA", "total": 2}, {"comarca": "DOURADOS", "total": 2}, {"comarca": "ITAPEVI", "total": 1}, {"comarca": "ITAGUAÍ", "total": 1}, {"comarca": "CHAPADÃO DO SUL", "total": 1}, {"comarca": "UBERLÂNDIA", "total": 1}, {"comarca": "CORONEL FABRICIANO", "total": 1}, {"comarca": "CATALÃO", "total": 1}, {"comarca": "GUANAMBI", "total": 1}, {"comarca": "São Paulo", "total": 1}, {"comarca": "ABAETETUBA", "total": 1}, {"comarca": "NATAL", "total": 1}, {"comarca": "SOROCABA", "total": 1}, {"comarca": "DIADEMA", "total": 1}, {"comarca": "SÃO CAETANO DO SUL", "total": 1}, {"comarca": "OURINHOS", "total": 1}, {"comarca": "SAO JOSE DOS CAMPOS", "total": 1}, {"comarca": "MATÃO", "total": 1}, {"comarca": "BRASÍLIA", "total": 1}, {"comarca": "MARINGÁ", "total": 1}, {"comarca": "JUNDIAÍ", "total": 1}, {"comarca": "SÃO LUIS", "total": 1}, {"comarca": "SÃO MIGUEL DOS CAMPOS", "total": 1}, {"comarca": "PORTO SEGURO", "total": 1}, {"comarca": "ADAMANTINA", "total": 1}, {"comarca": "TRÊS PASSOS", "total": 1}, {"comarca": "BELO HORIZONTE", "total": 1}, {"comarca": "QUIRINÓPOLIS", "total": 1}, {"comarca": "GUARULHOS", "total": 1}, {"comarca": "ARARAQUARA", "total": 1}, {"comarca": "FOZ DO IGUAÇU", "total": 1}, {"comarca": "SÃO LEOPOLDO", "total": 1}, {"comarca": "ATIBAIA", "total": 1}, {"comarca": "MAFRA", "total": 1}, {"comarca": "INDAIATUBA", "total": 1}, {"comarca": "SANTANA DE PARNAÍBA", "total": 1}, {"comarca": "PORTO ALEGRE", "total": 1}];
 
 // ---- AUDIT LOG ----
@@ -4110,21 +4141,11 @@ async function initApp(){
   try{ popularClientesBanco(); }catch(e){ console.warn('Banco Cliente init ignorado:', e); }
   const main = getPautaRecords();
 
-  // Update conflict badge excluding N/A
-  const dataMinima = new Date(2026, 4, 14); // 14/05/2026
-  const validConflictCount = (CONFLICTS||[]).filter(c=>{
-    if(c.data){ 
-      const [dd,mm,yy]=c.data.split('/'); 
-      if(new Date(+yy,+mm-1,+dd).getTime() < dataMinima.getTime()) return false; 
-    }
-    const r1=DATA.main.find(r=>r.codigo===c.cod1);
-    const r2=DATA.main.find(r=>r.codigo===c.cod2);
-    if(!r1||!r2) return false;
-    if(r1.adv_audiencia!==c.adv || r2.adv_audiencia!==c.adv) return false;
-    return r1.adv_audiencia&&r1.adv_audiencia!=='N/A'&&r2.adv_audiencia&&r2.adv_audiencia!=='N/A';
-  }).length;
+  // Update conflict badge — dinâmico
+  const _dynConflicts = buildDynamicConflicts();
+  const validConflictCount = _dynConflicts.length;
   const badge=document.getElementById('conflict-badge');
-  if(badge){ badge.textContent=validConflictCount; if(validConflictCount===0) badge.style.display='none'; }
+  if(badge){ badge.textContent=validConflictCount; badge.style.display=validConflictCount===0?'none':''; }
 
   // ── KPIs ──
   const total = main.length;
@@ -4592,14 +4613,15 @@ function renderTable(){
   tbody.innerHTML = rows.map((r,i)=>{
     const realIdx = DATA.main.indexOf(r);
     const advAud = r.adv_audiencia || '';
-    const hasConflict = typeof CONFLICTS!=='undefined'
-      && r.adv_audiencia && r.adv_audiencia !== 'N/A'
+    const hasConflict = r.adv_audiencia && r.adv_audiencia !== 'N/A'
       && r.adv_audiencia !== 'Indicar Advogado'
       && !r.adv_audiencia.startsWith('Correspondente')
-      && (()=>{ if(!r.data) return false; const [dd,mm,yy]=r.data.split('/'); return new Date(+yy,+mm-1,+dd).getTime()>=pcGetPautaStart(DATA.main || []); })()
-      && CONFLICTS.some(c=>(c.cod1===r.codigo||c.cod2===r.codigo)
-          && c.adv === r.adv_audiencia
-          && (()=>{ if(!c.data) return false; const [dd,mm,yy]=c.data.split('/'); return new Date(+yy,+mm-1,+dd).getTime()>=pcGetPautaStart(DATA.main || []); })());
+      && (()=>{
+        if(!r.data) return false;
+        const [dd,mm,yy]=r.data.split('/');
+        if(new Date(+yy,+mm-1,+dd).getTime()<pcGetPautaStart(DATA.main||[])) return false;
+        return (DATA.main||[]).filter(x=>x.adv_audiencia===r.adv_audiencia && x.data===r.data).length >= 2;
+      })();
     const conflictBadge = hasConflict ? ' <span style="display:inline-block;background:#c0392b;color:#fff;border-radius:3px;padding:1px 5px;font-size:9px;font-weight:700;margin-left:4px;vertical-align:middle">⚠ CONFLITO</span>' : '';
     const advPre = r.adv_preparo || '';
     const clienteNome = (typeof clienteDaLinha === 'function') ? clienteDaLinha(r) : ((typeof clienteCanonico === 'function') ? clienteCanonico(r.parte_principal) : (r.parte_principal || '—'));
@@ -6898,20 +6920,7 @@ function removeUser(i){
 function renderConflitos(){
   const el=document.getElementById('conflict-list');
   if(!el) return;
-  // Filter: only from PAUTA_START onward, and only when adv_audiencia is set
-  const validConflicts = (CONFLICTS||[]).filter(c => {
-    // Date filter — same cutoff as getPautaRecords
-    if(c.data){
-      const [dd,mm,yy] = c.data.split('/');
-      if(new Date(+yy,+mm-1,+dd).getTime() < pcGetPautaStart(DATA.main || [])) return false;
-    }
-    const r1 = DATA.main.find(r=>r.codigo===c.cod1);
-    const r2 = DATA.main.find(r=>r.codigo===c.cod2);
-    if(!r1 || !r2) return false;
-    // If either advisor was changed, the conflict no longer applies
-    if(r1.adv_audiencia !== c.adv || r2.adv_audiencia !== c.adv) return false;
-    return r1.adv_audiencia && r1.adv_audiencia !== 'N/A' && r2.adv_audiencia && r2.adv_audiencia !== 'N/A';
-  });
+  const validConflicts = buildDynamicConflicts();
   if(validConflicts.length===0){el.innerHTML='<p style="color:var(--muted)">Nenhum conflito detectado.</p>';return;}
   el.innerHTML=validConflicts.map(c=>{
     const crit=c.diff_min<30;
