@@ -2638,7 +2638,7 @@ button.lp-submit-btn:hover{background:linear-gradient(135deg,#0d2540 0%,#1f4770 
 <!-- ADMIN -->
 <div class="tab-content" id="tab-conflitos" style="display:none;padding:20px 24px">
 <h2 style="color:#e74c3c;margin-bottom:6px;font-size:16px;font-weight:700">⚠️ Conflitos de Comarca</h2>
-<p style="color:var(--muted);font-size:12px;margin-bottom:18px">Mesmo advogado responsável · mesmo dia · comarcas diferentes · intervalo inferior a 2h.</p>
+<p style="color:var(--muted);font-size:12px;margin-bottom:18px">Mesmo advogado responsável · mesmo dia · intervalo inferior a 2h ou comarcas diferentes com audiência presencial.</p>
 <div id="conflict-list"></div>
 </div>
 <div class="tab-content" id="tab-histdesignacoes" style="display:none;padding:20px 24px">
@@ -3252,7 +3252,8 @@ function getPostRecords() {
 }
 const CONFLICTS = [{"data":"12/05/2026","adv":"MBF","adv_interno1":"ARC","adv_interno2":"RRU","hora1":"08:00","comarca1":"ARAXÁ","tipo1":"Audiência Inicial - Telepresencial","cod1":"103468","hora2":"09:55","comarca2":"FERNANDÓPOLIS","tipo2":"Audiência Una- Telepresencial","cod2":"104658","diff_min":115}];
 
-// ── CONFLITOS DINÂMICOS — mesmo profissional, mesmo dia, 2+ audiências ──────
+// ── CONFLITOS DINÂMICOS — mesmo profissional, mesmo dia ──────────────
+// Regra 1: intervalo < 2h  |  Regra 2: comarcas diferentes + ao menos uma presencial
 function buildDynamicConflicts() {
   const records = getPautaRecords ? getPautaRecords() : (DATA.main || []);
   const byAdvDay = {};
@@ -3263,6 +3264,7 @@ function buildDynamicConflicts() {
     (byAdvDay[key] = byAdvDay[key] || []).push(r);
   });
   const parseMin = t => { if(!t) return -1; const [h,m]=String(t).split(':').map(Number); return isNaN(h)?-1:h*60+(m||0); };
+  const isPresencial = r => { const t=String(r.tipo||'').toLowerCase(); return t.includes('presencial') && !t.includes('telepresencial'); };
   const out = [];
   Object.values(byAdvDay).forEach(group => {
     if(group.length < 2) return;
@@ -3271,16 +3273,29 @@ function buildDynamicConflicts() {
       for(let j=i+1;j<group.length;j++){
         const r1=group[i], r2=group[j];
         const t1=parseMin(r1.horario), t2=parseMin(r2.horario);
+        const diff = (t1>=0&&t2>=0) ? t2-t1 : -1;
+        const diffConflict = diff>=0 && diff<120;
+        const comarcaConflict = (r1.comarca||'').toUpperCase() !== (r2.comarca||'').toUpperCase() && (isPresencial(r1) || isPresencial(r2));
+        if(!diffConflict && !comarcaConflict) continue;
         out.push({
           data:r1.data, adv:r1.adv_audiencia,
           hora1:r1.horario||'—', comarca1:r1.comarca||'—', tipo1:r1.tipo||'—', cod1:r1.codigo,
           hora2:r2.horario||'—', comarca2:r2.comarca||'—', tipo2:r2.tipo||'—', cod2:r2.codigo,
-          diff_min:(t1>=0&&t2>=0)?t2-t1:0
+          diff_min:diff>=0?diff:0,
+          motivo:diffConflict&&comarcaConflict?'ambos':diffConflict?'intervalo':'comarca'
         });
       }
     }
   });
   return out;
+}
+let _conflictCache=null, _conflictCacheLen=-1;
+function getConflictCodigos() {
+  const len=(DATA.main||[]).length;
+  if(_conflictCache && _conflictCacheLen===len) return _conflictCache;
+  _conflictCacheLen=len; _conflictCache=new Set();
+  buildDynamicConflicts().forEach(c=>{ if(c.cod1) _conflictCache.add(c.cod1); if(c.cod2) _conflictCache.add(c.cod2); });
+  return _conflictCache;
 }
 const COMARCA_STATS = [{"comarca": "SANTO ANDRÉ", "total": 82}, {"comarca": "SÃO PAULO", "total": 32}, {"comarca": "PAULÍNIA", "total": 21}, {"comarca": "SÃO BERNARDO DO CAMPO", "total": 16}, {"comarca": "SÃO JOSÉ DOS CAMPOS", "total": 14}, {"comarca": "CAMPINAS", "total": 13}, {"comarca": "RIBEIRÃO PIRES", "total": 12}, {"comarca": "RIO DE JANEIRO", "total": 11}, {"comarca": "SÃO JOSÉ DO RIO PRETO", "total": 11}, {"comarca": "MOGI GUAÇU", "total": 7}, {"comarca": "CAÇAPAVA", "total": 7}, {"comarca": "FERNANDÓPOLIS", "total": 6}, {"comarca": "ARUJÁ", "total": 6}, {"comarca": "BARUERI", "total": 5}, {"comarca": "FRUTAL", "total": 5}, {"comarca": "ARAXÁ", "total": 5}, {"comarca": "MAUÁ", "total": 5}, {"comarca": "CASCAVEL", "total": 5}, {"comarca": "ITUIUTABA", "total": 4}, {"comarca": "ARAGUARI", "total": 4}, {"comarca": "MANHUAÇU", "total": 4}, {"comarca": "ARAÇATUBA", "total": 4}, {"comarca": "PATROCÍNIO", "total": 4}, {"comarca": "FORMOSA", "total": 3}, {"comarca": "HORTOLÂNDIA", "total": 3}, {"comarca": "SANTOS", "total": 3}, {"comarca": "ITURAMA", "total": 3}, {"comarca": "PIRACICABA", "total": 3}, {"comarca": "DRACENA", "total": 3}, {"comarca": "GUARAÍ", "total": 3}, {"comarca": "RIO GRANDE", "total": 3}, {"comarca": "CAMPO NOVO DOS PARECIS", "total": 2}, {"comarca": "CANDEIAS", "total": 2}, {"comarca": "PRESIDENTE PRUDENTE", "total": 2}, {"comarca": "SALVADOR", "total": 2}, {"comarca": "GOIÂNIA", "total": 2}, {"comarca": "OSASCO", "total": 2}, {"comarca": "MOGI MIRIM", "total": 2}, {"comarca": "LONDRINA", "total": 2}, {"comarca": "MONTENEGRO", "total": 2}, {"comarca": "CONTAGEM", "total": 2}, {"comarca": "PARANAGUÁ", "total": 2}, {"comarca": "COTIA", "total": 2}, {"comarca": "DOURADOS", "total": 2}, {"comarca": "ITAPEVI", "total": 1}, {"comarca": "ITAGUAÍ", "total": 1}, {"comarca": "CHAPADÃO DO SUL", "total": 1}, {"comarca": "UBERLÂNDIA", "total": 1}, {"comarca": "CORONEL FABRICIANO", "total": 1}, {"comarca": "CATALÃO", "total": 1}, {"comarca": "GUANAMBI", "total": 1}, {"comarca": "São Paulo", "total": 1}, {"comarca": "ABAETETUBA", "total": 1}, {"comarca": "NATAL", "total": 1}, {"comarca": "SOROCABA", "total": 1}, {"comarca": "DIADEMA", "total": 1}, {"comarca": "SÃO CAETANO DO SUL", "total": 1}, {"comarca": "OURINHOS", "total": 1}, {"comarca": "SAO JOSE DOS CAMPOS", "total": 1}, {"comarca": "MATÃO", "total": 1}, {"comarca": "BRASÍLIA", "total": 1}, {"comarca": "MARINGÁ", "total": 1}, {"comarca": "JUNDIAÍ", "total": 1}, {"comarca": "SÃO LUIS", "total": 1}, {"comarca": "SÃO MIGUEL DOS CAMPOS", "total": 1}, {"comarca": "PORTO SEGURO", "total": 1}, {"comarca": "ADAMANTINA", "total": 1}, {"comarca": "TRÊS PASSOS", "total": 1}, {"comarca": "BELO HORIZONTE", "total": 1}, {"comarca": "QUIRINÓPOLIS", "total": 1}, {"comarca": "GUARULHOS", "total": 1}, {"comarca": "ARARAQUARA", "total": 1}, {"comarca": "FOZ DO IGUAÇU", "total": 1}, {"comarca": "SÃO LEOPOLDO", "total": 1}, {"comarca": "ATIBAIA", "total": 1}, {"comarca": "MAFRA", "total": 1}, {"comarca": "INDAIATUBA", "total": 1}, {"comarca": "SANTANA DE PARNAÍBA", "total": 1}, {"comarca": "PORTO ALEGRE", "total": 1}];
 
@@ -4614,15 +4629,7 @@ function renderTable(){
   tbody.innerHTML = rows.map((r,i)=>{
     const realIdx = DATA.main.indexOf(r);
     const advAud = r.adv_audiencia || '';
-    const hasConflict = r.adv_audiencia && r.adv_audiencia !== 'N/A'
-      && r.adv_audiencia !== 'Indicar Advogado'
-      && !r.adv_audiencia.startsWith('Correspondente')
-      && (()=>{
-        if(!r.data) return false;
-        const [dd,mm,yy]=r.data.split('/');
-        if(new Date(+yy,+mm-1,+dd).getTime()<pcGetPautaStart(DATA.main||[])) return false;
-        return (DATA.main||[]).filter(x=>x.adv_audiencia===r.adv_audiencia && x.data===r.data).length >= 2;
-      })();
+    const hasConflict = !!r.codigo && getConflictCodigos().has(r.codigo);
     const conflictBadge = hasConflict ? ' <span style="display:inline-block;background:#c0392b;color:#fff;border-radius:3px;padding:1px 5px;font-size:9px;font-weight:700;margin-left:4px;vertical-align:middle">⚠ CONFLITO</span>' : '';
     const advPre = r.adv_preparo || '';
     const clienteNome = (typeof clienteDaLinha === 'function') ? clienteDaLinha(r) : ((typeof clienteCanonico === 'function') ? clienteCanonico(r.parte_principal) : (r.parte_principal || '—'));
@@ -6924,10 +6931,10 @@ function renderConflitos(){
   const validConflicts = buildDynamicConflicts();
   if(validConflicts.length===0){el.innerHTML='<p style="color:var(--muted)">Nenhum conflito detectado.</p>';return;}
   el.innerHTML=validConflicts.map(c=>{
-    const crit=c.diff_min<30;
+    const crit=c.diff_min<30||c.motivo==='comarca'||c.motivo==='ambos';
     const bg=crit?'rgba(192,57,43,.15)':'rgba(230,126,34,.1)';
     const brd=crit?'#e74c3c':'var(--orange)';
-    const lbl=c.diff_min===0?'Mesmo horário!':c.diff_min+'min de intervalo';
+    const lbl=c.motivo==='comarca'?'Comarcas diferentes · presencial':c.motivo==='ambos'?'Comarcas diferentes · '+(c.diff_min===0?'mesmo horário':c.diff_min+'min'):c.diff_min===0?'Mesmo horário!':c.diff_min+'min de intervalo';
     const advInternoInfo = (c.adv_interno1 || c.adv_interno2) ? `<div style="font-size:11px;color:var(--muted);font-weight:600;margin:-4px 0 10px">Adv. interno: ${c.adv_interno1||'—'} / ${c.adv_interno2||'—'}</div>` : '';
     return `<div style="background:${bg};border:1px solid ${brd};border-radius:10px;padding:16px 20px;margin-bottom:14px">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
