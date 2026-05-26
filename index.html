@@ -10826,6 +10826,7 @@ function abrirAlertas17hAmanha(ev){
       });
       localStorage.setItem('pc_contratacoes',JSON.stringify(_arr));
       window._solicitacoesCorrespondente=_arr;
+      if(typeof _scheduleSave==='function') _scheduleSave();
     }catch(e){}
 
     // Atualizar contador do botão
