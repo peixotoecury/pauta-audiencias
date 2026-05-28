@@ -677,6 +677,30 @@ td.parte{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
 .badge-redesig{background:var(--red-lt);color:#E57373;border:1px solid rgba(192,57,43,.2);}
 .badge-verde{background:var(--green-lt);color:#4CAF70;border:1px solid rgba(39,174,96,.2);}
 
+/* ─── MODAL REPORTAR ERRO ─── */
+#modal-erro-bg{display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);align-items:center;justify-content:center;}
+#modal-erro-bg.active{display:flex;}
+#modal-erro{background:var(--surface);border:1px solid var(--border);border-radius:14px;width:460px;max-width:96vw;box-shadow:0 24px 64px rgba(0,0,0,.5);overflow:hidden;}
+.me-header{background:rgba(192,57,43,.12);border-bottom:1px solid rgba(192,57,43,.25);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;}
+.me-header h3{font-size:14px;font-weight:700;color:#e74c3c;display:flex;align-items:center;gap:8px;}
+.me-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:2px 6px;border-radius:4px;line-height:1;}
+.me-close:hover{background:rgba(255,255,255,.08);}
+.me-body{padding:20px;}
+.me-info{background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:var(--muted);line-height:1.7;}
+.me-info strong{color:var(--text);font-weight:600;}
+.me-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:block;}
+.me-tipos{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;}
+.me-tipo-btn{padding:6px 12px;border-radius:20px;border:1.5px solid var(--border2);background:var(--bg2);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;}
+.me-tipo-btn:hover{border-color:rgba(192,57,43,.4);color:#e74c3c;}
+.me-tipo-btn.active{background:rgba(192,57,43,.12);border-color:rgba(192,57,43,.5);color:#e74c3c;}
+.me-obs{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;padding:10px 12px;resize:vertical;min-height:80px;margin-top:4px;box-sizing:border-box;}
+.me-obs:focus{outline:none;border-color:rgba(192,57,43,.5);}
+.me-footer{padding:14px 20px;border-top:1px solid var(--border2);display:flex;gap:8px;justify-content:flex-end;}
+.me-btn-enviar{display:inline-flex;align-items:center;gap:6px;background:#c0392b;color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s;}
+.me-btn-enviar:hover{background:#a93226;}
+.me-btn-cancel{background:var(--bg2);color:var(--muted);border:1px solid var(--border2);border-radius:8px;padding:9px 14px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;}
+.me-btn-cancel:hover{background:var(--surface2);}
+
 /* ─── MODAL ─── */
 .modal-overlay{
   display:none;position:fixed;inset:0;
@@ -2652,7 +2676,7 @@ button.lp-submit-btn:hover{background:linear-gradient(135deg,#0d2540 0%,#1f4770 
 <th style="width:72px;min-width:72px">Data</th><th style="width:52px;min-width:52px">Hora</th><th style="width:68px;min-width:68px">Grupo</th><th style="width:150px;min-width:130px">Processo</th>
 <th style="width:130px;min-width:100px">Cliente</th><th style="width:120px;min-width:90px">Parte Contrária</th><th style="width:110px;min-width:90px">Comarca</th><th style="width:110px;min-width:80px">Vara/Turma</th><th style="width:180px;min-width:140px">Tipo</th><th style="width:80px;min-width:60px">Fase</th>
 <th style="width:120px;min-width:100px">Adv. Audiência <span class="edit-badge" id="edit-badge" style="display:none">✏️ editável</span></th><th style="width:110px;min-width:90px">Adv. Preparo</th>
-<th style="width:130px;min-width:100px">Link/Obs.</th><th class="col-hide-mobile" style="width:80px;min-width:70px">📧 Convite</th><th class="col-hide-mobile" style="width:100px;min-width:90px">📧 Correspondente</th>
+<th style="width:130px;min-width:100px">Link/Obs.</th><th class="col-hide-mobile" style="width:80px;min-width:70px">📧 Convite</th><th class="col-hide-mobile" style="width:100px;min-width:90px">📧 Correspondente</th><th style="width:70px;min-width:60px;text-align:center">⚠️ Erro</th>
 </tr>
 </thead>
 <tbody id="main-tbody"></tbody>
@@ -4735,6 +4759,7 @@ function renderTable(){
       <td data-label="Link" style="font-size:11px;max-width:200px">${linkCell}</td>
       <td data-label="Convite" class="col-hide-mobile" style="white-space:nowrap">${conviteInline}</td>
       <td data-label="Correspondente" class="col-hide-mobile" style="white-space:nowrap;text-align:center"><button style="display:inline-flex;align-items:center;gap:4px;background:rgba(0,174,239,.15);color:var(--cyan);border:1px solid rgba(0,174,239,.3);border-radius:5px;padding:4px 9px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .2s" onclick="event.stopPropagation();abrirModalCorrespondente('${escapeHtml(r.processo||'')}','${escapeHtml(r.parte_principal||'')}','${escapeHtml(r.parte_contraria||'')}','${escapeHtml(r.data||'')}','${escapeHtml(r.horario||'')}','${escapeHtml(r.comarca||'')}','${escapeHtml(r.estado||'')}')" onmouseover="this.style.background='rgba(0,174,239,.25)';this.style.borderColor='rgba(0,174,239,.5)'" onmouseout="this.style.background='rgba(0,174,239,.15)';this.style.borderColor='rgba(0,174,239,.3)'">📧 Contratar</button></td>
+      <td style="white-space:nowrap;text-align:center"><button onclick="event.stopPropagation();abrirModalErro(${realIdx})" style="display:inline-flex;align-items:center;gap:3px;background:rgba(192,57,43,.10);color:#c0392b;border:1px solid rgba(192,57,43,.30);border-radius:5px;padding:4px 8px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit;transition:all .2s" title="Reportar erro nesta audiência" onmouseover="this.style.background='rgba(192,57,43,.20)'" onmouseout="this.style.background='rgba(192,57,43,.10)'">⚠️ Erro</button></td>
     </tr>`;
   }).join('');
 }
@@ -10782,6 +10807,90 @@ function abrirAlertas17hAmanha(ev){
     if(!modal)return;
     modal.classList.remove('active');
   };
+
+  // ── REPORTAR ERRO ──────────────────────────────────────────
+  // ⚠️ Altere o endereço abaixo para o e-mail correto da equipe
+  var EMAIL_AUDIENCIAS = 'audiencias.trabalhistas@peixotoecury.com.br';
+
+  window.abrirModalErro = function(idx) {
+    var r = DATA.main[idx];
+    if(!r) return;
+    // guarda índice para usar no envio
+    document.getElementById('modal-erro-bg').dataset.idx = idx;
+    // monta bloco de informações do processo
+    var cliente = (typeof clienteDaLinha === 'function') ? clienteDaLinha(r) : (r.parte_principal || '—');
+    document.getElementById('me-info-processo').innerHTML =
+      '<strong>Processo:</strong> ' + (r.processo||'—') + '<br>' +
+      '<strong>Cliente:</strong> ' + cliente + '<br>' +
+      '<strong>Parte Contrária:</strong> ' + (r.parte_contraria||'—') + '<br>' +
+      '<strong>Data/Hora:</strong> ' + (r.data||'—') + ' às ' + (r.horario||'—') + '<br>' +
+      '<strong>Tipo:</strong> ' + (r.tipo||'—') + ' &nbsp;|&nbsp; <strong>Comarca:</strong> ' + (r.comarca||'—') + '/' + (r.estado||'') + '<br>' +
+      '<strong>Adv. Audiência:</strong> ' + (r.adv_audiencia||'—') + ' &nbsp;|&nbsp; <strong>Adv. Preparo:</strong> ' + (r.adv_preparo||'—');
+    // limpa seleções anteriores
+    document.querySelectorAll('.me-tipo-btn').forEach(function(b){ b.classList.remove('active'); });
+    document.getElementById('me-obs').value = '';
+    document.getElementById('modal-erro-bg').classList.add('active');
+    document.getElementById('me-obs').focus();
+  };
+
+  window.fecharModalErro = function() {
+    document.getElementById('modal-erro-bg').classList.remove('active');
+  };
+
+  window.selecionarTipoErro = function(btn) {
+    document.querySelectorAll('.me-tipo-btn').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+  };
+
+  window.enviarReporteErro = function() {
+    var tipoBtn = document.querySelector('.me-tipo-btn.active');
+    if(!tipoBtn) { alert('⚠️ Selecione o tipo de erro antes de enviar.'); return; }
+    var tipo = tipoBtn.textContent.trim();
+    var obs  = document.getElementById('me-obs').value.trim();
+    var idx  = parseInt(document.getElementById('modal-erro-bg').dataset.idx);
+    var r    = DATA.main[idx];
+    if(!r) return;
+
+    var quem = '';
+    try {
+      if(window.currentUserSigla && window.PROF && window.PROF[window.currentUserSigla])
+        quem = window.PROF[window.currentUserSigla].nome || window.currentUserSigla;
+      if(!quem && window.currentUserEmail) quem = window.currentUserEmail;
+    } catch(e){}
+    quem = quem || 'Usuário';
+
+    var cliente = (typeof clienteDaLinha === 'function') ? clienteDaLinha(r) : (r.parte_principal || '—');
+
+    var assunto = '[ERRO PAUTA] ' + tipo + ' — ' + (r.data||'') + ' ' + (r.horario||'') + ' — ' + cliente;
+
+    var corpo =
+      'Olá,\r\n\r\n' +
+      quem + ' sinalizou um possível erro na pauta de audiências:\r\n\r\n' +
+      '────────────────────────────────\r\n' +
+      'TIPO DE ERRO: ' + tipo + '\r\n' +
+      '────────────────────────────────\r\n' +
+      'Processo:       ' + (r.processo||'—') + '\r\n' +
+      'Cliente:        ' + cliente + '\r\n' +
+      'Parte Contrária:' + (r.parte_contraria||'—') + '\r\n' +
+      'Data / Hora:    ' + (r.data||'—') + ' às ' + (r.horario||'—') + '\r\n' +
+      'Tipo audiência: ' + (r.tipo||'—') + '\r\n' +
+      'Comarca / UF:   ' + (r.comarca||'—') + '/' + (r.estado||'') + '\r\n' +
+      'Vara / Turma:   ' + (r.vara||'—') + '\r\n' +
+      'Adv. Audiência: ' + (r.adv_audiencia||'—') + '\r\n' +
+      'Adv. Preparo:   ' + (r.adv_preparo||'—') + '\r\n' +
+      '────────────────────────────────\r\n' +
+      (obs ? 'Observação:\r\n' + obs + '\r\n────────────────────────────────\r\n' : '') +
+      '\r\nPor favor, verifique e corrija se necessário.\r\n\r\n' +
+      'Enviado por: ' + quem + '\r\n' +
+      'Sistema: LAWgico — Pauta de Audiências';
+
+    var mailto = 'mailto:' + encodeURIComponent(EMAIL_AUDIENCIAS) +
+      '?subject=' + encodeURIComponent(assunto) +
+      '&body='    + encodeURIComponent(corpo);
+
+    window.location.href = mailto;
+    fecharModalErro();
+  };
   
   window.gerarEmailCorrespondente=function(e){
     e.preventDefault();
@@ -10966,6 +11075,34 @@ function abrirAlertas17hAmanha(ev){
     <div style="display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--border2)">
       <button onclick="fecharModalRedesig()" style="padding:8px 18px;background:var(--surface2);border:1px solid var(--border2);color:var(--muted);border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">Fechar</button>
       <button onclick="enviarEmailRedesig()" style="padding:8px 18px;background:#E67E22;border:none;color:#fff;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit">📧 Enviar para Controladoria</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL REPORTAR ERRO NA PAUTA -->
+<div id="modal-erro-bg" onclick="if(event.target===this)fecharModalErro()">
+  <div id="modal-erro">
+    <div class="me-header">
+      <h3>⚠️ Reportar Erro na Pauta</h3>
+      <button class="me-close" onclick="fecharModalErro()" title="Fechar">✕</button>
+    </div>
+    <div class="me-body">
+      <div class="me-info" id="me-info-processo"></div>
+      <span class="me-label">Qual é o erro?</span>
+      <div class="me-tipos" id="me-tipos">
+        <button class="me-tipo-btn" onclick="selecionarTipoErro(this)">👤 Indicação errada</button>
+        <button class="me-tipo-btn" onclick="selecionarTipoErro(this)">📡 Modalidade errada</button>
+        <button class="me-tipo-btn" onclick="selecionarTipoErro(this)">🗓 Data / Horário</button>
+        <button class="me-tipo-btn" onclick="selecionarTipoErro(this)">❌ Cancelamento</button>
+        <button class="me-tipo-btn" onclick="selecionarTipoErro(this)">📍 Comarca / Vara</button>
+        <button class="me-tipo-btn" onclick="selecionarTipoErro(this)">✏️ Outro</button>
+      </div>
+      <span class="me-label">Observação (opcional)</span>
+      <textarea class="me-obs" id="me-obs" placeholder="Descreva o erro com detalhes para facilitar a correção..."></textarea>
+    </div>
+    <div class="me-footer">
+      <button class="me-btn-cancel" onclick="fecharModalErro()">Cancelar</button>
+      <button class="me-btn-enviar" onclick="enviarReporteErro()">✉️ Enviar por E-mail</button>
     </div>
   </div>
 </div>
