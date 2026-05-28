@@ -410,7 +410,7 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:13
 .nav-btn.active{color:var(--cyan);border-bottom-color:var(--cyan);}
 
 /* MAIN */
-.main{padding:24px;overflow-y:auto;overflow-x:hidden;flex:1;-webkit-overflow-scrolling:touch;}
+.main{padding:24px;overflow-y:auto;overflow-x:clip;flex:1;-webkit-overflow-scrolling:touch;}
 
 /* ─── STATS ─── */
 .stats-grid{
@@ -825,7 +825,7 @@ td.parte{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
   .topbar{padding:0 14px;height:52px;}
   .user-badge{display:none;}
   .logout-btn{padding:5px 10px;font-size:11px;}
-  .main{padding:12px 12px 80px;overflow-x:hidden;} /* bottom padding for bottom nav */
+  .main{padding:12px 12px 80px;overflow-x:clip;} /* bottom padding for bottom nav */
   .stats-grid{grid-template-columns:repeat(2,1fr);}
   .grupos-grid{grid-template-columns:repeat(2,1fr);}
   .adv-grid{grid-template-columns:1fr;}
@@ -2678,7 +2678,15 @@ button.lp-submit-btn:hover{background:linear-gradient(135deg,#0d2540 0%,#1f4770 
 <button class="export-btn" id="btn-contratacoes" onclick="abrirPainelContratacoes()" title="Painel de solicitações de correspondente" style="background:#1a6b3c;color:#fff">📊 Contratações (<span id="cnt-contratacoes">0</span>)</button>
 </div>
 </div>
-<div class="table-wrap">
+<!-- Controles de scroll horizontal -->
+<div id="table-scroll-nav" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+  <div style="display:flex;gap:6px;">
+    <button onclick="scrollTabelaMain(-300)" title="Rolar para a esquerda" style="display:inline-flex;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--border2);color:var(--cyan);border-radius:6px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">◀ Rolar</button>
+    <button onclick="scrollTabelaMain(300)"  title="Rolar para a direita"  style="display:inline-flex;align-items:center;gap:4px;background:var(--surface);border:1px solid var(--border2);color:var(--cyan);border-radius:6px;padding:4px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Rolar ▶</button>
+  </div>
+  <span id="scroll-hint" style="font-size:11px;color:var(--muted);display:none;">← arraste ou use os botões →</span>
+</div>
+<div class="table-wrap" id="main-table-wrap">
 <table id="main-table">
 <thead>
 <tr>
@@ -10142,8 +10150,8 @@ function abrirAlertas17hAmanha(ev){
 <style id="pc-mobile-premium-safe-final">
 @media (max-width:768px){
   :root{--pcm-bg:#F3F8FC;--pcm-card:#FFFFFF;--pcm-line:#D7E8F1;--pcm-dark:#003B5C;--pcm-blue:#006080;--pcm-cyan:#00A9E0;--pcm-text:#253944;--pcm-muted:#5F7E92;--pcm-shadow:0 8px 20px rgba(0,59,92,.08)}
-  html,body{background:var(--pcm-bg)!important;overflow-x:hidden!important;width:100%!important;}
-  #app,.main{background:var(--pcm-bg)!important;overflow-x:hidden!important;}
+  html,body{background:var(--pcm-bg)!important;overflow-x:clip!important;width:100%!important;}
+  #app,.main{background:var(--pcm-bg)!important;overflow-x:clip!important;}
   .main{padding:10px 10px 82px!important;}
 
   /* Login preservado e clicável */
@@ -10824,6 +10832,27 @@ function abrirAlertas17hAmanha(ev){
   function emailDestino(tipo) {
     return /pericia|perícia/i.test(tipo||'') ? EMAIL_PERICIA : EMAIL_AUDIENCIAS;
   }
+
+  // ── SCROLL HORIZONTAL DA TABELA ────────────────────────────
+  window.scrollTabelaMain = function(amount) {
+    var wrap = document.getElementById('main-table-wrap') || document.querySelector('.table-wrap');
+    if (!wrap) return;
+    wrap.scrollBy({ left: amount, behavior: 'smooth' });
+  };
+  // Mostra hint e atualiza estado dos botões conforme scroll
+  document.addEventListener('DOMContentLoaded', function() {
+    var wrap = document.getElementById('main-table-wrap');
+    if (!wrap) return;
+    function atualizarBotoes() {
+      var hint = document.getElementById('scroll-hint');
+      if (hint) hint.style.display = wrap.scrollWidth > wrap.clientWidth + 4 ? '' : 'none';
+    }
+    wrap.addEventListener('scroll', atualizarBotoes);
+    // MutationObserver para detectar quando a tabela é preenchida
+    var mo = new MutationObserver(atualizarBotoes);
+    mo.observe(wrap, { childList: true, subtree: true });
+    setTimeout(atualizarBotoes, 800);
+  });
 
   window.abrirModalErro = function(idx) {
     var r = DATA.main[idx];
