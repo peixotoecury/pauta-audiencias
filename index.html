@@ -10818,8 +10818,12 @@ function abrirAlertas17hAmanha(ev){
   };
 
   // ── REPORTAR ERRO ──────────────────────────────────────────
-  // ⚠️ Altere o endereço abaixo para o e-mail correto da equipe
-  var EMAIL_AUDIENCIAS = 'audiencias.trabalhistas@peixotoecury.com.br';
+  var EMAIL_AUDIENCIAS = 'audiencia.trabalhista@peixotoecury.com.br';
+  var EMAIL_PERICIA    = 'pericia.trabalhista@peixotoecury.com.br';
+
+  function emailDestino(tipo) {
+    return /pericia|perícia/i.test(tipo||'') ? EMAIL_PERICIA : EMAIL_AUDIENCIAS;
+  }
 
   window.abrirModalErro = function(idx) {
     var r = DATA.main[idx];
@@ -10893,7 +10897,7 @@ function abrirAlertas17hAmanha(ev){
       'Enviado por: ' + quem + '\r\n' +
       'Sistema: LAWgico — Pauta de Audiências';
 
-    var mailto = 'mailto:' + encodeURIComponent(EMAIL_AUDIENCIAS) +
+    var mailto = 'mailto:' + encodeURIComponent(emailDestino(r.tipo)) +
       '?subject=' + encodeURIComponent(assunto) +
       '&body='    + encodeURIComponent(corpo);
 
