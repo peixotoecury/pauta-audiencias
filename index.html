@@ -1611,6 +1611,15 @@ td.processo{color:#557789!important;}
 
 
 
+/* ─── MODAL REPORTAR ERRO: override tema claro (especificidade > button global) ─── */
+button.me-tipo-btn{background:var(--surface)!important;color:var(--muted)!important;border:1.5px solid var(--border2)!important;font-weight:600!important;box-shadow:none!important;}
+button.me-tipo-btn:hover{background:rgba(192,57,43,.08)!important;color:#c0392b!important;border-color:rgba(192,57,43,.40)!important;}
+button.me-tipo-btn.active{background:rgba(192,57,43,.14)!important;color:#c0392b!important;border-color:#c0392b!important;box-shadow:0 0 0 3px rgba(192,57,43,.22)!important;font-weight:700!important;}
+button.me-btn-enviar{background:#c0392b!important;color:#fff!important;border-color:#c0392b!important;}
+button.me-btn-enviar:hover{background:#a93226!important;border-color:#a93226!important;}
+button.me-btn-cancel{background:var(--surface)!important;color:var(--muted)!important;border:1px solid var(--border2)!important;}
+button.me-close{background:transparent!important;color:var(--muted)!important;border:none!important;box-shadow:none!important;}
+
 /* ─── BANCO CLIENTE / EXPORTAÇÃO CLIENTE ─── */
 #last-update-badge.update-badge{
   color:#334155!important;
@@ -10888,7 +10897,13 @@ function abrirAlertas17hAmanha(ev){
       '?subject=' + encodeURIComponent(assunto) +
       '&body='    + encodeURIComponent(corpo);
 
-    window.location.href = mailto;
+    // Usa <a> temporário para evitar bloqueio do Chrome com window.location.href
+    var link = document.createElement('a');
+    link.href = mailto;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(function(){ document.body.removeChild(link); }, 500);
     fecharModalErro();
   };
   
