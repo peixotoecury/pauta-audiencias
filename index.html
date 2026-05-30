@@ -2342,10 +2342,19 @@ button.lp-submit-btn{
   border-color:transparent !important;
 }
 button.lp-submit-btn:hover{background:linear-gradient(135deg,#0d2540 0%,#1f4770 100%) !important;}
-@media(max-width:720px){
-  .lp-wrap{flex-direction:column;}
-  .lp-left{flex:0 0 auto;padding:36px 28px;}
-  .lp-right{padding:36px 28px;}
+@media(max-width:768px){
+  #login-screen{align-items:flex-start;overflow-y:auto;}
+  .lp-wrap{flex-direction:column;min-height:100%;}
+  .lp-left{display:none;}
+  .lp-right{
+    flex:1;width:100%;min-height:100dvh;
+    padding:48px 24px 40px;
+    align-items:flex-start;justify-content:flex-start;
+    background:var(--bg,#0B1E2D);
+  }
+  .lp-form-inner{max-width:100%;}
+  .lp-title{font-size:22px;}
+  .lp-sub{margin-bottom:24px;}
 }
 </style>
 
