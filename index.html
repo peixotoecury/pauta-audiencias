@@ -2345,12 +2345,18 @@ button.lp-submit-btn:hover{background:linear-gradient(135deg,#0d2540 0%,#1f4770 
 @media(max-width:768px){
   #login-screen{align-items:flex-start;overflow-y:auto;}
   .lp-wrap{flex-direction:column;min-height:100%;}
-  .lp-left{display:none;}
+  .lp-left{
+    flex:0 0 auto;width:100%;
+    padding:24px 24px 20px;
+    justify-content:flex-start;
+  }
+  .lp-features{display:none;}
+  .lp-welcome-divider{display:none;}
   .lp-right{
-    flex:1;width:100%;min-height:100dvh;
-    padding:48px 24px 40px;
+    flex:1;width:100%;
+    padding:28px 24px 40px;
+    background:#fff;
     align-items:flex-start;justify-content:flex-start;
-    background:var(--bg,#0B1E2D);
   }
   .lp-form-inner{max-width:100%;}
   .lp-title{font-size:22px;}
