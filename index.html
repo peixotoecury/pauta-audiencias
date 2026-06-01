@@ -5005,12 +5005,14 @@ async function _binGet(){
 
 async function _binPut(data){
   try{
-    if(!_githubFileSha){
-      const check = await fetch(GITHUB_API, { headers: _ghHeaders() });
-      if(check.ok){ const j = await check.json(); _githubFileSha = j.sha; }
-    }
+    // Sempre busca o SHA atual antes de escrever para evitar conflito
+    const check = await fetch(GITHUB_API, { headers: _ghHeaders() });
+    if(check.ok){ const j = await check.json(); _githubFileSha = j.sha; }
     const payload = { dados: data, atualizado_em: new Date().toISOString() };
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload))));
+    const bytes = new TextEncoder().encode(JSON.stringify(payload));
+    let binary = '';
+    for(let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+    const content = btoa(binary);
     const body = { message: 'sync: ' + new Date().toISOString(), content, branch: 'main' };
     if(_githubFileSha) body.sha = _githubFileSha;
     const r = await fetch(GITHUB_API, {
@@ -5278,12 +5280,7 @@ async function applyEdits(){
       preparo_info: Object.assign({},loc.preparo_info,  snap.preparo_info||{})
     });
   } else {
-    const loc = _buildLocalSnapshot();
-    _applySnapshot(loc);
-    // Nuvem vazia: se há pauta local com dados, salva agora para todos verem
-    if(Array.isArray(loc.pauta_main) && loc.pauta_main.length && (currentRole==='admin'||currentRole==='editor')){
-      _binPut(loc).then(ok=>{ if(ok) _showSyncInd('✓ Pauta enviada à nuvem','var(--green)'); _hideSyncInd(3000); });
-    }
+    _applySnapshot(_buildLocalSnapshot());
   }
   _hideSyncInd(300);
 }
