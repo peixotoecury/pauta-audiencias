@@ -5278,7 +5278,12 @@ async function applyEdits(){
       preparo_info: Object.assign({},loc.preparo_info,  snap.preparo_info||{})
     });
   } else {
-    _applySnapshot(_buildLocalSnapshot());
+    const loc = _buildLocalSnapshot();
+    _applySnapshot(loc);
+    // Nuvem vazia: se há pauta local com dados, salva agora para todos verem
+    if(Array.isArray(loc.pauta_main) && loc.pauta_main.length && (currentRole==='admin'||currentRole==='editor')){
+      _binPut(loc).then(ok=>{ if(ok) _showSyncInd('✓ Pauta enviada à nuvem','var(--green)'); _hideSyncInd(3000); });
+    }
   }
   _hideSyncInd(300);
 }
