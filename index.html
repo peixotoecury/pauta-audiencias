@@ -9327,7 +9327,18 @@ const HIST_KEY = 'pauta_historico_v1';
 function getHistorico() {
   try { return JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); } catch { return []; }
 }
-function saveHistorico(arr) { localStorage.setItem(HIST_KEY, JSON.stringify(arr)); }
+function saveHistorico(arr) {
+  let data = arr;
+  while (data.length > 0) {
+    try {
+      localStorage.setItem(HIST_KEY, JSON.stringify(data));
+      return;
+    } catch(e) {
+      // quota excedida — descarta os 20% mais antigos e tenta novamente
+      data = data.slice(Math.ceil(data.length * 0.2));
+    }
+  }
+}
 
 // Absorve a pauta atual no histórico (merge por código, sem duplicar)
 function importarPautaHistorico() {
