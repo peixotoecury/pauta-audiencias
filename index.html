@@ -8451,7 +8451,7 @@ function pautaCompletaOficialConfig(rows){
     r.grupo || '', r.adv_audiencia || '', r.adv_preparo || '', r.link || ''
   ]);
   return {
-    sheet: '04.05.2026 a 15.05.2026',
+    sheet: (()=>{ const ds=(rows||[]).map(r=>r.data).filter(Boolean).map(d=>{ const[dd,mm,yy]=d.split('/'); return new Date(yy,mm-1,dd); }); const fmt=d=>`${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`; return ds.length ? fmt(new Date(Math.min(...ds)))+' a '+fmt(new Date(Math.max(...ds))) : 'Pauta'; })(),
     filename: 'Pauta_de_Audiencias_OFICIAL',
     headers,
     widths,
