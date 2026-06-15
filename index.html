@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿<!DOCTYPE html>
 
 <html lang="pt-BR">
 <head>
@@ -4995,6 +4995,16 @@ function _hideSyncInd(delay){
   }, delay||2000);
 }
 
+async function _binCheckTs(){
+  try{
+    const url = SUPABASE_URL + '/rest/v1/pauta_audiencias?id=eq.' + encodeURIComponent(SUPABASE_SNAPSHOT_ID) + '&select=atualizado_em';
+    const r = await fetch(url, { headers: _sbHeaders() });
+    if(!r.ok) return null;
+    const arr = await r.json();
+    return arr?.[0]?.atualizado_em || null;
+  }catch(e){ return null; }
+}
+
 async function _binGet(){
   try{
     const url = SUPABASE_URL + '/rest/v1/pauta_audiencias?id=eq.' + encodeURIComponent(SUPABASE_SNAPSHOT_ID) + '&select=dados,atualizado_em';
@@ -5967,6 +5977,8 @@ function pcStartCloudRealtime(){
       // NÃO RENDERIZA SE O MODAL ESTÁ ABERTO (pós-audiência, pós-perícia, etc)
       const modal = document.getElementById('modal');
       if(modal && modal.classList.contains('open')) return;
+      const ts = await _binCheckTs();
+      if(!ts || ts === _lastRemoteUpdatedAt) return;
       const snap = await _binGet();
       if(!snap) return;
       if(pcSnapshotMaisAntigoQueUpload(snap)) return;
@@ -5977,7 +5989,7 @@ function pcStartCloudRealtime(){
       try{ renderPericia(); }catch(e){}
       try{ renderHistorico(); }catch(e){}
     }catch(e){ console.warn('Atualização automática falhou', e); }
-  }, 30000);
+  }, 60000);
 }
 
 window.addEventListener('load', async()=>{
