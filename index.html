@@ -9770,9 +9770,12 @@ function getAudienciasSemDesignacao(){
   });
 }
 
-function montarCorpoAlertaDesignacao(linhasGrupo){
-  const linhas = linhasGrupo
-    .sort((a,b) => String(a.data||"").localeCompare(String(b.data||"")) || String(a.horario||"").localeCompare(String(b.horario||"")))
+function montarCorpoAlertaDesignacao(linhasGrupo, maxItens){
+  const ordenadas = linhasGrupo
+    .slice()
+    .sort((a,b) => String(a.data||"").localeCompare(String(b.data||"")) || String(a.horario||"").localeCompare(String(b.horario||"")));
+  const cortadas = maxItens ? ordenadas.slice(0, maxItens) : ordenadas;
+  const linhas = cortadas
     .map((r, i) => `${i+1}. ${r.data || "-"} ${r.horario || "-"} | ${r.grupo || "-"} | ${r.processo || "-"}
    Cliente: ${r.parte_principal || "-"}
    Reclamante/Parte contrária: ${r.parte_contraria || "-"}
@@ -9780,20 +9783,45 @@ function montarCorpoAlertaDesignacao(linhasGrupo){
    Comarca/UF: ${r.comarca || "-"}/${r.estado || "-"}
    Observação/Link: ${r.link || "-"}`)
     .join("\n\n");
+  const restantes = ordenadas.length - cortadas.length;
+  const aviso = restantes > 0 ? `\n\n[+ ${restantes} pendência(s) adicional(is) não incluída(s) por limite de tamanho do e-mail — texto completo copiado para a área de transferência, cole no corpo deste e-mail.]` : "";
 
-  return `Prezados,\n\nIdentificamos audiência(s) futura(s), a partir da pauta atual sincronizada, pendente(s) de designação sob sua responsabilidade na pauta completa, incluindo campos vazios e registros marcados como "Indicar Advogado".\n\n${linhas}\n\nFavor regularizar a designação na pauta.\n\nEste alerta deverá ser reiterado diariamente até a regularização.\n\nControladoria Jurídica`;
+  return `Prezados,\n\nIdentificamos audiência(s) futura(s), a partir da pauta atual sincronizada, pendente(s) de designação sob sua responsabilidade na pauta completa, incluindo campos vazios e registros marcados como "Indicar Advogado".\n\n${linhas}${aviso}\n\nFavor regularizar a designação na pauta.\n\nEste alerta deverá ser reiterado diariamente até a regularização.\n\nControladoria Jurídica`;
 }
 
-function montarMailtoAlertaDesignacao(email, linhasGrupo){
+const LIMITE_TAMANHO_MAILTO = 1800;
+
+function montarMailtoAlertaDesignacao(email, linhasGrupo, maxItens){
   const assunto = `Alerta diário - Audiências pendentes de designação (${linhasGrupo.length})`;
-  const corpo = montarCorpoAlertaDesignacao(linhasGrupo);
+  const corpo = montarCorpoAlertaDesignacao(linhasGrupo, maxItens);
   return `mailto:${encodeURIComponent(email)}?cc=${encodeURIComponent(CC_ALERTA_DESIGNACAO)}&subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
+}
+
+// Muitos clientes de e-mail (ex.: Outlook) rejeitam ou falham silenciosamente ao abrir
+// links mailto: acima de ~2000 caracteres. Quando isso ocorre, encurtamos o corpo do
+// e-mail para caber no limite e copiamos o texto completo para a área de transferência,
+// para o responsável colar manualmente.
+function abrirMailtoComFallback(email, rows){
+  let mailto = montarMailtoAlertaDesignacao(email, rows);
+  if(mailto.length > LIMITE_TAMANHO_MAILTO){
+    const corpoCompleto = montarCorpoAlertaDesignacao(rows);
+    navigator.clipboard?.writeText(corpoCompleto).catch(() => {});
+    let maxItens = rows.length;
+    do{
+      maxItens--;
+      mailto = montarMailtoAlertaDesignacao(email, rows, maxItens);
+    } while(mailto.length > LIMITE_TAMANHO_MAILTO && maxItens > 0);
+    if(typeof showToast === "function"){
+      showToast("E-mail muito grande: corpo resumido e texto completo copiado — cole no corpo do e-mail (Ctrl+V).");
+    }
+  }
+  window.location.href = mailto;
 }
 
 function abrirEmailAlertaDesignacao(email){
   const item = window.__alertasDesignacaoPorEmail && window.__alertasDesignacaoPorEmail[email];
   if(!item || !item.rows || !item.rows.length) return;
-  window.location.href = montarMailtoAlertaDesignacao(email, item.rows);
+  abrirMailtoComFallback(email, item.rows);
 }
 
 function copiarCorpoAlertaDesignacao(email){
@@ -9911,7 +9939,7 @@ function abrirEmailAlertaDesignacaoPorGrupo(grupoNormalizado){
   const rows = getAudienciasSemDesignacao().filter(r => normalizarGrupoAlertaDesignacao(r.grupo) === grupoNormalizado);
   if(!rows.length) return;
   const email = getEmailAlertaDesignacao(grupoNormalizado);
-  window.location.href = montarMailtoAlertaDesignacao(email, rows);
+  abrirMailtoComFallback(email, rows);
 }
 
 function dispararAlertasDesignacao(ev){
