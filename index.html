@@ -8797,6 +8797,7 @@ function clienteCanonico(nome){
   if(k.includes('ferrero')) return 'Ferrero do Brasil';
   if(k.includes('bimbo')) return 'Bimbo';
   if(k.includes('bridgestone')) return 'Bridgestone';
+  if(k.includes('syngenta') || k.includes('agrocerrado') || k.includes('kubix') || k.includes('produtecnica')) return 'Syngenta';   // ← linha NOVA
   return normTxt(nome);
 }
 
@@ -8973,11 +8974,11 @@ function mapaClienteModelo(modelo, rows){
   }
   if(modelo === 'mahle'){
     const headers = ['AUDIÊNCIA','DATA','HORÁRIO','RECLAMANTE','EMPRESA','PROCESSO','VARA DO TRABALHO','COMARCA','Advogado Responsável pela audiência','Matéria de Prova','Preposto','Testemunha','Link'];
-    return {sheet:'Pauta', filename:'Modelo_Mahle', headers, startCol:1, widths:[26,12,10,32,26,24,22,18,30,32,14,14,40], rows: rows.map(r=>[r.tipo||'', r.data||'', r.horario||'', r.parte_contraria||'', r.parte_principal||'', r.processo||'', r.vara||'', r.comarca||'', r.adv_audiencia||'', r.acao||'', r.preposto||'', r.testemunha||'', r.link||''])};
+    return {sheet:'Pauta', filename:'Modelo_Mahle', headers, startCol:1, widths:[26,12,10,32,26,24,22,18,30,32,14,14,40], rows: rows.map(r=>[r.tipo||'', r.data||'', r.horario||'', r.parte_contraria||'', r.parte_principal||'', r.processo||'', r.vara||'', r.comarca||'', r.adv_audiencia||'', r.materia_prova||'', r.preposto||'', r.testemunha||'', r.link||''])};
   }
   if(modelo === 'syngenta'){
     const headers = ['Status','Código P&C','Data','Horário','Tipo de Agendamento','Processo','Parte Principal','Terceiros','Parte Contrária','Comarca','UF','Vara','Equipe responsável','Advogado Responsável Audiência / SO','Advogado Responsável Preparo / Análise','Preposto','Matéria de Prova','Testemunha','Obs Testemunha','Íntegra dos Autos','Link da Audiência','Observação'];
-    return {sheet:'Pauta', filename:'Modelo_Syngenta', headers, startCol:1, widths:[12,12,12,10,26,24,30,22,30,20,8,22,16,26,26,14,32,14,26,20,40,30], rows: rows.map(r=>['', '', r.data||'', r.horario||'', r.tipo||'', r.processo||'', r.parte_principal||'', '', r.parte_contraria||'', r.comarca||'', r.estado||'', r.vara||'', '', r.adv_audiencia||'', r.adv_preparo||'', r.preposto||'', r.acao||'', r.testemunha||'', '', '', r.link||'', r.observacoes||''])};
+    return {sheet:'Pauta', filename:'Modelo_Syngenta', headers, startCol:1, widths:[12,12,12,10,26,24,30,22,30,20,8,22,16,26,26,14,32,14,26,20,40,30], rows: rows.map(r=>['', '', r.data||'', r.horario||'', r.tipo||'', r.processo||'', r.parte_principal||'', '', r.parte_contraria||'', r.comarca||'', r.estado||'', r.vara||'', '', r.adv_audiencia||'', r.adv_preparo||'', r.preposto||'', r.materia_prova||'', r.testemunha||'', '', '', r.link||'', r.observacoes||''])};
   }
   const headers = ['Data','Horário','Tipo de Audiência','Número do Processo','Cliente','Parte Contrária','Comarca','UF','Vara/Turma','Fase','Ação','Valor da Causa','Advogado da Audiência','Responsável pelo Preparo','Link/Observações'];
   return {sheet:'Pauta Cliente', filename:'Pauta_Cliente', headers, startCol:1, widths:[12,10,22,24,30,30,20,8,22,18,32,16,24,24,45], rows: rows.map(r=>[r.data||'', r.horario||'', r.tipo||'', r.processo||'', r.parte_principal||'', r.parte_contraria||'', r.comarca||'', r.estado||'', r.vara||'', r.fase||'', r.acao||'', r.valor||'', r.adv_audiencia||'', r.adv_preparo||'', r.link||''])};
