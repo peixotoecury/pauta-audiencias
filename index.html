@@ -2894,6 +2894,8 @@ button.lp-submit-btn:hover{background:linear-gradient(135deg,#0d2540 0%,#1f4770 
     <div style="font-size:12.5px;color:var(--muted);margin-bottom:12px;max-width:640px;">Base de testemunhas já identificadas em peças de processos anteriores. Pesquise pelo nome pra ver em quais processos e de qual lado (Reclamante/Reclamada) ela já apareceu — útil pra checar histórico de uma testemunha indicada pela parte contrária.</div>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
       <input class="filter-input" id="testemunhas-search" oninput="renderTestemunhasHistorico()" placeholder="🔍 Buscar nome da testemunha..." style="flex:1;min-width:260px;max-width:420px;">
+      <button type="button" class="alerta-btn-secondary" onclick="limparBuscaTestemunhas()">🗑 Limpar</button>
+      <button type="button" class="alerta-btn-secondary" onclick="exportarTestemunhasHistorico()">📥 Exportar Excel</button>
       <span class="filter-count" id="testemunhas-count"></span>
     </div>
   </div>
@@ -5231,39 +5233,40 @@ function _applySnapshot(snap){
   }
 }
 
+// Mescla o snapshot local com a versão mais recente da nuvem (por-chave, ex.: por
+// código de audiência) e grava. Busca a nuvem de novo antes de escrever porque o
+// pacote é salvo como um blob único: sem esse merge, quem tiver o app aberto há um
+// tempo sobrescreve pós-audiência/designações salvas por outra pessoa nesse intervalo
+// (perda de dados).
+async function _flushToCloud(){
+  let finalSnap;
+  try{
+    const snapAtual = _buildLocalSnapshot();
+    let remoteSnap = null;
+    try{ remoteSnap = await _binGet(); }catch(e){}
+    if(remoteSnap){
+      finalSnap = Object.assign({}, snapAtual, {
+        designacoes:      Object.assign({}, remoteSnap.designacoes||{},      snapAtual.designacoes||{}),
+        designacoes_meta: Object.assign({}, remoteSnap.designacoes_meta||{}, snapAtual.designacoes_meta||{}),
+        pos_audiencia:    Object.assign({}, remoteSnap.pos_audiencia||{},    snapAtual.pos_audiencia||{}),
+        pos_pericia:      Object.assign({}, remoteSnap.pos_pericia||{},      snapAtual.pos_pericia||{}),
+        notas:            Object.assign({}, remoteSnap.notas||{},            snapAtual.notas||{}),
+        pt:               Object.assign({}, remoteSnap.pt||{},               snapAtual.pt||{}),
+        ctrl:             Object.assign({}, remoteSnap.ctrl||{},             snapAtual.ctrl||{}),
+        preparo_info:     Object.assign({}, remoteSnap.preparo_info||{},     snapAtual.preparo_info||{})
+      });
+    } else {
+      finalSnap = snapAtual;
+    }
+  }catch(e){ finalSnap = _buildLocalSnapshot(); }
+  return await _binPut(finalSnap);
+}
+
 function _scheduleSave(){
   if(_syncTimer) clearTimeout(_syncTimer);
-  // Captura o snapshot imediatamente (antes do debounce), para não perder
-  // designações caso o polling sobrescreva DATA.main durante os 3s de espera.
-  const snapshotParaSalvar = _buildLocalSnapshot();
   _syncTimer=setTimeout(async()=>{
-    // Usa o snapshot capturado no momento do agendamento, mas mescla com edits
-    // locais mais recentes que possam ter chegado durante o debounce.
-    let finalSnap;
-    try{
-      const snapAtual = _buildLocalSnapshot();
-      // Busca a versão mais recente da nuvem e mescla os campos colaborativos
-      // (por-chave, ex.: por código de audiência) antes de sobrescrever o pacote.
-      // Sem isso, um usuário com o app aberto há tempo sobrescreve pós-audiência/
-      // designações salvas por outra pessoa nesse intervalo (perda de dados).
-      let remoteSnap = null;
-      try{ remoteSnap = await _binGet(); }catch(e){}
-      if(remoteSnap){
-        finalSnap = Object.assign({}, snapAtual, {
-          designacoes:      Object.assign({}, remoteSnap.designacoes||{},      snapAtual.designacoes||{}),
-          designacoes_meta: Object.assign({}, remoteSnap.designacoes_meta||{}, snapAtual.designacoes_meta||{}),
-          pos_audiencia:    Object.assign({}, remoteSnap.pos_audiencia||{},    snapAtual.pos_audiencia||{}),
-          pos_pericia:      Object.assign({}, remoteSnap.pos_pericia||{},      snapAtual.pos_pericia||{}),
-          notas:            Object.assign({}, remoteSnap.notas||{},            snapAtual.notas||{}),
-          pt:               Object.assign({}, remoteSnap.pt||{},               snapAtual.pt||{}),
-          ctrl:             Object.assign({}, remoteSnap.ctrl||{},             snapAtual.ctrl||{}),
-          preparo_info:     Object.assign({}, remoteSnap.preparo_info||{},     snapAtual.preparo_info||{})
-        });
-      } else {
-        finalSnap = snapAtual;
-      }
-    }catch(e){ finalSnap = snapshotParaSalvar; }
-    const ok=await _binPut(finalSnap);
+    _syncTimer=null;
+    const ok=await _flushToCloud();
     _showSyncInd(ok?'✓ Sincronizado':'✓ Salvo localmente', ok?'var(--green)':'var(--orange)');
     _hideSyncInd(2200);
   },3000);
@@ -7984,7 +7987,7 @@ function handlePosDrop(event, codigo) {
   if (area) area.dataset.filename = file.name;
 }
 
-function salvarPos(codigo) {
+async function salvarPos(codigo) {
   const prazo_ata = document.querySelector(`#poscard-${codigo} #radio-${codigo}-prazo_ata-sim`)?.classList.contains('active-sim') ? 'sim' : (document.querySelector(`#poscard-${codigo} #radio-${codigo}-prazo_ata-nao`)?.classList.contains('active-nao') ? 'nao' : '');
   const nova_data_bool = document.querySelector(`#poscard-${codigo} #radio-${codigo}-nova_data_bool-sim`)?.classList.contains('active-sim') ? 'sim' : (document.querySelector(`#poscard-${codigo} #radio-${codigo}-nova_data_bool-nao`)?.classList.contains('active-nao') ? 'nao' : '');
   const acordo = document.querySelector(`#poscard-${codigo} #radio-${codigo}-acordo-sim`)?.classList.contains('active-sim') ? 'sim' : (document.querySelector(`#poscard-${codigo} #radio-${codigo}-acordo-nao`)?.classList.contains('active-nao') ? 'nao' : '');
@@ -8028,9 +8031,22 @@ function salvarPos(codigo) {
   savePosCodigo(codigo, record);
   const _rAud = getPostRecords().find(x=>x.codigo===codigo);
   addAuditEntry('Pós-Audiência salva', `Código ${codigo} · ${_rAud ? _rAud.parte_principal + ' (' + _rAud.data + ')' : ''}`);
-  
-  showToast('✅ Registro salvo com sucesso!');
-  
+
+  // Envia pra nuvem AGORA (em vez de esperar o debounce de 3s) pra não perder o
+  // registro se a pessoa fechar a aba antes do envio automático terminar.
+  if (_syncTimer) clearTimeout(_syncTimer);
+  _showSyncInd('↻ Sincronizando...', 'var(--blue)');
+  const ok = await _flushToCloud();
+  _showSyncInd(ok ? '✓ Sincronizado' : '⚠ Só salvo localmente', ok ? 'var(--green)' : 'var(--orange)');
+  _hideSyncInd(2200);
+
+  if (ok) {
+    showToast('✅ Registro salvo com sucesso!');
+  } else {
+    showToast('⚠️ Salvo neste dispositivo, mas falhou ao enviar pra nuvem agora. Vou tentar de novo — não feche a aba ainda.');
+    _scheduleSave();
+  }
+
   // Update card badge sem re-renderizar o formulário inteiro
   const card = document.getElementById('poscard-' + codigo);
   if (card) {
@@ -10037,7 +10053,7 @@ function montarCorpoAlertaPosAudiencia(rows, maxItens){
    ${r.parte_principal || "-"} x ${r.parte_contraria || "-"}`).join("\n\n");
   const restantes = ordenadas.length - cortadas.length;
   const aviso = restantes > 0 ? `\n\n[+ ${restantes} pendência(s) adicional(is) — texto completo copiado para a área de transferência, cole no corpo deste e-mail.]` : "";
-  return `Prezados,\n\nIdentificamos audiência(s) já realizada(s) sem o registro de Pós-Audiência preenchido (incluindo testemunhas do Reclamante e da Reclamada, campo obrigatório):\n\n${linhas}${aviso}\n\nFavor regularizar o preenchimento na aba Pós-Audiência.\n\nControladoria Jurídica`;
+  return `Prezados,\n\nIdentificamos audiência(s) já realizada(s) sem o registro de Pós-Audiência preenchido. Abaixo os dados do processo:\n\n${linhas}${aviso}\n\nPor favor, regularizar o preenchimento na aba Pós-Audiência, pois é de extrema importância para o controle do escritório e devidos agendamentos, quando necessário.\n\nControladoria Jurídica`;
 }
 function montarMailtoAlertaPosAudiencia(email, rows, maxItens){
   const assunto = `Pendência de Pós-Audiência (${rows.length})`;
@@ -10148,6 +10164,63 @@ function _normTxtTest(s){
   return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
 }
 
+function getTestemunhasVivas(){
+  try{
+    const posData = getPosData();
+    const porCodigo = {};
+    getPastAudiencias().forEach(r => { porCodigo[r.codigo] = r; });
+    const out = [];
+    Object.entries(posData).forEach(([codigo, rec]) => {
+      const r = porCodigo[codigo];
+      if(!r || !rec || !Array.isArray(rec.testemunhas)) return;
+      rec.testemunhas.forEach(t => {
+        if(!t || !t.nome) return;
+        let lado = t.tipo || '';
+        if(lado === 'Autora') lado = 'Reclamante';
+        if(lado === 'Ré') lado = 'Reclamada';
+        out.push({
+          processo: r.processo || '',
+          nome: t.nome,
+          cliente: r.parte_principal || '',
+          lado,
+          trecho: 'Testemunha registrada no pós-audiência de ' + (r.data || '') + (t.avaliacao ? ' · Avaliação: ' + t.avaliacao : ''),
+          arquivo: 'Pós-audiência (sistema Pauta)',
+          origem: 'pos'
+        });
+      });
+    });
+    return out;
+  }catch(e){ return []; }
+}
+
+function limparBuscaTestemunhas(){
+  const input = document.getElementById('testemunhas-search');
+  if(input) input.value = '';
+  renderTestemunhasHistorico();
+}
+
+function exportarTestemunhasHistorico(){
+  const todas = TESTEMUNHAS_HISTORICO.concat(getTestemunhasVivas());
+  if(!todas.length){
+    showToast('Nenhuma testemunha na base.');
+    return;
+  }
+  const linhas = todas.map(t => ({
+    'Nº Processo': t.processo || '',
+    'Testemunha': t.nome || '',
+    'Cliente': t.cliente || '',
+    'Lado': t.lado || '',
+    'Trecho-base (evidência)': t.trecho || '',
+    'Arquivo(s) fonte': t.arquivo || ''
+  }));
+  const ws = XLSX.utils.json_to_sheet(linhas);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Testemunhas');
+  const dt = new Date().toLocaleDateString('pt-BR').replace(/\//g,'-');
+  XLSX.writeFile(wb, 'Testemunhas_Cadastradas_' + dt + '.xlsx');
+  showToast('✅ Excel de testemunhas exportado.');
+}
+
 function renderTestemunhasHistorico(){
   const qRaw = document.getElementById('testemunhas-search')?.value || '';
   const q = _normTxtTest(qRaw);
@@ -10159,7 +10232,8 @@ function renderTestemunhasHistorico(){
     if(countEl) countEl.textContent = '';
     return;
   }
-  const achados = TESTEMUNHAS_HISTORICO.filter(t => _normTxtTest(t.nome).includes(q));
+  const todasTestemunhas = TESTEMUNHAS_HISTORICO.concat(getTestemunhasVivas());
+  const achados = todasTestemunhas.filter(t => _normTxtTest(t.nome).includes(q));
   if(countEl) countEl.textContent = achados.length + ' resultado' + (achados.length!==1?'s':'');
   if(!achados.length){
     el.innerHTML = '<div class="pos-empty-mini">Nenhuma testemunha encontrada com esse nome.</div>';
