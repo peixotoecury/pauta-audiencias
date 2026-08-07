@@ -5242,8 +5242,26 @@ function _scheduleSave(){
     let finalSnap;
     try{
       const snapAtual = _buildLocalSnapshot();
-      // Mescla: pauta do snapshot atual (mais recente) + designações mais recentes
-      finalSnap = snapAtual;
+      // Busca a versão mais recente da nuvem e mescla os campos colaborativos
+      // (por-chave, ex.: por código de audiência) antes de sobrescrever o pacote.
+      // Sem isso, um usuário com o app aberto há tempo sobrescreve pós-audiência/
+      // designações salvas por outra pessoa nesse intervalo (perda de dados).
+      let remoteSnap = null;
+      try{ remoteSnap = await _binGet(); }catch(e){}
+      if(remoteSnap){
+        finalSnap = Object.assign({}, snapAtual, {
+          designacoes:      Object.assign({}, remoteSnap.designacoes||{},      snapAtual.designacoes||{}),
+          designacoes_meta: Object.assign({}, remoteSnap.designacoes_meta||{}, snapAtual.designacoes_meta||{}),
+          pos_audiencia:    Object.assign({}, remoteSnap.pos_audiencia||{},    snapAtual.pos_audiencia||{}),
+          pos_pericia:      Object.assign({}, remoteSnap.pos_pericia||{},      snapAtual.pos_pericia||{}),
+          notas:            Object.assign({}, remoteSnap.notas||{},            snapAtual.notas||{}),
+          pt:               Object.assign({}, remoteSnap.pt||{},               snapAtual.pt||{}),
+          ctrl:             Object.assign({}, remoteSnap.ctrl||{},             snapAtual.ctrl||{}),
+          preparo_info:     Object.assign({}, remoteSnap.preparo_info||{},     snapAtual.preparo_info||{})
+        });
+      } else {
+        finalSnap = snapAtual;
+      }
     }catch(e){ finalSnap = snapshotParaSalvar; }
     const ok=await _binPut(finalSnap);
     _showSyncInd(ok?'✓ Sincronizado':'✓ Salvo localmente', ok?'var(--green)':'var(--orange)');
@@ -7640,6 +7658,9 @@ function renderPos() {
 function buildPosCard(r, rec) {
   const isDone = !!rec;
   const advNome = PROF[r.adv_audiencia] ? PROF[r.adv_audiencia].nome : (r.adv_audiencia || '—');
+  const isCorrespondenteAud = typeof pcEhCorrespondenteAlerta17 === 'function' && pcEhCorrespondenteAlerta17(r.adv_audiencia);
+  const respPastaPessoa = isCorrespondenteAud && typeof pcPessoaPorSigla === 'function' ? pcPessoaPorSigla(r.adv_preparo) : null;
+  const respPastaNome = respPastaPessoa ? respPastaPessoa.nome : (r.adv_preparo || '—');
   let alerteBadge = '';
   if (!isDone) {
     const diasD = diasDesdeAudiencia(r.data);
@@ -7655,15 +7676,16 @@ function buildPosCard(r, rec) {
         <div class="pos-card-title">${r.parte_principal} × ${r.parte_contraria}</div>
         <div class="pos-card-sub">${r.data} ${r.horario} · ${r.tipo} · ${r.comarca}/${r.estado} · ${r.processo}</div>
         <div class="pos-card-sub" style="margin-top:3px;color:var(--cyan)">Adv. Audiência: ${advNome} · ${r.grupo}</div>
+        ${isCorrespondenteAud ? `<div class="pos-card-sub" style="margin-top:3px;color:#e07a1f;font-weight:600">📁 Responsável pela pasta: ${respPastaNome}</div>` : ''}
       </div>
       <div class="pos-card-badges">
         ${isDone ? '<span class="pos-badge-done">✅ Preenchido</span>' : '<span class="pos-badge-pending">⏳ Pendente</span>'}
         ${alerteBadge}
         ${rec?.acordo === 'sim' ? '<span class="pos-badge-novo" style="background:rgba(39,174,96,.15);color:#4CAF70;border-color:rgba(39,174,96,.3)">🤝 Acordo</span>' : ''}
-        <span style="color:var(--muted);font-size:18px">${isDone ? '▲' : '▼'}</span>
+        <span style="color:var(--muted);font-size:18px" id="posarrow-${r.codigo}">▼</span>
       </div>
     </div>
-    <div class="pos-form${isDone ? ' open' : ''}" id="posform-${r.codigo}">
+    <div class="pos-form" id="posform-${r.codigo}">
       ${buildPosForm(r, rec)}
     </div>
   </div>`;
@@ -7876,10 +7898,13 @@ function buildTestemunhaRow(codigo, idx, t) {
 function togglePosCard(codigo) {
   const form = document.getElementById('posform-' + codigo);
   if (!form) return;
+  const arrow = document.getElementById('posarrow-' + codigo);
   if (form.classList.contains('open')) {
     form.classList.remove('open');
+    if (arrow) arrow.textContent = '▼';
   } else {
     form.classList.add('open');
+    if (arrow) arrow.textContent = '▲';
   }
 }
 
