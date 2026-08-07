@@ -1351,6 +1351,11 @@ td.parte{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowr
   .pos-form-grid{grid-template-columns:1fr;}
   .pos-summary-grid{grid-template-columns:repeat(2,1fr);}
   .pos-testemunha-row{grid-template-columns:1fr;gap:6px;}
+  /* Sem isso, os badges (Pendente/Prazo esgotado) empurram o título/data pra uma
+     coluna tão estreita que o texto quebra palavra por palavra. */
+  .pos-card-header{flex-direction:column;align-items:stretch;gap:8px;}
+  .pos-card-title{white-space:normal;overflow:visible;text-overflow:unset;}
+  .pos-card-badges{justify-content:flex-start;}
 }
 
 /* === PADRÃO P&C CLARO — igual ao dashboard executivo === */
