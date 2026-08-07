@@ -7765,6 +7765,14 @@ function buildPosForm(r, rec) {
     </div>
 
     <div class="pos-divider">🧑‍⚖️ Testemunhas</div>
+    <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:10px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer">
+        <input type="checkbox" id="sem-test-reclamante-${r.codigo}" ${v.sem_testemunha_reclamante ? 'checked' : ''} onchange="posFieldChange('${r.codigo}')"> Não teve testemunha do Reclamante
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer">
+        <input type="checkbox" id="sem-test-reclamada-${r.codigo}" ${v.sem_testemunha_reclamada ? 'checked' : ''} onchange="posFieldChange('${r.codigo}')"> Não teve testemunha da Reclamada
+      </label>
+    </div>
     <div id="testemunhas-list-${r.codigo}">
       ${testemunhas.map((t, i) => buildTestemunhaRow(r.codigo, i, t)).join('')}
     </div>
@@ -7981,15 +7989,17 @@ function salvarPos(codigo) {
     });
   }
 
-  const temTestReclamante = testemunhas.some(t => t.tipo === 'Reclamante');
-  const temTestReclamada = testemunhas.some(t => t.tipo === 'Reclamada');
+  const sem_testemunha_reclamante = document.getElementById('sem-test-reclamante-' + codigo)?.checked || false;
+  const sem_testemunha_reclamada = document.getElementById('sem-test-reclamada-' + codigo)?.checked || false;
+  const temTestReclamante = sem_testemunha_reclamante || testemunhas.some(t => t.tipo === 'Reclamante');
+  const temTestReclamada = sem_testemunha_reclamada || testemunhas.some(t => t.tipo === 'Reclamada');
   if (!temTestReclamante || !temTestReclamada) {
     const faltando = [!temTestReclamante ? 'Reclamante' : null, !temTestReclamada ? 'Reclamada' : null].filter(Boolean).join(' e ');
-    showToast(`⚠ Informe ao menos 1 testemunha do ${faltando} antes de salvar.`);
+    showToast(`⚠ Informe ao menos 1 testemunha do ${faltando} (ou marque "Não teve testemunha") antes de salvar.`);
     return;
   }
 
-  const record = { prazo_ata, prazo_ata_descricao, nova_data_bool, nova_data, nova_horario, acordo, nome_juiz, adv_realiz, adv_contrario, preposto_nome, preposto_avaliacao, preposto_explicacao, testemunhas, ata_filename, observacoes, updated_at: new Date().toISOString() };
+  const record = { prazo_ata, prazo_ata_descricao, nova_data_bool, nova_data, nova_horario, acordo, nome_juiz, adv_realiz, adv_contrario, preposto_nome, preposto_avaliacao, preposto_explicacao, testemunhas, sem_testemunha_reclamante, sem_testemunha_reclamada, ata_filename, observacoes, updated_at: new Date().toISOString() };
   savePosCodigo(codigo, record);
   const _rAud = getPostRecords().find(x=>x.codigo===codigo);
   addAuditEntry('Pós-Audiência salva', `Código ${codigo} · ${_rAud ? _rAud.parte_principal + ' (' + _rAud.data + ')' : ''}`);
