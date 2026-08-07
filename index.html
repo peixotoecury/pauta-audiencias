@@ -5090,12 +5090,15 @@ function _buildLocalSnapshot(){
   let contratacoes=[];
   try{ contratacoes=JSON.parse(localStorage.getItem('pc_contratacoes')||'[]'); }catch{}
 
+  let testemunhasExtra=[];
+  try{ testemunhasExtra=JSON.parse(localStorage.getItem('testemunhas_extra_v1')||'[]'); }catch{}
+
   return {
           pauta_main: (DATA && Array.isArray(DATA.main)) ? DATA.main : [],
           historico,
           pauta_updated_at: new Date().toISOString(),
           designacoes:desig,designacoes_meta:pcGetDesignMeta(),designacoes_log:pcGetDesignLog(),designacoes_conflitos:pcGetDesignConflicts(),pos_audiencia:posAud,pos_pericia:posPericia,
-          notas,pt,ctrl,preparo_info:prepInfo,contratacoes};
+          notas,pt,ctrl,preparo_info:prepInfo,contratacoes,testemunhas_extra:testemunhasExtra};
 }
 
 
@@ -5231,6 +5234,18 @@ function _applySnapshot(snap){
       if(_cntEl) _cntEl.textContent=merged.length;
     }catch(e){ console.warn('Restore contratacoes falhou',e); }
   }
+
+  if(Array.isArray(snap.testemunhas_extra) && snap.testemunhas_extra.length){
+    try{
+      const loc=JSON.parse(localStorage.getItem('testemunhas_extra_v1')||'[]');
+      const byKey=new Map();
+      [...snap.testemunhas_extra,...loc].forEach(t=>{
+        const k=_testemunhaChave(t);
+        if(!byKey.has(k)) byKey.set(k,t);
+      });
+      localStorage.setItem('testemunhas_extra_v1',JSON.stringify(Array.from(byKey.values())));
+    }catch(e){ console.warn('Restore testemunhas_extra falhou',e); }
+  }
 }
 
 // Mescla o snapshot local com a versão mais recente da nuvem (por-chave, ex.: por
@@ -5253,7 +5268,15 @@ async function _flushToCloud(){
         notas:            Object.assign({}, remoteSnap.notas||{},            snapAtual.notas||{}),
         pt:               Object.assign({}, remoteSnap.pt||{},               snapAtual.pt||{}),
         ctrl:             Object.assign({}, remoteSnap.ctrl||{},             snapAtual.ctrl||{}),
-        preparo_info:     Object.assign({}, remoteSnap.preparo_info||{},     snapAtual.preparo_info||{})
+        preparo_info:     Object.assign({}, remoteSnap.preparo_info||{},     snapAtual.preparo_info||{}),
+        // Lista (não dicionário): merge por união, nunca perde item de nenhum dos dois lados.
+        testemunhas_extra: (function(){
+          const byKey = new Map();
+          [...(remoteSnap.testemunhas_extra||[]), ...(snapAtual.testemunhas_extra||[])].forEach(t=>{
+            byKey.set(_testemunhaChave(t), t);
+          });
+          return Array.from(byKey.values());
+        })()
       });
     } else {
       finalSnap = snapAtual;
@@ -8032,6 +8055,26 @@ async function salvarPos(codigo) {
   const _rAud = getPostRecords().find(x=>x.codigo===codigo);
   addAuditEntry('Pós-Audiência salva', `Código ${codigo} · ${_rAud ? _rAud.parte_principal + ' (' + _rAud.data + ')' : ''}`);
 
+  // Guarda as testemunhas na base permanente de busca (Aba Testemunhas), pra nunca
+  // depender da audiência ainda estar na janela ativa da pauta.
+  if (_rAud) {
+    testemunhas.forEach(t => {
+      if (!t.nome) return;
+      let lado = t.tipo || '';
+      if (lado === 'Autora') lado = 'Reclamante';
+      if (lado === 'Ré') lado = 'Reclamada';
+      addTestemunhaExtra({
+        processo: _rAud.processo || '',
+        nome: t.nome,
+        cliente: _rAud.parte_principal || '',
+        lado,
+        trecho: 'Testemunha registrada no pós-audiência de ' + (_rAud.data || '') + (t.avaliacao ? ' · Avaliação: ' + t.avaliacao : ''),
+        arquivo: 'Pós-audiência (sistema Pauta)',
+        origem: 'pos'
+      });
+    });
+  }
+
   // Envia pra nuvem AGORA (em vez de esperar o debounce de 3s) pra não perder o
   // registro se a pessoa fechar a aba antes do envio automático terminar.
   if (_syncTimer) clearTimeout(_syncTimer);
@@ -10193,6 +10236,36 @@ function getTestemunhasVivas(){
   }catch(e){ return []; }
 }
 
+// Base permanente de testemunhas que entram pelo pós-audiência. Diferente de
+// getTestemunhasVivas() (que só reflete o que ainda está na janela atual da pauta),
+// esta lista fica salva pra sempre e sincronizada entre computadores (igual pos_audiencia).
+function _testemunhaChave(t){ return (t.processo||'')+'|'+(t.nome||'')+'|'+(t.lado||''); }
+function getTestemunhasExtra(){
+  try{ return JSON.parse(localStorage.getItem('testemunhas_extra_v1')||'[]'); }catch(e){ return []; }
+}
+function addTestemunhaExtra(rec){
+  if(!rec || !rec.nome) return false;
+  try{
+    const arr = getTestemunhasExtra();
+    const k = _testemunhaChave(rec);
+    const idx = arr.findIndex(t => _testemunhaChave(t) === k);
+    if(idx >= 0) arr[idx] = Object.assign({}, arr[idx], rec);
+    else arr.push(rec);
+    localStorage.setItem('testemunhas_extra_v1', JSON.stringify(arr));
+    return true;
+  }catch(e){ return false; }
+}
+// Garante que tudo que já foi preenchido no pós-audiência (inclusive antes desta
+// função existir) entre na base permanente — roda a cada abertura da aba.
+function syncTestemunhasExtraFromPos(){
+  const vivas = getTestemunhasVivas();
+  if(!vivas.length) return false;
+  let changed = false;
+  vivas.forEach(t => { if(addTestemunhaExtra(t)) changed = true; });
+  if(changed) _scheduleSave();
+  return changed;
+}
+
 function limparBuscaTestemunhas(){
   const input = document.getElementById('testemunhas-search');
   if(input) input.value = '';
@@ -10200,7 +10273,7 @@ function limparBuscaTestemunhas(){
 }
 
 function exportarTestemunhasHistorico(){
-  const todas = TESTEMUNHAS_HISTORICO.concat(getTestemunhasVivas());
+  const todas = TESTEMUNHAS_HISTORICO.concat(getTestemunhasExtra());
   if(!todas.length){
     showToast('Nenhuma testemunha na base.');
     return;
@@ -10222,6 +10295,7 @@ function exportarTestemunhasHistorico(){
 }
 
 function renderTestemunhasHistorico(){
+  syncTestemunhasExtraFromPos();
   const qRaw = document.getElementById('testemunhas-search')?.value || '';
   const q = _normTxtTest(qRaw);
   const el = document.getElementById('testemunhas-resultado');
@@ -10232,7 +10306,7 @@ function renderTestemunhasHistorico(){
     if(countEl) countEl.textContent = '';
     return;
   }
-  const todasTestemunhas = TESTEMUNHAS_HISTORICO.concat(getTestemunhasVivas());
+  const todasTestemunhas = TESTEMUNHAS_HISTORICO.concat(getTestemunhasExtra());
   const achados = todasTestemunhas.filter(t => _normTxtTest(t.nome).includes(q));
   if(countEl) countEl.textContent = achados.length + ' resultado' + (achados.length!==1?'s':'');
   if(!achados.length){
