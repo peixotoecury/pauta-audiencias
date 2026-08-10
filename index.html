@@ -5363,7 +5363,10 @@ async function applyEdits(){
       notas:        Object.assign({},loc.notas,         snap.notas||{}),
       pt:           Object.assign({},loc.pt,            snap.pt||{}),
       ctrl:         Object.assign({},loc.ctrl,          snap.ctrl||{}),
-      preparo_info: Object.assign({},loc.preparo_info,  snap.preparo_info||{})
+      preparo_info: Object.assign({},loc.preparo_info,  snap.preparo_info||{}),
+      // Faltavam aqui: painel de Contratações e testemunhas extra nunca chegavam da nuvem no Sync.
+      contratacoes: Array.isArray(snap.contratacoes) ? snap.contratacoes : (loc.contratacoes||[]),
+      testemunhas_extra: Array.isArray(snap.testemunhas_extra) ? snap.testemunhas_extra : (loc.testemunhas_extra||[])
     });
   } else {
     _applySnapshot(_buildLocalSnapshot());
