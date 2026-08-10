@@ -5268,6 +5268,17 @@ async function _flushToCloud(){
       finalSnap = Object.assign({}, snapAtual, {
         designacoes:      Object.assign({}, remoteSnap.designacoes||{},      snapAtual.designacoes||{}),
         designacoes_meta: Object.assign({}, remoteSnap.designacoes_meta||{}, snapAtual.designacoes_meta||{}),
+        // Listas por id: merge por união, nunca perde entrada de histórico/conflito de nenhum dos lados.
+        designacoes_log: (function(){
+          const byId = new Map();
+          [...(remoteSnap.designacoes_log||[]), ...(snapAtual.designacoes_log||[])].forEach(e=>{ if(e && e.id) byId.set(e.id, e); });
+          return Array.from(byId.values()).sort((a,b)=>String(b.criado_em||'').localeCompare(String(a.criado_em||'')));
+        })(),
+        designacoes_conflitos: (function(){
+          const byId = new Map();
+          [...(remoteSnap.designacoes_conflitos||[]), ...(snapAtual.designacoes_conflitos||[])].forEach(e=>{ if(e && e.id) byId.set(e.id, e); });
+          return Array.from(byId.values()).sort((a,b)=>String(b.criado_em||'').localeCompare(String(a.criado_em||'')));
+        })(),
         pos_audiencia:    Object.assign({}, remoteSnap.pos_audiencia||{},    snapAtual.pos_audiencia||{}),
         pos_pericia:      Object.assign({}, remoteSnap.pos_pericia||{},      snapAtual.pos_pericia||{}),
         notas:            Object.assign({}, remoteSnap.notas||{},            snapAtual.notas||{}),
