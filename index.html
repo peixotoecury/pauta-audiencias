@@ -5465,7 +5465,18 @@ function pcDentroRetencao(dataStr){
 }
 function pcGetDesignMeta(){ return pcGetJSON(DESIGN_META_KEY, {}); }
 function pcSaveDesignMeta(v){
-  const entries = Object.entries(v||{}).filter(([,val])=>pcDentroRetencao(val&&val.atualizado_em));
+  // O meta só é consultado para audiências que estão na pauta carregada agora
+  // (ver pcAplicarProtecaoDesignacoesUpload) — entrada de audiência que já saiu da pauta
+  // nunca é lida por nada. Corte por essa relevância, não por data: em produção quase todo
+  // o volume (>85%) foi editado nos últimos 90 dias, então cortar por data sozinho não
+  // aliviava o localStorage. Sem pauta carregada ainda, cai no corte por data como salvaguarda.
+  const pautaCarregada = typeof DATA !== 'undefined' && Array.isArray(DATA.main) && DATA.main.length > 0;
+  const chavesAtivas = pautaCarregada ? new Set(DATA.main.map(r=>pcChaveAudiencia(r))) : null;
+  const entries = Object.entries(v||{}).filter(([k,val])=>{
+    if(!pautaCarregada) return pcDentroRetencao(val&&val.atualizado_em);
+    const idx = k.lastIndexOf('::');
+    return chavesAtivas.has(idx>=0 ? k.slice(0,idx) : k);
+  });
   pcSetJSON(DESIGN_META_KEY, Object.fromEntries(entries));
 }
 function pcGetDesignLog(){ return pcGetJSON(DESIGN_LOG_KEY, []); }
