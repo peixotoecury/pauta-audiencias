@@ -5186,7 +5186,7 @@ function _applySnapshot(snap){
   });
 
   if(snap.designacoes_meta){
-    try{ localStorage.setItem(DESIGN_META_KEY, JSON.stringify(Object.assign({}, pcGetDesignMeta(), snap.designacoes_meta||{}))); }catch{}
+    try{ pcSaveDesignMeta(Object.assign({}, pcGetDesignMeta(), snap.designacoes_meta||{})); }catch{}
   }
   if(Array.isArray(snap.designacoes_log)){
     try{
@@ -5450,12 +5450,32 @@ function pcEhDesignacaoValida(v){
 function pcGetJSON(key, fallback){ try{ return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback)); }catch{ return fallback; } }
 function pcSetJSON(key, val){ try{ localStorage.setItem(key, JSON.stringify(val)); }catch{} }
 function pcDesignKey(row, field){ return pcChaveAudiencia(row) + '::' + field; }
+// Retenção de 90 dias para o rastro de designações (log/meta/conflitos resolvidos).
+// Sem isso, esses registros crescem pra sempre e entopem o localStorage (visto em produção:
+// meta chegou a 10 mil chaves / 2.7MB, travando o Sync com QuotaExceededError).
+// O arquivo permanente de audiências continua intacto em pauta_historico_v1 — isso aqui só
+// limita o rastro de QUEM alterou QUAL designação, que só importa pra proteger contra
+// upload de Excel desatualizado de audiências recentes; audiência de 90+ dias já passou
+// e não corre esse risco.
+const DESIGN_RETENTION_DAYS = 90;
+function pcCutoffRetencaoDesignacoes(){ return Date.now() - DESIGN_RETENTION_DAYS*24*60*60*1000; }
+function pcDentroRetencao(dataStr){
+  const t = Date.parse(dataStr||'');
+  return !Number.isFinite(t) || t >= pcCutoffRetencaoDesignacoes();
+}
 function pcGetDesignMeta(){ return pcGetJSON(DESIGN_META_KEY, {}); }
-function pcSaveDesignMeta(v){ pcSetJSON(DESIGN_META_KEY, v||{}); }
+function pcSaveDesignMeta(v){
+  const entries = Object.entries(v||{}).filter(([,val])=>pcDentroRetencao(val&&val.atualizado_em));
+  pcSetJSON(DESIGN_META_KEY, Object.fromEntries(entries));
+}
 function pcGetDesignLog(){ return pcGetJSON(DESIGN_LOG_KEY, []); }
-function pcSaveDesignLog(v){ pcSetJSON(DESIGN_LOG_KEY, (v||[]).slice(0,2000)); }
+function pcSaveDesignLog(v){ pcSetJSON(DESIGN_LOG_KEY, (v||[]).filter(e=>pcDentroRetencao(e&&e.criado_em))); }
 function pcGetDesignConflicts(){ return pcGetJSON(DESIGN_CONFLICT_KEY, []); }
-function pcSaveDesignConflicts(v){ pcSetJSON(DESIGN_CONFLICT_KEY, v||[]); pcAtualizarBadgeConflitosDesignacao(); }
+function pcSaveDesignConflicts(v){
+  const filtrados = (v||[]).filter(c=>c && (c.status==='pendente' || pcDentroRetencao(c.resolvido_em||c.criado_em)));
+  pcSetJSON(DESIGN_CONFLICT_KEY, filtrados);
+  pcAtualizarBadgeConflitosDesignacao();
+}
 function pcRegistroBase(row, field, anterior, novo, origem, acao){
   return {
     id: 'desig_'+Date.now()+'_'+Math.random().toString(36).slice(2,9),
