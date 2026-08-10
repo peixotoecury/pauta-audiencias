@@ -5292,6 +5292,14 @@ async function _flushToCloud(){
             byKey.set(_testemunhaChave(t), t);
           });
           return Array.from(byKey.values());
+        })(),
+        contratacoes: (function(){
+          const byKey = new Map();
+          [...(remoteSnap.contratacoes||[]), ...(snapAtual.contratacoes||[])].forEach(c=>{
+            const k=(c.processo||'')+'|'+(c.horario_envio||'')+'|'+(c.data_audiencia||'');
+            byKey.set(k, c);
+          });
+          return Array.from(byKey.values());
         })()
       });
     } else {
