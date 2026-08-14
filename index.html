@@ -7568,6 +7568,21 @@ function savePosCodigo(codigo, record) {
   savePosData(d);
 }
 
+// Controle do envio obrigatório do e-mail à Controladoria (independente do
+// registro em si, pra não deixar salvar o Pós-Audiência sem notificar).
+const POS_EMAIL_KEY = 'pos_email_enviado_v1';
+function getPosEmailData() {
+  try { return JSON.parse(localStorage.getItem(POS_EMAIL_KEY) || '{}'); } catch { return {}; }
+}
+function marcarPosEmailEnviado(codigo) {
+  const d = getPosEmailData();
+  d[codigo] = new Date().toISOString();
+  localStorage.setItem(POS_EMAIL_KEY, JSON.stringify(d));
+}
+function posEmailFoiEnviado(codigo) {
+  return !!getPosEmailData()[codigo];
+}
+
 // Audiências passadas (data <= today) with adv_audiencia != N/A or valid
 function parsePtDateForPost(dataStr){
   if(!dataStr) return null;
@@ -7728,9 +7743,16 @@ function renderPos() {
   const _psPend=document.getElementById('pos-st-cnt-pending'); if(_psPend) _psPend.textContent=allRows.length-totalDone;
   
   document.getElementById('pos-count').textContent = rows.length + ' audiência' + (rows.length !== 1 ? 's' : '');
-  
+
   const list = document.getElementById('pos-list');
-  
+
+  // Mais recente primeiro (do atual para o mais antigo)
+  rows = rows.slice().sort((a, b) => {
+    const da = parsePtDateForPost(a.data)?.getTime() ?? 0;
+    const db = parsePtDateForPost(b.data)?.getTime() ?? 0;
+    return db - da || String(b.horario || '').localeCompare(String(a.horario || ''));
+  });
+
   if (rows.length === 0) {
     list.innerHTML = `<div class="pos-empty"><div class="pe-icon">📋</div><div class="pe-text">Nenhuma audiência encontrada para os filtros selecionados.</div></div>`;
     return;
@@ -7787,10 +7809,11 @@ function buildPosForm(r, rec) {
   
   return `<div>
     <div class="pos-divider">⚖️ Informações da Audiência</div>
+    <div style="font-size:11px;color:var(--muted);margin:-4px 0 12px">Todos os campos abaixo são obrigatórios para salvar. Quando não se aplicar ou não houver informação, preencha/selecione <b>N/A</b>.</div>
     <div class="pos-form-grid">
-      
+
       <div class="pos-form-group">
-        <label class="pos-label">📋 Prazo em Ata?</label>
+        <label class="pos-label">📋 Prazo em Ata? *</label>
         <div class="pos-radio-group" id="prazo-grp-${r.codigo}">
           ${buildRadio(r.codigo, 'prazo_ata', 'sim', 'Sim', v.prazo_ata)}
           ${buildRadio(r.codigo, 'prazo_ata', 'nao', 'Não', v.prazo_ata)}
@@ -7803,7 +7826,7 @@ function buildPosForm(r, rec) {
       </div>
 
       <div class="pos-form-group">
-        <label class="pos-label">📅 Nova Data de Audiência?</label>
+        <label class="pos-label">📅 Nova Data de Audiência? *</label>
         <div class="pos-radio-group" id="nova-data-grp-${r.codigo}">
           ${buildRadio(r.codigo, 'nova_data_bool', 'sim', 'Sim', v.nova_data_bool)}
           ${buildRadio(r.codigo, 'nova_data_bool', 'nao', 'Não', v.nova_data_bool)}
@@ -7819,7 +7842,7 @@ function buildPosForm(r, rec) {
       </div>
 
       <div class="pos-form-group">
-        <label class="pos-label">🤝 Houve Acordo?</label>
+        <label class="pos-label">🤝 Houve Acordo? *</label>
         <div class="pos-radio-group" id="acordo-grp-${r.codigo}">
           ${buildRadio(r.codigo, 'acordo', 'sim', 'Sim', v.acordo)}
           ${buildRadio(r.codigo, 'acordo', 'nao', 'Não', v.acordo)}
@@ -7827,21 +7850,22 @@ function buildPosForm(r, rec) {
       </div>
 
       <div class="pos-form-group">
-        <label class="pos-label">⚖️ Nome do Juiz</label>
-        <input class="pos-input" id="nome_juiz-${r.codigo}" value="${v.nome_juiz || ''}" placeholder="Ex: Dr. João Silva" oninput="posFieldChange('${r.codigo}')">
+        <label class="pos-label">⚖️ Nome do Juiz *</label>
+        <input class="pos-input" id="nome_juiz-${r.codigo}" value="${v.nome_juiz || ''}" placeholder="Ex: Dr. João Silva (ou N/A)" oninput="posFieldChange('${r.codigo}')">
       </div>
 
       <div class="pos-form-group">
-        <label class="pos-label">👤 Advogado que realizou</label>
+        <label class="pos-label">👤 Advogado que realizou *</label>
         <select class="pos-select" id="adv_realiz-${r.codigo}" onchange="posFieldChange('${r.codigo}')">
           <option value="">— Selecionar —</option>
+          <option value="N/A" ${v.adv_realiz === 'N/A' ? 'selected' : ''}>N/A</option>
           ${advs}
         </select>
       </div>
 
       <div class="pos-form-group">
-        <label class="pos-label">⚔️ Advogado da parte contrária</label>
-        <input class="pos-input" id="adv_contrario-${r.codigo}" value="${v.adv_contrario || ''}" placeholder="Nome do advogado adverso" oninput="posFieldChange('${r.codigo}')">
+        <label class="pos-label">⚔️ Advogado da parte contrária *</label>
+        <input class="pos-input" id="adv_contrario-${r.codigo}" value="${v.adv_contrario || ''}" placeholder="Nome do advogado adverso (ou N/A)" oninput="posFieldChange('${r.codigo}')">
       </div>
 
     </div>
@@ -7850,17 +7874,18 @@ function buildPosForm(r, rec) {
     <div class="pos-divider">👤 Preposto</div>
     <div class="pos-form-grid">
       <div class="pos-form-group">
-        <label class="pos-label">Nome do Preposto</label>
-        <input class="pos-input" id="preposto_nome-${r.codigo}" value="${v.preposto_nome || ''}" placeholder="Nome completo" oninput="posFieldChange('${r.codigo}')">
+        <label class="pos-label">Nome do Preposto *</label>
+        <input class="pos-input" id="preposto_nome-${r.codigo}" value="${v.preposto_nome || ''}" placeholder="Nome completo (ou N/A)" oninput="posFieldChange('${r.codigo}')">
       </div>
       <div class="pos-form-group">
-        <label class="pos-label">Avaliação do Preposto</label>
+        <label class="pos-label">Avaliação do Preposto *</label>
         <div>
           <select class="pos-avaliacao-select" id="preposto-avaliacao-${r.codigo}" onchange="posFieldChange('${r.codigo}');mostraExplicacaoPreposto('${r.codigo}')">
             <option value="">— Selecionar —</option>
             <option value="Superou expectativas" ${v.preposto_avaliacao === 'Superou expectativas' ? 'selected' : ''}>⭐ Superou expectativas</option>
             <option value="Atendeu" ${v.preposto_avaliacao === 'Atendeu' ? 'selected' : ''}>✓ Atendeu</option>
             <option value="Não atendeu" ${v.preposto_avaliacao === 'Não atendeu' ? 'selected' : ''}>✗ Não atendeu</option>
+            <option value="N/A" ${v.preposto_avaliacao === 'N/A' ? 'selected' : ''}>N/A</option>
           </select>
         </div>
         <div class="pos-explicacao-box" id="preposto-explicacao-${r.codigo}" style="display:${v.preposto_avaliacao === 'Não atendeu' ? 'block' : 'none'};margin-top:8px;padding:10px;background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.3);border-radius:6px">
@@ -7884,19 +7909,19 @@ function buildPosForm(r, rec) {
     </div>
     <button class="pos-add-btn" onclick="addTestemunha('${r.codigo}')">+ Adicionar Testemunha</button>
 
-    <div class="pos-divider">📧 Comunicação</div>
+    <div class="pos-divider">📧 Comunicação *</div>
     <div class="pos-form-group full" style="margin-bottom:14px">
-      <label class="pos-label">📧 Notificar Controladoria</label>
-      <button onclick="enviarEmailControladoria('${r.codigo}')" style="
+      <label class="pos-label">📧 Notificar Controladoria — obrigatório para salvar</label>
+      ${(() => { const enviado = posEmailFoiEnviado(r.codigo); return `<button id="email-ctrl-btn-${r.codigo}" onclick="enviarEmailControladoria('${r.codigo}')" style="
         display:inline-flex;align-items:center;gap:8px;
-        background:rgba(0,174,239,.15);border:1px solid rgba(0,174,239,.4);
-        color:var(--cyan);border-radius:var(--radius);
+        background:${enviado ? 'rgba(39,174,96,.15)' : 'rgba(0,174,239,.15)'};border:1px solid ${enviado ? 'rgba(39,174,96,.4)' : 'rgba(0,174,239,.4)'};
+        color:${enviado ? '#4CAF70' : 'var(--cyan)'};border-radius:var(--radius);
         padding:10px 18px;font-size:12px;font-weight:600;
         cursor:pointer;font-family:var(--font);transition:all .2s;
         width:100%;justify-content:center;
-      " onmouseover="this.style.background='rgba(0,174,239,.25)'" onmouseout="this.style.background='rgba(0,174,239,.15)'">
-        📧 Enviar e-mail para Controladoria
-      </button>
+      " onmouseover="this.style.background='${enviado ? 'rgba(39,174,96,.25)' : 'rgba(0,174,239,.25)'}'" onmouseout="this.style.background='${enviado ? 'rgba(39,174,96,.15)' : 'rgba(0,174,239,.15)'}'">
+        ${enviado ? '✅ E-mail enviado — reenviar' : '📧 Enviar e-mail para Controladoria'}
+      </button>`; })()}
       <div style="font-size:10px;color:var(--muted);margin-top:5px;text-align:center">audiencia.trabalhista@peixotoecury.com.br</div>
     </div>
 
@@ -7914,9 +7939,9 @@ function buildPosForm(r, rec) {
       <input type="file" id="file-input-${r.codigo}" accept=".pdf,.doc,.docx,.jpg,.png" style="display:none" onchange="handlePosFileInput(event,'${r.codigo}')">
     </div>
 
-    <div class="pos-divider">📝 Observações</div>
+    <div class="pos-divider">📝 Observações *</div>
     <div class="pos-form-group full" style="margin-bottom:16px">
-      <textarea class="pos-textarea" id="observacoes-${r.codigo}" placeholder="Anotações pertinentes à audiência..." oninput="posFieldChange('${r.codigo}')">${v.observacoes || ''}</textarea>
+      <textarea class="pos-textarea" id="observacoes-${r.codigo}" placeholder="Anotações pertinentes à audiência... (ou N/A se não houver)" oninput="posFieldChange('${r.codigo}')">${v.observacoes || ''}</textarea>
     </div>
 
     <div style="display:flex;gap:10px;align-items:center">
@@ -8069,6 +8094,11 @@ function handlePosDrop(event, codigo) {
 }
 
 async function salvarPos(codigo) {
+  if (!posEmailFoiEnviado(codigo)) {
+    showToast('📧 Envie o e-mail para a Controladoria (botão em "Comunicação") antes de salvar o registro.');
+    return;
+  }
+
   const prazo_ata = document.querySelector(`#poscard-${codigo} #radio-${codigo}-prazo_ata-sim`)?.classList.contains('active-sim') ? 'sim' : (document.querySelector(`#poscard-${codigo} #radio-${codigo}-prazo_ata-nao`)?.classList.contains('active-nao') ? 'nao' : '');
   const nova_data_bool = document.querySelector(`#poscard-${codigo} #radio-${codigo}-nova_data_bool-sim`)?.classList.contains('active-sim') ? 'sim' : (document.querySelector(`#poscard-${codigo} #radio-${codigo}-nova_data_bool-nao`)?.classList.contains('active-nao') ? 'nao' : '');
   const acordo = document.querySelector(`#poscard-${codigo} #radio-${codigo}-acordo-sim`)?.classList.contains('active-sim') ? 'sim' : (document.querySelector(`#poscard-${codigo} #radio-${codigo}-acordo-nao`)?.classList.contains('active-nao') ? 'nao' : '');
@@ -8084,6 +8114,20 @@ async function salvarPos(codigo) {
   const prazo_ata_descricao = document.getElementById('prazo_ata_descricao-' + codigo)?.value || '';
   const observacoes = document.getElementById('observacoes-' + codigo)?.value || '';
   const ata_filename = document.getElementById('upload-area-' + codigo)?.dataset.filename || document.getElementById('upload-filename-' + codigo)?.textContent.replace('📄 ','') || '';
+
+  // Todas as informações da audiência são obrigatórias; quando não se aplica
+  // ou não há dado, o campo deve ser preenchido explicitamente com "N/A".
+  if (!prazo_ata) { showToast('⚠ Selecione "Prazo em Ata?" (Sim ou Não) antes de salvar.'); return; }
+  if (prazo_ata === 'sim' && !prazo_ata_descricao.trim()) { showToast('⚠ Descreva o prazo constante na ata antes de salvar.'); return; }
+  if (!nova_data_bool) { showToast('⚠ Selecione "Nova Data de Audiência?" (Sim ou Não) antes de salvar.'); return; }
+  if (nova_data_bool === 'sim' && !nova_data) { showToast('⚠ Informe a data da nova audiência antes de salvar.'); return; }
+  if (!acordo) { showToast('⚠ Selecione "Houve Acordo?" (Sim ou Não) antes de salvar.'); return; }
+  if (!nome_juiz.trim()) { showToast('⚠ Informe o nome do juiz (ou "N/A") antes de salvar.'); return; }
+  if (!adv_realiz) { showToast('⚠ Selecione o advogado que realizou a audiência (ou "N/A") antes de salvar.'); return; }
+  if (!adv_contrario.trim()) { showToast('⚠ Informe o advogado da parte contrária (ou "N/A") antes de salvar.'); return; }
+  if (!preposto_nome.trim()) { showToast('⚠ Informe o nome do preposto (ou "N/A") antes de salvar.'); return; }
+  if (!preposto_avaliacao) { showToast('⚠ Selecione a avaliação do preposto (ou "N/A") antes de salvar.'); return; }
+  if (!observacoes.trim()) { showToast('⚠ Preencha as observações (ou "N/A") antes de salvar.'); return; }
 
   // Testemunhas
   const testList = document.getElementById('testemunhas-list-' + codigo);
@@ -8625,6 +8669,15 @@ Enviado pelo sistema de Pós-Audiência — Peixoto & Cury Advogados`;
   const mailtoLink = `mailto:audiencia.trabalhista@peixotoecury.com.br?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   window.location.href = mailtoLink;
   showToast('📧 Abrindo cliente de e-mail...');
+
+  marcarPosEmailEnviado(codigo);
+  const btn = document.getElementById('email-ctrl-btn-' + codigo);
+  if (btn) {
+    btn.textContent = '✅ E-mail enviado — reenviar';
+    btn.style.background = 'rgba(39,174,96,.15)';
+    btn.style.borderColor = 'rgba(39,174,96,.4)';
+    btn.style.color = '#4CAF70';
+  }
 }
 
 
