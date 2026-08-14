@@ -3885,8 +3885,10 @@ async function doPublicAccess(){
 }
 
 // ═══════════════════════════════════════════════════════
-// ALERTA DE LOGIN — resumo pessoal do dia (só perfil individual,
-// uma vez por dia por sigla).
+// ALERTA DE LOGIN — resumo pessoal do dia. Regra é por login (qualquer
+// conta com sigla própria, exceto admin), não pelo rótulo do perfil —
+// a maioria dos advogados está cadastrada como "visualizador" mas tem
+// sigla pessoal. Aparece uma vez por dia por sigla.
 // ═══════════════════════════════════════════════════════
 function _hojeDDMMYYYY(){
   const d = new Date();
@@ -3894,7 +3896,7 @@ function _hojeDDMMYYYY(){
 }
 
 function verificarAlertaLoginDiario(){
-  if(currentRole !== 'individual' || !currentUserSigla) return;
+  if(currentRole === 'admin' || !currentUserSigla || currentUserSigla === 'ADM') return;
   const hoje = _hojeDDMMYYYY();
   let controle = {};
   try{ controle = JSON.parse(localStorage.getItem('pc_alerta_login_v1') || '{}'); }catch(e){}
@@ -4008,6 +4010,7 @@ async function doLogin(){
   if(currentRole === 'visualizador'){
     addAuditEntry('Login', `Usuário "${found.user}" entrou com perfil ${found.role}`);
     showTab('pauta', document.querySelectorAll('.nav-btn')[1]);
+    verificarAlertaLoginDiario();
   } else if(currentUserSigla && currentRole === 'individual'){
     const p = PROF[currentUserSigla];
     const nomeAdv = p ? p.nome.split(' ')[0] : currentUserSigla;
