@@ -8052,7 +8052,7 @@ function buildTestemunhaRow(codigo, idx, t) {
       <input class="pos-input" id="test-nome-${codigo}-${idx}" value="${t.nome || ''}" placeholder="Nome" oninput="posFieldChange('${codigo}')" onblur="autoSyncTestemunha('${codigo}',${idx})">
     </div>
     <div class="pos-form-group">
-      ${idx === 0 ? '<label class="pos-label">Tipo (Autora / Ré)</label>' : ''}
+      ${idx === 0 ? '<label class="pos-label">Tipo (Autora / Ré) *</label>' : ''}
       <select class="pos-select" id="test-tipo-${codigo}-${idx}" onchange="posFieldChange('${codigo}');autoSyncTestemunha('${codigo}',${idx})">
         <option value="" ${!t.tipo?'selected':''}>— Tipo —</option>
         <option value="Reclamante" ${t.tipo==='Reclamante'||t.tipo==='Autora'?'selected':''}>Reclamante</option>
@@ -8061,7 +8061,7 @@ function buildTestemunhaRow(codigo, idx, t) {
       </select>
     </div>
     <div class="pos-form-group">
-      ${idx === 0 ? '<label class="pos-label">Avaliação</label>' : ''}
+      ${idx === 0 ? '<label class="pos-label">Avaliação *</label>' : ''}
       <div style="display:flex;align-items:center;gap:8px">
         <select class="pos-avaliacao-select" id="test-avaliacao-${codigo}-${idx}" onchange="posFieldChange('${codigo}');mostraExplicacaoTestemunha('${codigo}',${idx});autoSyncTestemunha('${codigo}',${idx})">
           <option value="">— Selecionar —</option>
@@ -8215,6 +8215,12 @@ async function salvarPos(codigo) {
       const explicacao = document.getElementById('test-explicacao-txt-' + codigo + '-' + idx)?.value || '';
       if (nome) testemunhas.push({ nome, tipo, avaliacao, explicacao });
     });
+  }
+
+  const testemunhaIncompleta = testemunhas.find(t => !t.tipo || !t.avaliacao);
+  if (testemunhaIncompleta) {
+    showToast(`⚠ Preencha o Tipo e a Avaliação da testemunha "${testemunhaIncompleta.nome}" antes de salvar.`);
+    return;
   }
 
   const sem_testemunha_reclamante = document.getElementById('sem-test-reclamante-' + codigo)?.checked || false;
