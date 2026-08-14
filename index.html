@@ -2558,6 +2558,9 @@ button.lp-submit-btn:hover{background:linear-gradient(135deg,#0d2540 0%,#1f4770 
 <button onclick="closeMobileMenu();showTab('responsavel',document.querySelector('.nav-btn'))" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
 <span style="font-size:20px">👤</span> Responsáveis
     </button>
+<button onclick="closeMobileMenu();showTab('testemunhas',document.querySelector('.nav-btn'))" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
+<span style="font-size:20px">🔍</span> Testemunhas
+    </button>
 <button onclick="closeMobileMenu();showTab('pericia',document.querySelector('.nav-btn'))" style="display:flex;align-items:center;gap:12px;width:100%;padding:14px 20px;background:none;border:none;color:var(--text);font-family:var(--font);font-size:14px;cursor:pointer;border-bottom:1px solid var(--border2);">
 <span style="font-size:20px">🔬</span> Pós-Perícia
     </button>
@@ -7974,11 +7977,11 @@ function buildTestemunhaRow(codigo, idx, t) {
   return `<div class="pos-testemunha-row" id="test-row-${codigo}-${idx}">
     <div class="pos-form-group">
       ${idx === 0 ? '<label class="pos-label">Nome da Testemunha</label>' : ''}
-      <input class="pos-input" id="test-nome-${codigo}-${idx}" value="${t.nome || ''}" placeholder="Nome" oninput="posFieldChange('${codigo}')">
+      <input class="pos-input" id="test-nome-${codigo}-${idx}" value="${t.nome || ''}" placeholder="Nome" oninput="posFieldChange('${codigo}')" onblur="autoSyncTestemunha('${codigo}',${idx})">
     </div>
     <div class="pos-form-group">
       ${idx === 0 ? '<label class="pos-label">Tipo (Autora / Ré)</label>' : ''}
-      <select class="pos-select" id="test-tipo-${codigo}-${idx}" onchange="posFieldChange('${codigo}')">
+      <select class="pos-select" id="test-tipo-${codigo}-${idx}" onchange="posFieldChange('${codigo}');autoSyncTestemunha('${codigo}',${idx})">
         <option value="" ${!t.tipo?'selected':''}>— Tipo —</option>
         <option value="Reclamante" ${t.tipo==='Reclamante'||t.tipo==='Autora'?'selected':''}>Reclamante</option>
         <option value="Reclamada" ${t.tipo==='Reclamada'||t.tipo==='Ré'?'selected':''}>Reclamada</option>
@@ -7988,7 +7991,7 @@ function buildTestemunhaRow(codigo, idx, t) {
     <div class="pos-form-group">
       ${idx === 0 ? '<label class="pos-label">Avaliação</label>' : ''}
       <div style="display:flex;align-items:center;gap:8px">
-        <select class="pos-avaliacao-select" id="test-avaliacao-${codigo}-${idx}" onchange="posFieldChange('${codigo}');mostraExplicacaoTestemunha('${codigo}',${idx})">
+        <select class="pos-avaliacao-select" id="test-avaliacao-${codigo}-${idx}" onchange="posFieldChange('${codigo}');mostraExplicacaoTestemunha('${codigo}',${idx});autoSyncTestemunha('${codigo}',${idx})">
           <option value="">— Selecionar —</option>
           <option value="Superou expectativas" ${t.avaliacao === 'Superou expectativas' ? 'selected' : ''}>⭐ Superou expectativas</option>
           <option value="Atendeu" ${t.avaliacao === 'Atendeu' ? 'selected' : ''}>✓ Atendeu</option>
@@ -10365,6 +10368,29 @@ function addTestemunhaExtra(rec){
     localStorage.setItem('testemunhas_extra_v1', JSON.stringify(arr));
     return true;
   }catch(e){ return false; }
+}
+// Assim que uma testemunha é digitada no Pós-Audiência (nome preenchido), já entra
+// na base permanente da aba Testemunhas — não precisa esperar "Salvar Registro".
+function autoSyncTestemunha(codigo, idx){
+  const nome = (document.getElementById('test-nome-' + codigo + '-' + idx)?.value || '').trim();
+  if(!nome) return;
+  const tipoRaw = document.getElementById('test-tipo-' + codigo + '-' + idx)?.value || '';
+  const avaliacao = document.getElementById('test-avaliacao-' + codigo + '-' + idx)?.value || '';
+  const r = getPostRecords().find(x => x.codigo === codigo);
+  if(!r) return;
+  let lado = tipoRaw;
+  if(lado === 'Autora') lado = 'Reclamante';
+  if(lado === 'Ré') lado = 'Reclamada';
+  const added = addTestemunhaExtra({
+    processo: r.processo || '',
+    nome,
+    cliente: r.parte_principal || '',
+    lado,
+    trecho: 'Testemunha registrada no pós-audiência de ' + (r.data || '') + (avaliacao ? ' · Avaliação: ' + avaliacao : ''),
+    arquivo: 'Pós-audiência (sistema Pauta)',
+    origem: 'pos'
+  });
+  if(added) _scheduleSave();
 }
 // Garante que tudo que já foi preenchido no pós-audiência (inclusive antes desta
 // função existir) entre na base permanente — roda a cada abertura da aba.
