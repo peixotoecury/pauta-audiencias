@@ -10889,7 +10889,9 @@ function abrirAlertas17hAmanha(ev){
   .dash-card-title,.section-title{font-size:11px!important;margin-bottom:10px!important;color:var(--pcm-dark)!important;}
 
   /* Filtros mais compactos e elegantes */
-  .filters,.pos-filters{position:relative!important;top:auto!important;display:grid!important;grid-template-columns:1fr!important;gap:8px!important;background:#fff!important;border:1px solid var(--pcm-line)!important;border-left:4px solid var(--pcm-cyan)!important;border-radius:14px!important;box-shadow:var(--pcm-shadow)!important;padding:10px!important;margin-bottom:12px!important;overflow:hidden!important;}
+  .filters,.pos-filters{position:relative!important;top:auto!important;display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:8px!important;background:#fff!important;border:1px solid var(--pcm-line)!important;border-left:4px solid var(--pcm-cyan)!important;border-radius:14px!important;box-shadow:var(--pcm-shadow)!important;padding:10px!important;margin-bottom:12px!important;overflow:hidden!important;}
+  .filters .filter-inputs-row,.filters .filter-btns-row,.pos-filters .filter-inputs-row,.pos-filters .filter-btns-row{min-width:0!important;}
+  .filter-input,.filter-select{min-width:0!important;flex:1 1 100%!important;}
   .filters::before,.pos-filters::before{content:'Filtros e ações';font-size:10px;font-weight:900;letter-spacing:.7px;text-transform:uppercase;color:var(--pcm-dark);display:block;margin-bottom:2px;}
   .filter-input,.filter-select,.pos-input,.pos-select{height:38px!important;border-radius:10px!important;font-size:12px!important;}
   .filter-count{font-size:11px!important;margin-left:0!important;text-align:center!important;background:#F4FAFD!important;border:1px solid var(--pcm-line)!important;border-radius:999px!important;padding:6px 8px!important;}
