@@ -3884,6 +3884,69 @@ async function doPublicAccess(){
   showTab('pauta', document.querySelector('.nav-btn.public-allowed') || document.querySelectorAll('.nav-btn')[1]);
 }
 
+// ═══════════════════════════════════════════════════════
+// ALERTA DE LOGIN — resumo pessoal do dia (só perfil individual,
+// uma vez por dia por sigla).
+// ═══════════════════════════════════════════════════════
+function _hojeDDMMYYYY(){
+  const d = new Date();
+  return String(d.getDate()).padStart(2,'0') + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' + d.getFullYear();
+}
+
+function verificarAlertaLoginDiario(){
+  if(currentRole !== 'individual' || !currentUserSigla) return;
+  const hoje = _hojeDDMMYYYY();
+  let controle = {};
+  try{ controle = JSON.parse(localStorage.getItem('pc_alerta_login_v1') || '{}'); }catch(e){}
+  if(controle[currentUserSigla] === hoje) return; // já mostrado hoje pra essa sigla
+  controle[currentUserSigla] = hoje;
+  try{ localStorage.setItem('pc_alerta_login_v1', JSON.stringify(controle)); }catch(e){}
+  mostrarAlertaLoginResumo(hoje);
+}
+
+function mostrarAlertaLoginResumo(hoje){
+  const sigla = currentUserSigla;
+  const registros = (typeof getPautaRecords === 'function') ? getPautaRecords() : (DATA.main || []);
+  const audienciasHoje = registros.filter(r => r.data === hoje && (r.adv_audiencia === sigla || r.adv_preparo === sigla));
+  const posData = (typeof getPosData === 'function') ? getPosData() : {};
+  const pendentesPos = (typeof getPastAudiencias === 'function')
+    ? getPastAudiencias().filter(r => r.adv_audiencia === sigla && !posData[r.codigo])
+    : [];
+  const p = PROF[sigla];
+  const nome = p ? p.nome.split(' ')[0] : sigla;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'alerta-login-modal';
+  overlay.className = 'alertas-designacao-overlay open';
+  overlay.innerHTML = `
+    <div class="alertas-designacao-box" role="dialog" aria-modal="true">
+      <div class="alertas-designacao-header">
+        <div>
+          <div class="alertas-designacao-kicker">Bem-vindo(a) de volta</div>
+          <h2>Olá, ${nome}</h2>
+          <p>Seu resumo de hoje — ${hoje}</p>
+        </div>
+        <button type="button" class="alertas-designacao-close" onclick="fecharAlertaLogin()">×</button>
+      </div>
+      <div class="designacao-dashboard-resumo" style="grid-template-columns:repeat(2,1fr)">
+        <div class="designacao-kpi" style="cursor:pointer" onclick="fecharAlertaLogin();showTab('pauta',document.querySelectorAll('.nav-btn')[1])">
+          <div class="designacao-kpi-num">${audienciasHoje.length}</div>
+          <div class="designacao-kpi-label">Audiência${audienciasHoje.length===1?'':'s'} hoje</div>
+        </div>
+        <div class="designacao-kpi" style="cursor:pointer" onclick="fecharAlertaLogin();showTab('pos',document.getElementById('btn-pos'))">
+          <div class="designacao-kpi-num">${pendentesPos.length}</div>
+          <div class="designacao-kpi-label">Pós-Audiência pendente</div>
+        </div>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function fecharAlertaLogin(){
+  const overlay = document.getElementById('alerta-login-modal');
+  if(overlay) overlay.remove();
+}
+
 async function doLogin(){
   const u = document.getElementById('login-user').value.trim();
   const p = document.getElementById('login-pass').value;
@@ -3951,6 +4014,7 @@ async function doLogin(){
     document.getElementById('user-label').textContent = nomeAdv + ' (' + currentUserSigla + ')';
     addAuditEntry('Login', `Usuário "${found.user}" entrou com perfil ${found.role}`);
     showTab('pauta', document.querySelectorAll('.nav-btn')[1]);
+    verificarAlertaLoginDiario();
   } else {
     addAuditEntry('Login', `Usuário "${found.user}" entrou com perfil ${found.role}`);
     showTab('dashboard', document.querySelectorAll('.nav-btn')[0]);
