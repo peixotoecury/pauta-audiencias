@@ -8168,12 +8168,9 @@ function handlePosDrop(event, codigo) {
   if (area) area.dataset.filename = file.name;
 }
 
-async function salvarPos(codigo) {
-  if (!posEmailFoiEnviado(codigo)) {
-    showToast('📧 Envie o e-mail para a Controladoria (botão em "Comunicação") antes de salvar o registro.');
-    return;
-  }
-
+// Lê e valida o formulário direto do DOM. Retorna o record pronto pra salvar,
+// ou null (já mostrando o toast do que falta) se algo obrigatório não foi preenchido.
+function _lerEValidarPosDoDom(codigo) {
   const prazo_ata = document.querySelector(`#poscard-${codigo} #radio-${codigo}-prazo_ata-sim`)?.classList.contains('active-sim') ? 'sim' : (document.querySelector(`#poscard-${codigo} #radio-${codigo}-prazo_ata-nao`)?.classList.contains('active-nao') ? 'nao' : '');
   const nova_data_bool = document.querySelector(`#poscard-${codigo} #radio-${codigo}-nova_data_bool-sim`)?.classList.contains('active-sim') ? 'sim' : (document.querySelector(`#poscard-${codigo} #radio-${codigo}-nova_data_bool-nao`)?.classList.contains('active-nao') ? 'nao' : '');
   const acordo = document.querySelector(`#poscard-${codigo} #radio-${codigo}-acordo-sim`)?.classList.contains('active-sim') ? 'sim' : (document.querySelector(`#poscard-${codigo} #radio-${codigo}-acordo-nao`)?.classList.contains('active-nao') ? 'nao' : '');
@@ -8183,7 +8180,6 @@ async function salvarPos(codigo) {
   const nova_data = document.getElementById('nova_data-' + codigo)?.value || '';
   const nova_horario = document.getElementById('nova_horario-' + codigo)?.value || '';
   const preposto_nome = document.getElementById('preposto_nome-' + codigo)?.value || '';
-  // Novo: ler avaliação do dropdown em vez de estrelas
   const preposto_avaliacao = document.getElementById('preposto-avaliacao-' + codigo)?.value || '';
   const preposto_explicacao = document.getElementById('preposto-explicacao-txt-' + codigo)?.value || '';
   const prazo_ata_descricao = document.getElementById('prazo_ata_descricao-' + codigo)?.value || '';
@@ -8192,17 +8188,17 @@ async function salvarPos(codigo) {
 
   // Todas as informações da audiência são obrigatórias; quando não se aplica
   // ou não há dado, o campo deve ser preenchido explicitamente com "N/A".
-  if (!prazo_ata) { showToast('⚠ Selecione "Prazo em Ata?" (Sim ou Não) antes de salvar.'); return; }
-  if (prazo_ata === 'sim' && !prazo_ata_descricao.trim()) { showToast('⚠ Descreva o prazo constante na ata antes de salvar.'); return; }
-  if (!nova_data_bool) { showToast('⚠ Selecione "Nova Data de Audiência?" (Sim ou Não) antes de salvar.'); return; }
-  if (nova_data_bool === 'sim' && !nova_data) { showToast('⚠ Informe a data da nova audiência antes de salvar.'); return; }
-  if (!acordo) { showToast('⚠ Selecione "Houve Acordo?" (Sim ou Não) antes de salvar.'); return; }
-  if (!nome_juiz.trim()) { showToast('⚠ Informe o nome do juiz (ou "N/A") antes de salvar.'); return; }
-  if (!adv_realiz) { showToast('⚠ Selecione o advogado que realizou a audiência (ou "N/A") antes de salvar.'); return; }
-  if (!adv_contrario.trim()) { showToast('⚠ Informe o advogado da parte contrária (ou "N/A") antes de salvar.'); return; }
-  if (!preposto_nome.trim()) { showToast('⚠ Informe o nome do preposto (ou "N/A") antes de salvar.'); return; }
-  if (!preposto_avaliacao) { showToast('⚠ Selecione a avaliação do preposto (ou "N/A") antes de salvar.'); return; }
-  if (!observacoes.trim()) { showToast('⚠ Preencha as observações (ou "N/A") antes de salvar.'); return; }
+  if (!prazo_ata) { showToast('⚠ Selecione "Prazo em Ata?" (Sim ou Não) antes de salvar.'); return null; }
+  if (prazo_ata === 'sim' && !prazo_ata_descricao.trim()) { showToast('⚠ Descreva o prazo constante na ata antes de salvar.'); return null; }
+  if (!nova_data_bool) { showToast('⚠ Selecione "Nova Data de Audiência?" (Sim ou Não) antes de salvar.'); return null; }
+  if (nova_data_bool === 'sim' && !nova_data) { showToast('⚠ Informe a data da nova audiência antes de salvar.'); return null; }
+  if (!acordo) { showToast('⚠ Selecione "Houve Acordo?" (Sim ou Não) antes de salvar.'); return null; }
+  if (!nome_juiz.trim()) { showToast('⚠ Informe o nome do juiz (ou "N/A") antes de salvar.'); return null; }
+  if (!adv_realiz) { showToast('⚠ Selecione o advogado que realizou a audiência (ou "N/A") antes de salvar.'); return null; }
+  if (!adv_contrario.trim()) { showToast('⚠ Informe o advogado da parte contrária (ou "N/A") antes de salvar.'); return null; }
+  if (!preposto_nome.trim()) { showToast('⚠ Informe o nome do preposto (ou "N/A") antes de salvar.'); return null; }
+  if (!preposto_avaliacao) { showToast('⚠ Selecione a avaliação do preposto (ou "N/A") antes de salvar.'); return null; }
+  if (!observacoes.trim()) { showToast('⚠ Preencha as observações (ou "N/A") antes de salvar.'); return null; }
 
   // Testemunhas
   const testList = document.getElementById('testemunhas-list-' + codigo);
@@ -8220,7 +8216,7 @@ async function salvarPos(codigo) {
   const testemunhaIncompleta = testemunhas.find(t => !t.tipo || !t.avaliacao);
   if (testemunhaIncompleta) {
     showToast(`⚠ Preencha o Tipo e a Avaliação da testemunha "${testemunhaIncompleta.nome}" antes de salvar.`);
-    return;
+    return null;
   }
 
   const sem_testemunha_reclamante = document.getElementById('sem-test-reclamante-' + codigo)?.checked || false;
@@ -8230,18 +8226,22 @@ async function salvarPos(codigo) {
   if (!temTestReclamante || !temTestReclamada) {
     const faltando = [!temTestReclamante ? 'Reclamante' : null, !temTestReclamada ? 'Reclamada' : null].filter(Boolean).join(' e ');
     showToast(`⚠ Informe ao menos 1 testemunha do ${faltando} (ou marque "Não teve testemunha") antes de salvar.`);
-    return;
+    return null;
   }
 
-  const record = { prazo_ata, prazo_ata_descricao, nova_data_bool, nova_data, nova_horario, acordo, nome_juiz, adv_realiz, adv_contrario, preposto_nome, preposto_avaliacao, preposto_explicacao, testemunhas, sem_testemunha_reclamante, sem_testemunha_reclamada, ata_filename, observacoes, updated_at: new Date().toISOString() };
+  return { prazo_ata, prazo_ata_descricao, nova_data_bool, nova_data, nova_horario, acordo, nome_juiz, adv_realiz, adv_contrario, preposto_nome, preposto_avaliacao, preposto_explicacao, testemunhas, sem_testemunha_reclamante, sem_testemunha_reclamada, ata_filename, observacoes, updated_at: new Date().toISOString() };
+}
+
+// Salva o record no dispositivo, replica as testemunhas na base permanente e
+// sincroniza com a nuvem imediatamente (não espera o debounce de 3s) pra não
+// perder o registro se a pessoa fechar a aba ou o cliente de e-mail travar a tela.
+async function _persistirPosRecord(codigo, record) {
   savePosCodigo(codigo, record);
   const _rAud = getPostRecords().find(x=>x.codigo===codigo);
   addAuditEntry('Pós-Audiência salva', `Código ${codigo} · ${_rAud ? _rAud.parte_principal + ' (' + _rAud.data + ')' : ''}`);
 
-  // Guarda as testemunhas na base permanente de busca (Aba Testemunhas), pra nunca
-  // depender da audiência ainda estar na janela ativa da pauta.
   if (_rAud) {
-    testemunhas.forEach(t => {
+    record.testemunhas.forEach(t => {
       if (!t.nome) return;
       let lado = t.tipo || '';
       if (lado === 'Autora') lado = 'Reclamante';
@@ -8258,28 +8258,31 @@ async function salvarPos(codigo) {
     });
   }
 
-  // Envia pra nuvem AGORA (em vez de esperar o debounce de 3s) pra não perder o
-  // registro se a pessoa fechar a aba antes do envio automático terminar.
   if (_syncTimer) clearTimeout(_syncTimer);
   _showSyncInd('↻ Sincronizando...', 'var(--blue)');
   const ok = await _flushToCloud();
   _showSyncInd(ok ? '✓ Sincronizado' : '⚠ Só salvo localmente', ok ? 'var(--green)' : 'var(--orange)');
   _hideSyncInd(2200);
+  if (!ok) _scheduleSave();
 
-  if (ok) {
-    showToast('✅ Registro salvo com sucesso!');
-  } else {
-    showToast('⚠️ Salvo neste dispositivo, mas falhou ao enviar pra nuvem agora. Vou tentar de novo — não feche a aba ainda.');
-    _scheduleSave();
-  }
-
-  // Update card badge sem re-renderizar o formulário inteiro
   const card = document.getElementById('poscard-' + codigo);
   if (card) {
     const badgeEl = card.querySelector('.pos-badge-pending');
     if (badgeEl) badgeEl.className = 'pos-badge-done';
     if (badgeEl) badgeEl.textContent = '✅ Preenchido';
   }
+  return ok;
+}
+
+async function salvarPos(codigo) {
+  if (!posEmailFoiEnviado(codigo)) {
+    showToast('📧 Envie o e-mail para a Controladoria (botão em "Comunicação") antes de salvar o registro.');
+    return;
+  }
+  const record = _lerEValidarPosDoDom(codigo);
+  if (!record) return;
+  const ok = await _persistirPosRecord(codigo, record);
+  showToast(ok ? '✅ Registro salvo com sucesso!' : '⚠️ Salvo neste dispositivo, mas falhou ao enviar pra nuvem agora. Vou tentar de novo — não feche a aba ainda.');
 }
 
 function limparPos(codigo) {
@@ -8682,11 +8685,18 @@ function copiarOrientacaoResponsavel(resp){
   if(typeof showToast==='function') showToast('📋 Orientações copiadas.');
 }
 
-function enviarEmailControladoria(codigo) {
-  const posData = getPosData();
-  const rec = posData[codigo] || {};
-  const r = DATA.main.find(x => x.codigo === codigo);
-  if (!r) return;
+// Enviar o e-mail e salvar o registro são a mesma ação: lê e valida o
+// formulário atual, salva/sincroniza primeiro (pra nunca ficar sem persistir,
+// mesmo que o cliente de e-mail trave a aba), e só então monta e abre o e-mail
+// com os dados que acabaram de ser salvos.
+async function enviarEmailControladoria(codigo) {
+  const r = getPostRecords().find(x => x.codigo === codigo);
+  if (!r) { showToast('⚠ Não encontrei essa audiência para montar o e-mail.'); return; }
+
+  const rec = _lerEValidarPosDoDom(codigo);
+  if (!rec) return;
+
+  await _persistirPosRecord(codigo, rec);
 
   const advNome = PROF[r.adv_audiencia] ? PROF[r.adv_audiencia].nome : (r.adv_audiencia || '—');
   const advRealizNome = PROF[rec.adv_realiz] ? PROF[rec.adv_realiz].nome : (rec.adv_realiz || '—');
@@ -8726,7 +8736,7 @@ Nova Data de Audiência: ${rec.nova_data_bool === 'sim' ? novaData : rec.nova_da
 PREPOSTO
 --------
 Nome: ${rec.preposto_nome || '—'}
-Avaliação: ${rec.preposto_avaliacao ? '★'.repeat(rec.preposto_avaliacao) : '—'}
+Avaliação: ${rec.preposto_avaliacao || '—'}
 
 TESTEMUNHAS
 -----------
@@ -8749,7 +8759,7 @@ Enviado pelo sistema de Pós-Audiência — Peixoto & Cury Advogados`;
 
   const mailtoLink = `mailto:audiencia.trabalhista@peixotoecury.com.br?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   window.location.href = mailtoLink;
-  showToast('📧 Abrindo cliente de e-mail...');
+  showToast('✅ Registro salvo e e-mail aberto para envio.');
 
   marcarPosEmailEnviado(codigo);
   const btn = document.getElementById('email-ctrl-btn-' + codigo);
