@@ -3913,7 +3913,7 @@ function mostrarAlertaLoginResumo(hoje){
   const respPastaHoje = registros.filter(r => r.data === hoje && r.adv_preparo === sigla);
   const posData = (typeof getPosData === 'function') ? getPosData() : {};
   const pendentesPos = (typeof getPastAudiencias === 'function')
-    ? getPastAudiencias().filter(r => r.adv_audiencia === sigla && !posData[r.codigo])
+    ? getPastAudiencias().filter(r => _siglaResponsavelPosAudiencia(r) === sigla && !posData[r.codigo])
     : [];
   const p = PROF[sigla];
   const nome = p ? p.nome.split(' ')[0] : sigla;
@@ -7733,8 +7733,19 @@ function initPosFilters() {
 }
 
 
+// Quando a audiência é feita por correspondente ("Correspondente - Fulano"), quem
+// precisa preencher o Pós-Audiência e receber a cobrança é o responsável interno
+// pela pasta (adv_preparo), não o correspondente (que não tem login nem e-mail no PROF).
+function _siglaResponsavelPosAudiencia(r){
+  const advAud = r && r.adv_audiencia;
+  if(typeof pcEhCorrespondenteAlerta17 === 'function' && pcEhCorrespondenteAlerta17(advAud) && r.adv_preparo){
+    return r.adv_preparo;
+  }
+  return advAud;
+}
+
 function getResponsibleNameForPost(r){
-  const sigla = r.adv_audiencia || 'Sem responsável';
+  const sigla = _siglaResponsavelPosAudiencia(r) || 'Sem responsável';
   if(PROF && PROF[sigla] && PROF[sigla].nome) return PROF[sigla].nome;
   return sigla || 'Sem responsável';
 }
@@ -7821,11 +7832,11 @@ function renderPos() {
 
   const list = document.getElementById('pos-list');
 
-  // Mais recente primeiro (do atual para o mais antigo)
+  // Mais antiga primeiro (dos pendentes mais atrasados para os mais recentes)
   rows = rows.slice().sort((a, b) => {
     const da = parsePtDateForPost(a.data)?.getTime() ?? 0;
     const db = parsePtDateForPost(b.data)?.getTime() ?? 0;
-    return db - da || String(b.horario || '').localeCompare(String(a.horario || ''));
+    return da - db || String(a.horario || '').localeCompare(String(b.horario || ''));
   });
 
   if (rows.length === 0) {
@@ -8046,6 +8057,7 @@ function buildAvaliacao(valor) {
 }
 
 function buildTestemunhaRow(codigo, idx, t) {
+  const ocultaAvaliacao = t.tipo === 'Reclamante';
   return `<div class="pos-testemunha-row" id="test-row-${codigo}-${idx}">
     <div class="pos-form-group">
       ${idx === 0 ? '<label class="pos-label">Nome da Testemunha</label>' : ''}
@@ -8053,7 +8065,7 @@ function buildTestemunhaRow(codigo, idx, t) {
     </div>
     <div class="pos-form-group">
       ${idx === 0 ? '<label class="pos-label">Tipo (Autora / Ré) *</label>' : ''}
-      <select class="pos-select" id="test-tipo-${codigo}-${idx}" onchange="posFieldChange('${codigo}');autoSyncTestemunha('${codigo}',${idx})">
+      <select class="pos-select" id="test-tipo-${codigo}-${idx}" onchange="posFieldChange('${codigo}');autoSyncTestemunha('${codigo}',${idx});atualizaCampoAvaliacaoTestemunha('${codigo}',${idx})">
         <option value="" ${!t.tipo?'selected':''}>— Tipo —</option>
         <option value="Reclamante" ${t.tipo==='Reclamante'||t.tipo==='Autora'?'selected':''}>Reclamante</option>
         <option value="Reclamada" ${t.tipo==='Reclamada'||t.tipo==='Ré'?'selected':''}>Reclamada</option>
@@ -8063,12 +8075,13 @@ function buildTestemunhaRow(codigo, idx, t) {
     <div class="pos-form-group">
       ${idx === 0 ? '<label class="pos-label">Avaliação *</label>' : ''}
       <div style="display:flex;align-items:center;gap:8px">
-        <select class="pos-avaliacao-select" id="test-avaliacao-${codigo}-${idx}" onchange="posFieldChange('${codigo}');mostraExplicacaoTestemunha('${codigo}',${idx});autoSyncTestemunha('${codigo}',${idx})">
+        <select class="pos-avaliacao-select" id="test-avaliacao-${codigo}-${idx}" style="${ocultaAvaliacao ? 'display:none' : ''}" onchange="posFieldChange('${codigo}');mostraExplicacaoTestemunha('${codigo}',${idx});autoSyncTestemunha('${codigo}',${idx})">
           <option value="">— Selecionar —</option>
           <option value="Superou expectativas" ${t.avaliacao === 'Superou expectativas' ? 'selected' : ''}>⭐ Superou expectativas</option>
           <option value="Atendeu" ${t.avaliacao === 'Atendeu' ? 'selected' : ''}>✓ Atendeu</option>
           <option value="Não atendeu" ${t.avaliacao === 'Não atendeu' ? 'selected' : ''}>✗ Não atendeu</option>
         </select>
+        <span id="avaliacao-na-${codigo}-${idx}" style="${ocultaAvaliacao ? '' : 'display:none'};font-size:11px;color:var(--muted);font-style:italic">Não aplicável (testemunha do Reclamante)</span>
         <button class="pos-remove-btn" onclick="removeTestemunha('${codigo}',${idx})">✕</button>
       </div>
       <div class="pos-explicacao-box" id="test-explicacao-${codigo}-${idx}" style="display:${t.avaliacao === 'Não atendeu' ? 'block' : 'none'};margin-top:8px;padding:10px;background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.3);border-radius:6px">
@@ -8077,6 +8090,18 @@ function buildTestemunhaRow(codigo, idx, t) {
       </div>
     </div>
   </div>`;
+}
+
+// Testemunha do Reclamante (parte contrária) não é avaliada pelo escritório —
+// só faz sentido avaliar quem o próprio time levou (Reclamada) ou testemunha judicial.
+function atualizaCampoAvaliacaoTestemunha(codigo, idx){
+  const tipo = document.getElementById('test-tipo-' + codigo + '-' + idx)?.value || '';
+  const sel = document.getElementById('test-avaliacao-' + codigo + '-' + idx);
+  const na = document.getElementById('avaliacao-na-' + codigo + '-' + idx);
+  const oculta = tipo === 'Reclamante';
+  if (sel) sel.style.display = oculta ? 'none' : '';
+  if (na) na.style.display = oculta ? '' : 'none';
+  if (oculta && sel) sel.value = '';
 }
 
 function togglePosCard(codigo) {
@@ -8213,9 +8238,12 @@ function _lerEValidarPosDoDom(codigo) {
     });
   }
 
-  const testemunhaIncompleta = testemunhas.find(t => !t.tipo || !t.avaliacao);
+  // Testemunha do Reclamante não é avaliada (não é levada pelo escritório), então
+  // só exige Avaliação para Reclamada/Judicial.
+  const testemunhaIncompleta = testemunhas.find(t => !t.tipo || (t.tipo !== 'Reclamante' && !t.avaliacao));
   if (testemunhaIncompleta) {
-    showToast(`⚠ Preencha o Tipo e a Avaliação da testemunha "${testemunhaIncompleta.nome}" antes de salvar.`);
+    const msgCampo = !testemunhaIncompleta.tipo ? 'o Tipo' : 'o Tipo e a Avaliação';
+    showToast(`⚠ Preencha ${msgCampo} da testemunha "${testemunhaIncompleta.nome}" antes de salvar.`);
     return null;
   }
 
@@ -10284,7 +10312,7 @@ function getPendenciasPosAudienciaPorResponsavel(){
   const pendentes = getPastAudiencias().filter(r => !posData[r.codigo]);
   const map = {};
   pendentes.forEach(r => {
-    const sigla = (r.adv_audiencia || "Sem responsável").trim();
+    const sigla = (_siglaResponsavelPosAudiencia(r) || "Sem responsável").trim();
     if(!map[sigla]) map[sigla] = [];
     map[sigla].push(r);
   });
