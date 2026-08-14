@@ -3909,7 +3909,8 @@ function verificarAlertaLoginDiario(){
 function mostrarAlertaLoginResumo(hoje){
   const sigla = currentUserSigla;
   const registros = (typeof getPautaRecords === 'function') ? getPautaRecords() : (DATA.main || []);
-  const audienciasHoje = registros.filter(r => r.data === hoje && (r.adv_audiencia === sigla || r.adv_preparo === sigla));
+  const vaiRealizarHoje = registros.filter(r => r.data === hoje && r.adv_audiencia === sigla);
+  const respPastaHoje = registros.filter(r => r.data === hoje && r.adv_preparo === sigla);
   const posData = (typeof getPosData === 'function') ? getPosData() : {};
   const pendentesPos = (typeof getPastAudiencias === 'function')
     ? getPastAudiencias().filter(r => r.adv_audiencia === sigla && !posData[r.codigo])
@@ -3926,14 +3927,18 @@ function mostrarAlertaLoginResumo(hoje){
         <div>
           <div class="alertas-designacao-kicker">Bem-vindo(a) de volta</div>
           <h2>Olá, ${nome}</h2>
-          <p>Seu resumo de hoje — ${hoje}</p>
+          <p>Seu resumo de hoje · ${hoje}</p>
         </div>
         <button type="button" class="alertas-designacao-close" onclick="fecharAlertaLogin()">×</button>
       </div>
-      <div class="designacao-dashboard-resumo" style="grid-template-columns:repeat(2,1fr)">
+      <div class="designacao-dashboard-resumo" style="grid-template-columns:repeat(3,1fr)">
         <div class="designacao-kpi" style="cursor:pointer" onclick="fecharAlertaLogin();showTab('pauta',document.querySelectorAll('.nav-btn')[1])">
-          <div class="designacao-kpi-num">${audienciasHoje.length}</div>
-          <div class="designacao-kpi-label">Audiência${audienciasHoje.length===1?'':'s'} hoje</div>
+          <div class="designacao-kpi-num">${vaiRealizarHoje.length}</div>
+          <div class="designacao-kpi-label">Vai realizar hoje</div>
+        </div>
+        <div class="designacao-kpi" style="cursor:pointer" onclick="fecharAlertaLogin();showTab('pauta',document.querySelectorAll('.nav-btn')[1])">
+          <div class="designacao-kpi-num">${respPastaHoje.length}</div>
+          <div class="designacao-kpi-label">Responsável pela pasta hoje</div>
         </div>
         <div class="designacao-kpi" style="cursor:pointer" onclick="fecharAlertaLogin();showTab('pos',document.getElementById('btn-pos'))">
           <div class="designacao-kpi-num">${pendentesPos.length}</div>
