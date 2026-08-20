@@ -2948,6 +2948,9 @@ button.lp-submit-btn:hover{background:linear-gradient(135deg,#0d2540 0%,#1f4770 
 <select class="filter-select" id="pos-filter-grupo" onchange="renderPos()" style="min-width:130px">
 <option value="">Todos os grupos</option>
 </select>
+<select class="filter-select" id="pos-filter-prof" onchange="renderPos()" style="min-width:180px">
+<option value="">Todos os profissionais</option>
+</select>
 <select class="filter-select" id="pos-filter-status" onchange="renderPos()" style="display:none">
 <option value="">Todos</option>
 <option value="done">✅ Preenchido</option>
@@ -7769,6 +7772,29 @@ function initPosFilters() {
   if (grupoEl && grupoEl.options.length <= 1) {
     grupos.forEach(g => { const o = new Option(g, g); grupoEl.add(o); });
   }
+
+  // Lista de profissionais é refeita a cada chamada (não só uma vez): pendências mudam
+  // o dia inteiro conforme as pessoas preenchem, e só deve aparecer quem ainda tem alguma.
+  const posData = getPosData();
+  const porProfPendente = {};
+  rows.forEach(r => {
+    if (pcObterPosRecord(posData, r)) return; // já preenchida, não entra na lista
+    const sigla = _siglaResponsavelPosAudiencia(r);
+    if (!sigla) return;
+    porProfPendente[sigla] = (porProfPendente[sigla] || 0) + 1;
+  });
+  const profEl = document.getElementById('pos-filter-prof');
+  if (profEl) {
+    const selecionadoAntes = profEl.value;
+    profEl.innerHTML = '<option value="">Todos os profissionais</option>';
+    Object.keys(porProfPendente)
+      .sort((a, b) => (PROF[a]?.nome || a).localeCompare(PROF[b]?.nome || b, 'pt-BR'))
+      .forEach(sigla => {
+        const nome = PROF[sigla]?.nome || sigla;
+        profEl.add(new Option(`${nome} (${porProfPendente[sigla]})`, sigla));
+      });
+    if ([...profEl.options].some(o => o.value === selecionadoAntes)) profEl.value = selecionadoAntes;
+  }
 }
 
 
@@ -7854,11 +7880,13 @@ function renderPos() {
   
   const diaF = document.getElementById('pos-filter-dia')?.value || '';
   const grupoF = document.getElementById('pos-filter-grupo')?.value || '';
+  const profF = document.getElementById('pos-filter-prof')?.value || '';
   const statusF = document.getElementById('pos-filter-status')?.value || '';
   const search = (document.getElementById('pos-search')?.value || '').toLowerCase();
-  
+
   let rows = getPastAudiencias();
   if (diaF) rows = rows.filter(r => r.data === diaF);
+  if (profF) rows = rows.filter(r => _siglaResponsavelPosAudiencia(r) === profF);
   if (grupoF) rows = rows.filter(r => r.grupo === grupoF);
   const posDataForSearch = getPosData();
   if (search) rows = rows.filter(r =>
