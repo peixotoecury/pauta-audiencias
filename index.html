@@ -7790,6 +7790,25 @@ function setPericiaSubtab(val){
   renderPericia();
 }
 
+// Contadores/cards do topo do Pós-Audiência. Separado de renderPos() para poder
+// atualizar os números certos na hora do "Salvar" sem reconstruir #pos-list — isso
+// fecharia de novo o formulário que a pessoa acabou de preencher.
+function pcAtualizarContadoresPos(posData){
+  posData = posData || getPosData();
+  const allRows = getPastAudiencias();
+  updatePostDiretoria('pos', allRows, posData);
+  const totalDone = allRows.filter(r => posData[r.codigo]).length;
+  const totalAcordo = allRows.filter(r => posData[r.codigo]?.acordo === 'sim').length;
+  const totalPrazo = allRows.filter(r => posData[r.codigo]?.prazo_ata === 'sim').length;
+  const set = (id,val)=>{ const el=document.getElementById(id); if(el) el.textContent = val; };
+  set('pos-kpi-total', totalDone);
+  set('pos-kpi-acordo', totalAcordo);
+  set('pos-kpi-prazo', totalPrazo);
+  set('pos-st-cnt-todos', allRows.length);
+  set('pos-st-cnt-done', totalDone);
+  set('pos-st-cnt-pending', allRows.length-totalDone);
+}
+
 function renderPos() {
   initPosFilters();
   
@@ -7811,23 +7830,11 @@ function renderPos() {
   );
 
   const posData = getPosData();
-  updatePostDiretoria('pos', getPastAudiencias(), posData);
-  
+  pcAtualizarContadoresPos(posData);
+
   if (statusF === 'done') rows = rows.filter(r => posData[r.codigo]);
   if (statusF === 'pending') rows = rows.filter(r => !posData[r.codigo]);
-  
-  // Update KPIs
-  const allRows = getPastAudiencias();
-  const totalDone = allRows.filter(r => posData[r.codigo]).length;
-  const totalAcordo = allRows.filter(r => posData[r.codigo]?.acordo === 'sim').length;
-  const totalPrazo = allRows.filter(r => posData[r.codigo]?.prazo_ata === 'sim').length;
-  document.getElementById('pos-kpi-total').textContent = totalDone;
-  document.getElementById('pos-kpi-acordo').textContent = totalAcordo;
-  document.getElementById('pos-kpi-prazo').textContent = totalPrazo;
-  const _psTot=document.getElementById('pos-st-cnt-todos'); if(_psTot) _psTot.textContent=allRows.length;
-  const _psDone=document.getElementById('pos-st-cnt-done'); if(_psDone) _psDone.textContent=totalDone;
-  const _psPend=document.getElementById('pos-st-cnt-pending'); if(_psPend) _psPend.textContent=allRows.length-totalDone;
-  
+
   document.getElementById('pos-count').textContent = rows.length + ' audiência' + (rows.length !== 1 ? 's' : '');
 
   const list = document.getElementById('pos-list');
@@ -8286,6 +8293,8 @@ async function _persistirPosRecord(codigo, record) {
     });
   }
 
+  try{ pcAtualizarContadoresPos(); }catch(e){}
+
   if (_syncTimer) clearTimeout(_syncTimer);
   _showSyncInd('↻ Sincronizando...', 'var(--blue)');
   const ok = await _flushToCloud();
@@ -8349,6 +8358,23 @@ function initPericiaFilters(){
   const diaEl=document.getElementById('pericia-filter-dia'); if(diaEl && diaEl.options.length<=1) dias.forEach(d=>diaEl.add(new Option(d,d)));
   const grupoEl=document.getElementById('pericia-filter-grupo'); if(grupoEl && grupoEl.options.length<=1) grupos.forEach(g=>grupoEl.add(new Option(g,g)));
 }
+// Mesma ideia de pcAtualizarContadoresPos: separado pra poder chamar no "Salvar"
+// sem reconstruir #pericia-list e fechar o formulário aberto.
+function pcAtualizarContadoresPericia(data){
+  data = data || getPericiaData();
+  const all=getPastPericias();
+  updatePostDiretoria('per', all, data);
+  const _perDone=all.filter(r=>data[r.codigo]).length;
+  const set=(id,val)=>{ const el=document.getElementById(id); if(el) el.textContent = val; };
+  set('pericia-kpi-total', _perDone);
+  set('pericia-kpi-medica', all.filter(r=>data[r.codigo]?.tipo_pericia==='medica').length);
+  set('pericia-kpi-tecnica', all.filter(r=>data[r.codigo]?.tipo_pericia==='tecnica').length);
+  set('pericia-kpi-pendente', all.filter(r=>!data[r.codigo]).length);
+  set('per-st-cnt-todos', all.length);
+  set('per-st-cnt-done', _perDone);
+  set('per-st-cnt-pending', all.length-_perDone);
+}
+
 function renderPericia(){
   initPericiaFilters();
   const diaF=document.getElementById('pericia-filter-dia')?.value||'';
@@ -8356,21 +8382,12 @@ function renderPericia(){
   const statusF=document.getElementById('pericia-filter-status')?.value||'';
   const search=(document.getElementById('pericia-search')?.value||'').toLowerCase();
   let rows=getPastPericias(); const data=getPericiaData();
-  updatePostDiretoria('per', getPastPericias(), data);
+  pcAtualizarContadoresPericia(data);
   if(diaF) rows=rows.filter(r=>r.data===diaF);
   if(grupoF) rows=rows.filter(r=>r.grupo===grupoF);
   if(search) rows=rows.filter(r=>[r.processo,r.parte_principal,r.parte_contraria,r.adv_audiencia,r.comarca,data[r.codigo]?.perito_nome,data[r.codigo]?.local_pericia,data[r.codigo]?.area_vistoriada,data[r.codigo]?.advogado_compareceu].join(' ').toLowerCase().includes(search));
   if(statusF==='done') rows=rows.filter(r=>data[r.codigo]);
   if(statusF==='pending') rows=rows.filter(r=>!data[r.codigo]);
-  const all=getPastPericias();
-  const _perDone=all.filter(r=>data[r.codigo]).length;
-  document.getElementById('pericia-kpi-total').textContent = _perDone;
-  document.getElementById('pericia-kpi-medica').textContent = all.filter(r=>data[r.codigo]?.tipo_pericia==='medica').length;
-  document.getElementById('pericia-kpi-tecnica').textContent = all.filter(r=>data[r.codigo]?.tipo_pericia==='tecnica').length;
-  document.getElementById('pericia-kpi-pendente').textContent = all.filter(r=>!data[r.codigo]).length;
-  const _prTot=document.getElementById('per-st-cnt-todos'); if(_prTot) _prTot.textContent=all.length;
-  const _prDone=document.getElementById('per-st-cnt-done'); if(_prDone) _prDone.textContent=_perDone;
-  const _prPend=document.getElementById('per-st-cnt-pending'); if(_prPend) _prPend.textContent=all.length-_perDone;
   document.getElementById('pericia-count').textContent = rows.length + ' perícia' + (rows.length!==1?'s':'');
   const list=document.getElementById('pericia-list');
   if(!rows.length){ list.innerHTML='<div class="pos-empty"><div class="pe-icon">🔬</div><div class="pe-text">Nenhuma perícia encontrada para os filtros selecionados.</div></div>'; return; }
@@ -8452,7 +8469,15 @@ function salvarPericia(codigo){
     obs_pericia:document.getElementById('obs_pericia-'+codigo)?.value||'',
     updated_at:new Date().toISOString()
   };
-  savePericiaCodigo(codigo,record); const r=DATA.main.find(x=>x.codigo===codigo); addAuditEntry('Pós-Perícia salva', `Código ${codigo} · ${r? r.parte_principal + ' (' + r.data + ')' : ''}`); showToast('✅ Pós-perícia salvo com sucesso!'); /* renderPericia() removido: evita fechar o formulário ao salvar */
+  savePericiaCodigo(codigo,record); const r=DATA.main.find(x=>x.codigo===codigo); addAuditEntry('Pós-Perícia salva', `Código ${codigo} · ${r? r.parte_principal + ' (' + r.data + ')' : ''}`); showToast('✅ Pós-perícia salvo com sucesso!');
+  // renderPericia() removido de propósito: evita fechar o formulário ao salvar.
+  // Mas os cards de contagem do topo ficavam sempre desatualizados até trocar de aba — corrigido chamando só os contadores.
+  try{ pcAtualizarContadoresPericia(); }catch(e){}
+  const _pcard = document.getElementById('periciacard-'+codigo);
+  if(_pcard){
+    const _badge = _pcard.querySelector('.pos-badge-pending');
+    if(_badge){ _badge.className = 'pos-badge-done'; _badge.textContent = '✅ Preenchido'; }
+  }
 }
 function limparPericia(codigo){ if(!confirm('Limpar todos os dados desta pós-perícia?')) return; const d=getPericiaData(); delete d[codigo]; savePericiaData(d); showToast('🗑 Pós-perícia limpa.'); renderPericia(); }
 function enviarEmailPericia(codigo){
