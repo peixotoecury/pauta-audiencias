@@ -7701,6 +7701,21 @@ function diasDesdeAudiencia(dataStr) {
   return Math.floor((hoje - aud) / 86400000);
 }
 
+// O "código" (Código P&C) identifica o PROCESSO, não uma audiência específica: quando uma
+// audiência é redesignada, a nova data entra na pauta com o MESMO código da antiga. Registros
+// novos gravam a data/horário exatos da ocorrência (_occ_data) pra não confundir com uma sessão
+// anterior do mesmo processo. Registros antigos (sem essa marca): um pós-audiência nunca é
+// preenchido antes da audiência acontecer, então se a data desta linha é POSTERIOR ao momento
+// em que o registro foi salvo, ele não pode ser sobre esta ocorrência — só sobre uma sessão
+// anterior do mesmo processo que já foi redesignada.
+function pcRegistroPertenceALinha(rec, row){
+  if (!rec) return false;
+  if (rec._occ_data) return rec._occ_data === row.data;
+  const audTime = parsePtDateForPost(row.data)?.getTime() ?? 0;
+  const savedTime = Date.parse(rec.updated_at||'');
+  if (Number.isFinite(savedTime) && audTime > savedTime) return false;
+  return true;
+}
 function getPastAudiencias() {
   const posData = getPosData();
   return getPostRecords().filter(r => {
@@ -7708,13 +7723,9 @@ function getPastAudiencias() {
     const isAudiencia = !String(r.tipo||'').startsWith('Perícia') && !String(r.tipo||'').toLowerCase().includes('perícia') && !String(r.tipo||'').toLowerCase().includes('pericia') && !String(r.tipo||'').includes('Julgamento - Vara') && !String(r.tipo||'').includes('Julgamento - Vara do Trabalho - Súmula') && !String(r.tipo||'').includes('Sessão de Julgamento');
     const temIndicacao = r.adv_audiencia && r.adv_audiencia !== 'N/A' && r.adv_audiencia !== 'Indicar Advogado' && r.adv_audiencia.trim() !== '';
     if (!isAudiencia || !temIndicacao) return false;
-    // O "código" (Código P&C) identifica o PROCESSO, não uma audiência específica: quando
-    // uma audiência é redesignada, a nova data entra na pauta com o MESMO código da antiga,
-    // que já pode estar com pós-audiência preenchida (da sessão anterior). Sem esse corte,
-    // a nova data (futura) aparecia como "já preenchida" por engano.
     const dias = diasDesdeAudiencia(r.data);
     if (dias === null) return false; // audiência ainda não ocorreu: nunca mostra, mesmo com pos de sessão anterior do mesmo processo
-    if (posData[r.codigo]) return true; // já ocorreu e está preenchida → sempre mostra
+    if (pcRegistroPertenceALinha(posData[r.codigo], r)) return true;
     return dias <= 30;
   });
 }
@@ -8276,8 +8287,13 @@ function _lerEValidarPosDoDom(codigo) {
 // sincroniza com a nuvem imediatamente (não espera o debounce de 3s) pra não
 // perder o registro se a pessoa fechar a aba ou o cliente de e-mail travar a tela.
 async function _persistirPosRecord(codigo, record) {
+  // Marca a que audiência (data/horário) este registro se refere — o código sozinho não
+  // basta, porque o mesmo processo pode ter mais de uma audiência (remarcações). Sem isso,
+  // quando a audiência é redesignada pro futuro, o sistema não tem como saber que o registro
+  // salvo agora é sobre a sessão de HOJE, e não sobre a próxima que ainda vai ocorrer.
+  const _rAud = getPastAudiencias().find(x=>x.codigo===codigo) || getPostRecords().find(x=>x.codigo===codigo);
+  if(_rAud){ record._occ_data = _rAud.data; record._occ_horario = _rAud.horario; }
   savePosCodigo(codigo, record);
-  const _rAud = getPostRecords().find(x=>x.codigo===codigo);
   addAuditEntry('Pós-Audiência salva', `Código ${codigo} · ${_rAud ? _rAud.parte_principal + ' (' + _rAud.data + ')' : ''}`);
 
   if (_rAud) {
@@ -8354,7 +8370,7 @@ function getPastPericias(){
     // Mesmo caso do getPastAudiencias: código identifica o processo, não a perícia específica.
     const dias = diasDesdeAudiencia(r.data);
     if (dias === null) return false; // perícia ainda não ocorreu: nunca mostra, mesmo com pos de sessão anterior do mesmo processo
-    if(periciaData[r.codigo]) return true; // já ocorreu e está preenchida → sempre mostra
+    if (pcRegistroPertenceALinha(periciaData[r.codigo], r)) return true;
     return dias <= 30;
   });
 }
@@ -8476,7 +8492,10 @@ function salvarPericia(codigo){
     obs_pericia:document.getElementById('obs_pericia-'+codigo)?.value||'',
     updated_at:new Date().toISOString()
   };
-  savePericiaCodigo(codigo,record); const r=DATA.main.find(x=>x.codigo===codigo); addAuditEntry('Pós-Perícia salva', `Código ${codigo} · ${r? r.parte_principal + ' (' + r.data + ')' : ''}`); showToast('✅ Pós-perícia salvo com sucesso!');
+  // Marca a que perícia (data/horário) este registro se refere — ver comentário equivalente em _persistirPosRecord.
+  const r=getPastPericias().find(x=>x.codigo===codigo) || DATA.main.find(x=>x.codigo===codigo);
+  if(r){ record._occ_data = r.data; record._occ_horario = r.horario; }
+  savePericiaCodigo(codigo,record); addAuditEntry('Pós-Perícia salva', `Código ${codigo} · ${r? r.parte_principal + ' (' + r.data + ')' : ''}`); showToast('✅ Pós-perícia salvo com sucesso!');
   // renderPericia() removido de propósito: evita fechar o formulário ao salvar.
   // Mas os cards de contagem do topo ficavam sempre desatualizados até trocar de aba — corrigido chamando só os contadores.
   try{ pcAtualizarContadoresPericia(); }catch(e){}
