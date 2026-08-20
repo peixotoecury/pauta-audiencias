@@ -5350,6 +5350,16 @@ async function _flushToCloud(){
     try{ remoteSnap = await _binGet(); }catch(e){}
     if(remoteSnap){
       finalSnap = Object.assign({}, snapAtual, {
+        // A pauta (schedule) só deve mudar pelo upload de Excel, que grava direto na nuvem
+        // (bypassa esta função). Qualquer outro salvamento (pós-audiência, designação etc.)
+        // não pode sobrescrever a pauta com a cópia local, que pode estar desatualizada se
+        // este navegador está aberto desde antes do upload mais recente de outra pessoa —
+        // foi exatamente isso que apagou um upload real em produção.
+        pauta_main: (Array.isArray(remoteSnap.pauta_main) && remoteSnap.pauta_main.length) ? remoteSnap.pauta_main : snapAtual.pauta_main,
+        pauta_updated_at: remoteSnap.pauta_updated_at || snapAtual.pauta_updated_at,
+        // Histórico só cresce (união), nunca substitui — o mesmo raciocínio, senão uma aba
+        // aberta há muito tempo apagaria histórico acumulado por outras pessoas nesse meio-tempo.
+        historico: pcMergeAudiencias([...(remoteSnap.historico||[]), ...(snapAtual.historico||[])]),
         designacoes:      Object.assign({}, remoteSnap.designacoes||{},      snapAtual.designacoes||{}),
         designacoes_meta: Object.assign({}, remoteSnap.designacoes_meta||{}, snapAtual.designacoes_meta||{}),
         // Listas por id: merge por união, nunca perde entrada de histórico/conflito de nenhum dos lados.
