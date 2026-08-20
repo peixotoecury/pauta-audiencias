@@ -3919,7 +3919,7 @@ function mostrarAlertaLoginResumo(hoje){
   const respPastaHoje = registros.filter(r => r.data === hoje && r.adv_preparo === sigla);
   const posData = (typeof getPosData === 'function') ? getPosData() : {};
   const pendentesPos = (typeof getPastAudiencias === 'function')
-    ? getPastAudiencias().filter(r => _siglaResponsavelPosAudiencia(r) === sigla && !pcRegistroPertenceALinha(posData[r.codigo], r))
+    ? getPastAudiencias().filter(r => _siglaResponsavelPosAudiencia(r) === sigla && !pcObterPosRecord(posData, r))
     : [];
   const p = PROF[sigla];
   const nome = p ? p.nome.split(' ')[0] : sigla;
@@ -7722,6 +7722,23 @@ function pcRegistroPertenceALinha(rec, row){
   if (Number.isFinite(savedTime) && audTime > savedTime) return false;
   return true;
 }
+// Chave definitiva por ocorrência (mesma ideia da pcChaveAudiencia usada nas designações):
+// código + data + horário + tipo. Resolve a ambiguidade na raiz — novos preenchimentos são
+// salvos por aqui, então nem precisam mais da heurística de pcRegistroPertenceALinha.
+function pcChaveOcorrenciaPost(r){
+  const limpar = v => String(v||'').trim().replace(/[\/: ]/g,'_');
+  return limpar(r?.codigo) + '__' + limpar(r?.data) + '__' + limpar(r?.horario) + '__' + limpar(r?.tipo);
+}
+// Busca o registro efetivo de pós-audiência/pós-perícia para esta linha: prioriza a chave nova
+// (sem ambiguidade); se não achar, cai no registro antigo (salvo antes desta correção, por
+// código sozinho) validado pela heurística de data — mantém tudo que já foi preenchido
+// funcionando, sem precisar migrar nada.
+function pcObterPosRecord(store, row){
+  const porOcorrencia = store[pcChaveOcorrenciaPost(row)];
+  if(porOcorrencia) return porOcorrencia;
+  const legado = store[row.codigo];
+  return pcRegistroPertenceALinha(legado, row) ? legado : null;
+}
 function getPastAudiencias() {
   const posData = getPosData();
   return getPostRecords().filter(r => {
@@ -7731,7 +7748,7 @@ function getPastAudiencias() {
     if (!isAudiencia || !temIndicacao) return false;
     const dias = diasDesdeAudiencia(r.data);
     if (dias === null) return false; // audiência ainda não ocorreu: nunca mostra, mesmo com pos de sessão anterior do mesmo processo
-    if (pcRegistroPertenceALinha(posData[r.codigo], r)) return true;
+    if (pcObterPosRecord(posData, r)) return true;
     return dias <= 30;
   });
 }
@@ -7773,7 +7790,7 @@ function getResponsibleNameForPost(r){
 }
 function updatePostDiretoria(prefix, rows, dataStore){
   const total = rows.length;
-  const concluidos = rows.filter(r => pcRegistroPertenceALinha(dataStore[r.codigo], r)).length;
+  const concluidos = rows.filter(r => pcObterPosRecord(dataStore, r)).length;
   const pendentes = Math.max(total - concluidos, 0);
   const pct = total ? Math.round((concluidos / total) * 100) : 0;
   const setText = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
@@ -7784,7 +7801,7 @@ function updatePostDiretoria(prefix, rows, dataStore){
   const bar = document.getElementById(prefix+'-dir-progress');
   if(bar) bar.style.width = pct + '%';
   const ranking = {};
-  rows.filter(r => !pcRegistroPertenceALinha(dataStore[r.codigo], r)).forEach(r => {
+  rows.filter(r => !pcObterPosRecord(dataStore, r)).forEach(r => {
     const nome = getResponsibleNameForPost(r);
     ranking[nome] = (ranking[nome] || 0) + 1;
   });
@@ -7819,7 +7836,7 @@ function pcAtualizarContadoresPos(posData){
   posData = posData || getPosData();
   const allRows = getPastAudiencias();
   updatePostDiretoria('pos', allRows, posData);
-  const recEfetivo = r => pcRegistroPertenceALinha(posData[r.codigo], r) ? posData[r.codigo] : null;
+  const recEfetivo = r => pcObterPosRecord(posData, r);
   const totalDone = allRows.filter(r => recEfetivo(r)).length;
   const totalAcordo = allRows.filter(r => recEfetivo(r)?.acordo === 'sim').length;
   const totalPrazo = allRows.filter(r => recEfetivo(r)?.prazo_ata === 'sim').length;
@@ -7849,14 +7866,14 @@ function renderPos() {
     (r.parte_principal || '').toLowerCase().includes(search) ||
     (r.parte_contraria || '').toLowerCase().includes(search) ||
     (r.adv_audiencia || '').toLowerCase().includes(search) ||
-    ((posDataForSearch[r.codigo]?.testemunhas || []).some(t => (t.nome || '').toLowerCase().includes(search)))
+    ((pcObterPosRecord(posDataForSearch, r)?.testemunhas || []).some(t => (t.nome || '').toLowerCase().includes(search)))
   );
 
   const posData = getPosData();
   pcAtualizarContadoresPos(posData);
 
-  if (statusF === 'done') rows = rows.filter(r => pcRegistroPertenceALinha(posData[r.codigo], r));
-  if (statusF === 'pending') rows = rows.filter(r => !pcRegistroPertenceALinha(posData[r.codigo], r));
+  if (statusF === 'done') rows = rows.filter(r => pcObterPosRecord(posData, r));
+  if (statusF === 'pending') rows = rows.filter(r => !pcObterPosRecord(posData, r));
 
   document.getElementById('pos-count').textContent = rows.length + ' audiência' + (rows.length !== 1 ? 's' : '');
 
@@ -7874,13 +7891,12 @@ function renderPos() {
     return;
   }
   
-  list.innerHTML = rows.map(r => buildPosCard(r, posData[r.codigo])).join('');
+  list.innerHTML = rows.map(r => buildPosCard(r, pcObterPosRecord(posData, r))).join('');
 }
 
 function buildPosCard(r, rec) {
-  // rec pode ser de uma sessão anterior do mesmo processo (código reaproveitado numa redesignação) —
-  // nesse caso não é desta audiência, então trata como se não houvesse registro (nem pro selo, nem pro formulário).
-  rec = pcRegistroPertenceALinha(rec, r) ? rec : null;
+  // rec já vem resolvido pelo chamador via pcObterPosRecord — nunca é de uma sessão anterior
+  // do mesmo processo (código reaproveitado numa redesignação).
   const isDone = !!rec;
   const advNome = PROF[r.adv_audiencia] ? PROF[r.adv_audiencia].nome : (r.adv_audiencia || '—');
   const isCorrespondenteAud = typeof pcEhCorrespondenteAlerta17 === 'function' && pcEhCorrespondenteAlerta17(r.adv_audiencia);
@@ -8303,7 +8319,10 @@ async function _persistirPosRecord(codigo, record) {
   // salvo agora é sobre a sessão de HOJE, e não sobre a próxima que ainda vai ocorrer.
   const _rAud = getPastAudiencias().find(x=>x.codigo===codigo) || getPostRecords().find(x=>x.codigo===codigo);
   if(_rAud){ record._occ_data = _rAud.data; record._occ_horario = _rAud.horario; }
-  savePosCodigo(codigo, record);
+  // Salva pela chave da ocorrência (código+data+horário+tipo), não só pelo código — mesma
+  // chave usada na pauta, sem ambiguidade nenhuma daqui pra frente mesmo se o mesmo processo
+  // tiver duas audiências pendentes ao mesmo tempo.
+  savePosCodigo(_rAud ? pcChaveOcorrenciaPost(_rAud) : codigo, record);
   addAuditEntry('Pós-Audiência salva', `Código ${codigo} · ${_rAud ? _rAud.parte_principal + ' (' + _rAud.data + ')' : ''}`);
 
   if (_rAud) {
@@ -8356,7 +8375,9 @@ async function salvarPos(codigo) {
 function limparPos(codigo) {
   if (!confirm('Limpar todos os dados deste registro?')) return;
   const d = getPosData();
-  delete d[codigo];
+  const r = getPastAudiencias().find(x=>x.codigo===codigo) || getPostRecords().find(x=>x.codigo===codigo);
+  if(r) delete d[pcChaveOcorrenciaPost(r)];
+  delete d[codigo]; // limpa também um eventual registro legado salvo antes desta correção
   savePosData(d);
   showToast('🗑 Registro limpo.');
   renderPos();
@@ -8380,7 +8401,7 @@ function getPastPericias(){
     // Mesmo caso do getPastAudiencias: código identifica o processo, não a perícia específica.
     const dias = diasDesdeAudiencia(r.data);
     if (dias === null) return false; // perícia ainda não ocorreu: nunca mostra, mesmo com pos de sessão anterior do mesmo processo
-    if (pcRegistroPertenceALinha(periciaData[r.codigo], r)) return true;
+    if (pcObterPosRecord(periciaData, r)) return true;
     return dias <= 30;
   });
 }
@@ -8397,7 +8418,7 @@ function pcAtualizarContadoresPericia(data){
   data = data || getPericiaData();
   const all=getPastPericias();
   updatePostDiretoria('per', all, data);
-  const recEfetivo = r => pcRegistroPertenceALinha(data[r.codigo], r) ? data[r.codigo] : null;
+  const recEfetivo = r => pcObterPosRecord(data, r);
   const _perDone=all.filter(r=>recEfetivo(r)).length;
   const set=(id,val)=>{ const el=document.getElementById(id); if(el) el.textContent = val; };
   set('pericia-kpi-total', _perDone);
@@ -8419,16 +8440,16 @@ function renderPericia(){
   pcAtualizarContadoresPericia(data);
   if(diaF) rows=rows.filter(r=>r.data===diaF);
   if(grupoF) rows=rows.filter(r=>r.grupo===grupoF);
-  if(search) rows=rows.filter(r=>[r.processo,r.parte_principal,r.parte_contraria,r.adv_audiencia,r.comarca,data[r.codigo]?.perito_nome,data[r.codigo]?.local_pericia,data[r.codigo]?.area_vistoriada,data[r.codigo]?.advogado_compareceu].join(' ').toLowerCase().includes(search));
-  if(statusF==='done') rows=rows.filter(r=>pcRegistroPertenceALinha(data[r.codigo], r));
-  if(statusF==='pending') rows=rows.filter(r=>!pcRegistroPertenceALinha(data[r.codigo], r));
+  if(search) rows=rows.filter(r=>{ const d=pcObterPosRecord(data,r)||{}; return [r.processo,r.parte_principal,r.parte_contraria,r.adv_audiencia,r.comarca,d.perito_nome,d.local_pericia,d.area_vistoriada,d.advogado_compareceu].join(' ').toLowerCase().includes(search); });
+  if(statusF==='done') rows=rows.filter(r=>pcObterPosRecord(data, r));
+  if(statusF==='pending') rows=rows.filter(r=>!pcObterPosRecord(data, r));
   document.getElementById('pericia-count').textContent = rows.length + ' perícia' + (rows.length!==1?'s':'');
   const list=document.getElementById('pericia-list');
   if(!rows.length){ list.innerHTML='<div class="pos-empty"><div class="pe-icon">🔬</div><div class="pe-text">Nenhuma perícia encontrada para os filtros selecionados.</div></div>'; return; }
-  list.innerHTML=rows.map(r=>buildPericiaCard(r,data[r.codigo])).join('');
+  list.innerHTML=rows.map(r=>buildPericiaCard(r,pcObterPosRecord(data, r))).join('');
 }
 function buildPericiaCard(r,rec){
-  rec = pcRegistroPertenceALinha(rec, r) ? rec : null; // ver comentário equivalente em buildPosCard
+  // rec já vem resolvido pelo chamador via pcObterPosRecord.
   const done=!!rec; const advNome=PROF[r.adv_audiencia]?PROF[r.adv_audiencia].nome:(r.adv_audiencia||'');
   const advLinha = advNome && advNome !== 'N/A' ? `Advogado da pauta: ${advNome} · ${r.grupo}` : `${r.grupo}`;
   let alerteBadgeP = '';
@@ -8507,7 +8528,8 @@ function salvarPericia(codigo){
   // Marca a que perícia (data/horário) este registro se refere — ver comentário equivalente em _persistirPosRecord.
   const r=getPastPericias().find(x=>x.codigo===codigo) || DATA.main.find(x=>x.codigo===codigo);
   if(r){ record._occ_data = r.data; record._occ_horario = r.horario; }
-  savePericiaCodigo(codigo,record); addAuditEntry('Pós-Perícia salva', `Código ${codigo} · ${r? r.parte_principal + ' (' + r.data + ')' : ''}`); showToast('✅ Pós-perícia salvo com sucesso!');
+  // Salva pela chave da ocorrência (código+data+horário+tipo) — ver comentário equivalente em _persistirPosRecord.
+  savePericiaCodigo(r ? pcChaveOcorrenciaPost(r) : codigo, record); addAuditEntry('Pós-Perícia salva', `Código ${codigo} · ${r? r.parte_principal + ' (' + r.data + ')' : ''}`); showToast('✅ Pós-perícia salvo com sucesso!');
   // renderPericia() removido de propósito: evita fechar o formulário ao salvar.
   // Mas os cards de contagem do topo ficavam sempre desatualizados até trocar de aba — corrigido chamando só os contadores.
   try{ pcAtualizarContadoresPericia(); }catch(e){}
@@ -8517,15 +8539,22 @@ function salvarPericia(codigo){
     if(_badge){ _badge.className = 'pos-badge-done'; _badge.textContent = '✅ Preenchido'; }
   }
 }
-function limparPericia(codigo){ if(!confirm('Limpar todos os dados desta pós-perícia?')) return; const d=getPericiaData(); delete d[codigo]; savePericiaData(d); showToast('🗑 Pós-perícia limpa.'); renderPericia(); }
+function limparPericia(codigo){
+  if(!confirm('Limpar todos os dados desta pós-perícia?')) return;
+  const d=getPericiaData();
+  const r = getPastPericias().find(x=>x.codigo===codigo) || getPostRecords().find(x=>x.codigo===codigo);
+  if(r) delete d[pcChaveOcorrenciaPost(r)];
+  delete d[codigo]; // limpa também um eventual registro legado salvo antes desta correção
+  savePericiaData(d); showToast('🗑 Pós-perícia limpa.'); renderPericia();
+}
 function enviarEmailPericia(codigo){
-  const r=getPostRecords().find(x=>x.codigo===codigo); const d=getPericiaData()[codigo]||{};
+  const r=getPostRecords().find(x=>x.codigo===codigo); const d=(r ? pcObterPosRecord(getPericiaData(), r) : getPericiaData()[codigo])||{};
   const subject=encodeURIComponent(`Pós-perícia - ${r?.processo||codigo}`);
   const body=encodeURIComponent(`Prezados,\n\nSegue registro de pós-perícia:\n\nProcesso: ${r?.processo||''}\nCliente: ${r?.parte_principal||''}\nParte contrária: ${r?.parte_contraria||''}\nData/Horário da pauta: ${r?.data||''} ${r?.horario||''}\nTipo da pauta: ${r?.tipo||''}\n\nTipo de perícia: ${d.tipo_pericia||''}\nData da perícia: ${d.data_pericia||''}\nHorário da perícia: ${d.horario_pericia||''}\nLocal da perícia: ${d.local_pericia||''}\nÁrea vistoriada: ${d.area_vistoriada||''}\nAdvogado responsável pelo comparecimento: ${d.advogado_compareceu||''}\nPerito: ${d.perito_nome||''}\nComparecimento: ${d.comparecimento||''}\nNova data: ${d.nova_data_pericia||''} ${d.nova_horario_pericia||''}\nPrazo: ${d.prazo_pericia||''}\nObservações: ${d.obs_pericia||''}\n\nObrigada.`);
   window.location.href=`mailto:pericia.trabalhista@peixotoecury.com.br?subject=${subject}&body=${body}`;
 }
 function exportarPericiaExcel(){
-  const data=getPericiaData(); const rows=getPastPericias().map(r=>{ const dReal = pcRegistroPertenceALinha(data[r.codigo], r) ? data[r.codigo] : null; const d=dReal||{}; return {Código:r.codigo,'Data da Pauta':r.data,'Horário da Pauta':r.horario,Processo:r.processo,Cliente:r.parte_principal,'Parte Contrária':r.parte_contraria,'Tipo da Pauta':r.tipo,Comarca:r.comarca,Grupo:r.grupo,Status:dReal?'Preenchido':'Pendente','Tipo de Perícia':d.tipo_pericia||'','Data da Perícia':d.data_pericia||'','Horário da Perícia':d.horario_pericia||'','Local da Perícia':d.local_pericia||'','Área Vistoriada':d.area_vistoriada||'','Advogado Responsável pelo Comparecimento':d.advogado_compareceu||'',Perito:d.perito_nome||'',Comparecimento:d.comparecimento||'','Nova Data':d.nova_data_pericia||'','Novo Horário':d.nova_horario_pericia||'',Prazo:d.prazo_pericia||'',Observações:d.obs_pericia||''}; });
+  const data=getPericiaData(); const rows=getPastPericias().map(r=>{ const dReal = pcObterPosRecord(data, r); const d=dReal||{}; return {Código:r.codigo,'Data da Pauta':r.data,'Horário da Pauta':r.horario,Processo:r.processo,Cliente:r.parte_principal,'Parte Contrária':r.parte_contraria,'Tipo da Pauta':r.tipo,Comarca:r.comarca,Grupo:r.grupo,Status:dReal?'Preenchido':'Pendente','Tipo de Perícia':d.tipo_pericia||'','Data da Perícia':d.data_pericia||'','Horário da Perícia':d.horario_pericia||'','Local da Perícia':d.local_pericia||'','Área Vistoriada':d.area_vistoriada||'','Advogado Responsável pelo Comparecimento':d.advogado_compareceu||'',Perito:d.perito_nome||'',Comparecimento:d.comparecimento||'','Nova Data':d.nova_data_pericia||'','Novo Horário':d.nova_horario_pericia||'',Prazo:d.prazo_pericia||'',Observações:d.obs_pericia||''}; });
   if(!rows.length){ alert('Não há perícias para exportar.'); return; }
   const ws=XLSX.utils.json_to_sheet(rows); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Pós-Perícia'); XLSX.writeFile(wb,'Pos_Pericia.xlsx');
 }
@@ -9125,7 +9154,7 @@ function exportarPosExcel() {
   
   const csvRows = [headers];
   rows.forEach(r => {
-    const rec = (pcRegistroPertenceALinha(posData[r.codigo], r) ? posData[r.codigo] : null) || {};
+    const rec = pcObterPosRecord(posData, r) || {};
     const advRealizNome = PROF[rec.adv_realiz] ? PROF[rec.adv_realiz].nome : (rec.adv_realiz || '');
     const testsRec = (rec.testemunhas || []).filter(t => t.tipo === 'Reclamante' || t.tipo === 'Autora').map(t => t.nome + (t.avaliacao ? ` (${t.avaliacao}★)` : '')).join('; ');
     const testsRda = (rec.testemunhas || []).filter(t => t.tipo === 'Reclamada' || t.tipo === 'Ré').map(t => t.nome + (t.avaliacao ? ` (${t.avaliacao}★)` : '')).join('; ');
@@ -10372,7 +10401,7 @@ const CC_ALERTA_POS_AUDIENCIA = "audiencia.trabalhista@peixotoecury.com.br";
 
 function getPendenciasPosAudienciaPorResponsavel(){
   const posData = getPosData();
-  const pendentes = getPastAudiencias().filter(r => !pcRegistroPertenceALinha(posData[r.codigo], r));
+  const pendentes = getPastAudiencias().filter(r => !pcObterPosRecord(posData, r));
   const map = {};
   pendentes.forEach(r => {
     const sigla = (_siglaResponsavelPosAudiencia(r) || "Sem responsável").trim();
