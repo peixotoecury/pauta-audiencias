@@ -3394,8 +3394,14 @@ function getPostRecords() {
   const hist = (typeof getHistorico === 'function') ? (getHistorico() || []) : [];
   // Inclui registros antigos + histórico + pauta atual.
   // Isso mantém dias anteriores, como 29/04, visíveis no Pós-Audiência/Pós-Perícia mesmo após upload de nova pauta.
+  // A chave é a audiência específica (código + data + horário), não o código sozinho: o código
+  // identifica o PROCESSO e é reaproveitado em redesignações, então usar só o código fazia uma
+  // audiência antiga (ainda pendente ou já preenchida) desaparecer por completo sempre que o
+  // mesmo código reaparecia com uma data nova na pauta importada. (Usa só código+data+horário,
+  // não a chave completa pcChaveAudiencia — campos como grupo/comarca podem ter sido corrigidos
+  // entre o momento em que foi pro Histórico e agora, o que criaria duplicata da mesma audiência.)
   [...(POST_OLD_RECORDS || []), ...hist, ...(DATA.main || [])].forEach(r => {
-    if(r && r.codigo != null) map.set(String(r.codigo), r);
+    if(r && r.codigo != null) map.set(r.codigo + '|' + (r.data||'') + '|' + (r.horario||''), r);
   });
   return Array.from(map.values()).sort((a,b) => {
     const pa = String(a.data || '').split('/');
