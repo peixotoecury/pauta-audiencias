@@ -2997,6 +2997,7 @@ button.lp-submit-btn:hover{background:linear-gradient(135deg,#0d2540 0%,#1f4770 
 <div class="pos-filters">
 <select class="filter-select" id="pericia-filter-dia" onchange="renderPericia()" style="min-width:120px"><option value="">Todos os dias</option></select>
 <select class="filter-select" id="pericia-filter-grupo" onchange="renderPericia()" style="min-width:130px"><option value="">Todos os grupos</option></select>
+<select class="filter-select" id="pericia-filter-prof" onchange="renderPericia()" style="min-width:180px"><option value="">Todos os profissionais</option></select>
 <select class="filter-select" id="pericia-filter-status" onchange="renderPericia()" style="display:none">
 <option value="">Todos</option><option value="done">✅ Preenchido</option><option value="pending">⏳ Pendente</option>
 </select>
@@ -8449,6 +8450,28 @@ function initPericiaFilters(){
   const grupos=[...new Set(rows.map(r=>r.grupo).filter(Boolean))].sort();
   const diaEl=document.getElementById('pericia-filter-dia'); if(diaEl && diaEl.options.length<=1) dias.forEach(d=>diaEl.add(new Option(d,d)));
   const grupoEl=document.getElementById('pericia-filter-grupo'); if(grupoEl && grupoEl.options.length<=1) grupos.forEach(g=>grupoEl.add(new Option(g,g)));
+
+  // Mesma ideia do initPosFilters: refeito a cada chamada pra acompanhar quem ainda tem pendência.
+  const periciaData = getPericiaData();
+  const porProfPendente = {};
+  rows.forEach(r => {
+    if (pcObterPosRecord(periciaData, r)) return;
+    const sigla = _siglaResponsavelPosAudiencia(r);
+    if (!sigla) return;
+    porProfPendente[sigla] = (porProfPendente[sigla] || 0) + 1;
+  });
+  const profEl = document.getElementById('pericia-filter-prof');
+  if (profEl) {
+    const selecionadoAntes = profEl.value;
+    profEl.innerHTML = '<option value="">Todos os profissionais</option>';
+    Object.keys(porProfPendente)
+      .sort((a, b) => (PROF[a]?.nome || a).localeCompare(PROF[b]?.nome || b, 'pt-BR'))
+      .forEach(sigla => {
+        const nome = PROF[sigla]?.nome || sigla;
+        profEl.add(new Option(`${nome} (${porProfPendente[sigla]})`, sigla));
+      });
+    if ([...profEl.options].some(o => o.value === selecionadoAntes)) profEl.value = selecionadoAntes;
+  }
 }
 // Mesma ideia de pcAtualizarContadoresPos: separado pra poder chamar no "Salvar"
 // sem reconstruir #pericia-list e fechar o formulário aberto.
@@ -8472,11 +8495,13 @@ function renderPericia(){
   initPericiaFilters();
   const diaF=document.getElementById('pericia-filter-dia')?.value||'';
   const grupoF=document.getElementById('pericia-filter-grupo')?.value||'';
+  const profF=document.getElementById('pericia-filter-prof')?.value||'';
   const statusF=document.getElementById('pericia-filter-status')?.value||'';
   const search=(document.getElementById('pericia-search')?.value||'').toLowerCase();
   let rows=getPastPericias(); const data=getPericiaData();
   pcAtualizarContadoresPericia(data);
   if(diaF) rows=rows.filter(r=>r.data===diaF);
+  if(profF) rows=rows.filter(r=>_siglaResponsavelPosAudiencia(r)===profF);
   if(grupoF) rows=rows.filter(r=>r.grupo===grupoF);
   if(search) rows=rows.filter(r=>{ const d=pcObterPosRecord(data,r)||{}; return [r.processo,r.parte_principal,r.parte_contraria,r.adv_audiencia,r.comarca,d.perito_nome,d.local_pericia,d.area_vistoriada,d.advogado_compareceu].join(' ').toLowerCase().includes(search); });
   if(statusF==='done') rows=rows.filter(r=>pcObterPosRecord(data, r));
