@@ -7946,7 +7946,7 @@ function buildPosCard(r, rec) {
     const diasD = diasDesdeAudiencia(r.data);
     if (diasD !== null) {
       const rest = 30 - diasD;
-      if (rest <= 0) alerteBadge = '<span style="display:inline-block;background:#c0392b;color:#fff;border-radius:5px;padding:3px 8px;font-size:11px;font-weight:700;margin-right:4px">🚨 Prazo esgotado</span>';
+      if (rest <= 0) alerteBadge = '<span style="display:inline-block;background:#c0392b;color:#fff;border-radius:5px;padding:3px 8px;font-size:11px;font-weight:700;margin-right:4px">⏰ Último dia para preencher</span>';
       else if (rest <= 7) alerteBadge = `<span style="display:inline-block;background:rgba(230,126,34,.18);color:#e67e22;border:1px solid rgba(230,126,34,.45);border-radius:5px;padding:3px 8px;font-size:11px;font-weight:700;margin-right:4px">⚠️ Vence em ${rest}d</span>`;
     }
   }
@@ -8520,7 +8520,7 @@ function buildPericiaCard(r,rec){
     const diasD = diasDesdeAudiencia(r.data);
     if (diasD !== null) {
       const rest = 30 - diasD;
-      if (rest <= 0) alerteBadgeP = '<span style="display:inline-block;background:#c0392b;color:#fff;border-radius:5px;padding:3px 8px;font-size:11px;font-weight:700;margin-right:4px">🚨 Prazo esgotado</span>';
+      if (rest <= 0) alerteBadgeP = '<span style="display:inline-block;background:#c0392b;color:#fff;border-radius:5px;padding:3px 8px;font-size:11px;font-weight:700;margin-right:4px">⏰ Último dia para preencher</span>';
       else if (rest <= 7) alerteBadgeP = `<span style="display:inline-block;background:rgba(230,126,34,.18);color:#e67e22;border:1px solid rgba(230,126,34,.45);border-radius:5px;padding:3px 8px;font-size:11px;font-weight:700;margin-right:4px">⚠️ Vence em ${rest}d</span>`;
     }
   }
