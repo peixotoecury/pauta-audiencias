@@ -8506,9 +8506,9 @@ function buildPericiaCard(r,rec){
         <div class="pos-card-sub">${r.data} ${r.horario} · ${r.tipo} · ${r.comarca}/${r.estado} · ${r.processo}</div>
         <div class="pos-card-sub" style="margin-top:3px;color:var(--cyan)">${advLinha}</div>
       </div>
-      <div class="pos-card-badges">${done?'<span class="pos-badge-done">✅ Preenchido</span>':'<span class="pos-badge-pending">⏳ Pendente</span>'}${alerteBadgeP}<span style="color:var(--muted);font-size:18px">${done?'▲':'▼'}</span></div>
+      <div class="pos-card-badges">${done?'<span class="pos-badge-done">✅ Preenchido</span>':'<span class="pos-badge-pending">⏳ Pendente</span>'}${alerteBadgeP}<span style="color:var(--muted);font-size:18px" id="periciaarrow-${r.codigo}">▼</span></div>
     </div>
-    <div class="pos-form${done?' open':''}" id="periciaform-${r.codigo}">${buildPericiaForm(r,rec)}</div>
+    <div class="pos-form" id="periciaform-${r.codigo}">${buildPericiaForm(r,rec)}</div>
   </div>`;
 }
 function buildPericiaForm(r,rec){
@@ -8544,7 +8544,18 @@ function buildPericiaForm(r,rec){
     <div style="display:flex;gap:10px;align-items:center"><button class="pos-save-btn" onclick="salvarPericia('${r.codigo}')">💾 Salvar Pós-Perícia</button>${rec?`<button onclick="limparPericia('${r.codigo}')" style="background:var(--red-lt);border:1px solid rgba(192,57,43,.3);color:#E57373;border-radius:var(--radius);padding:10px 18px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">🗑 Limpar</button>`:''}</div>
   </div>`;
 }
-function togglePericiaCard(codigo){ const form=document.getElementById('periciaform-'+codigo); if(form) form.classList.toggle('open'); }
+function togglePericiaCard(codigo){
+  const form = document.getElementById('periciaform-' + codigo);
+  if (!form) return;
+  const arrow = document.getElementById('periciaarrow-' + codigo);
+  if (form.classList.contains('open')) {
+    form.classList.remove('open');
+    if (arrow) arrow.textContent = '▼';
+  } else {
+    form.classList.add('open');
+    if (arrow) arrow.textContent = '▲';
+  }
+}
 function salvarPericia(codigo){
   const record={
     tipo_pericia:document.getElementById('tipo_pericia-'+codigo)?.value||'',
