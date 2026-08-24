@@ -5343,6 +5343,29 @@ function _applySnapshot(snap){
 // pacote é salvo como um blob único: sem esse merge, quem tiver o app aberto há um
 // tempo sobrescreve pós-audiência/designações salvas por outra pessoa nesse intervalo
 // (perda de dados).
+// Mescla dois pares (edits, meta) de designações escolhendo, PARA CADA CHAVE, o lado com
+// designacoes_meta.atualizado_em mais recente -- nunca "local sempre ganha" ou "remoto sempre
+// ganha" por posição. Sem isso, um navegador desatualizado que salvasse qualquer coisa (mesmo
+// sem tocar em designação nenhuma) podia reverter uma designação manual mais nova feita por
+// outra pessoa, só porque o merge dava preferência a um lado por posição, não por data.
+// `prioridadeEdits/Meta` só vence em caso de empate (nenhum dos dois com data, ou mesma data) —
+// mantém o comportamento anterior de cada chamador nesse caso raro.
+function pcMesclarDesignacoesPorRecencia(baseEdits, baseMeta, prioridadeEdits, prioridadeMeta){
+  baseEdits = baseEdits || {}; baseMeta = baseMeta || {};
+  prioridadeEdits = prioridadeEdits || {}; prioridadeMeta = prioridadeMeta || {};
+  const chaves = new Set([...Object.keys(baseEdits), ...Object.keys(prioridadeEdits), ...Object.keys(baseMeta), ...Object.keys(prioridadeMeta)]);
+  const edits = {}, meta = {};
+  chaves.forEach(k => {
+    const tBase = Date.parse(baseMeta[k]?.atualizado_em || '');
+    const tPrioridade = Date.parse(prioridadeMeta[k]?.atualizado_em || '');
+    const usaBase = Number.isFinite(tBase) && (!Number.isFinite(tPrioridade) || tBase > tPrioridade);
+    const edSrc = usaBase ? baseEdits : prioridadeEdits;
+    const metaSrc = usaBase ? baseMeta : prioridadeMeta;
+    if (k in edSrc) edits[k] = edSrc[k];
+    if (metaSrc[k]) meta[k] = metaSrc[k];
+  });
+  return { edits, meta };
+}
 async function _flushToCloud(){
   let finalSnap;
   try{
@@ -5361,8 +5384,11 @@ async function _flushToCloud(){
         // Histórico só cresce (união), nunca substitui — o mesmo raciocínio, senão uma aba
         // aberta há muito tempo apagaria histórico acumulado por outras pessoas nesse meio-tempo.
         historico: pcMergeAudiencias([...(remoteSnap.historico||[]), ...(snapAtual.historico||[])]),
-        designacoes:      Object.assign({}, remoteSnap.designacoes||{},      snapAtual.designacoes||{}),
-        designacoes_meta: Object.assign({}, remoteSnap.designacoes_meta||{}, snapAtual.designacoes_meta||{}),
+        // Por recência (designacoes_meta.atualizado_em), não "local sempre ganha" — ver comentário na função.
+        ...(function(){
+          const m = pcMesclarDesignacoesPorRecencia(remoteSnap.designacoes, remoteSnap.designacoes_meta, snapAtual.designacoes, snapAtual.designacoes_meta);
+          return { designacoes: m.edits, designacoes_meta: m.meta };
+        })(),
         // Listas por id: merge por união, nunca perde entrada de histórico/conflito de nenhum dos lados.
         designacoes_log: (function(){
           const byId = new Map();
@@ -5449,8 +5475,11 @@ async function applyEdits(){
       // por isso dias antigos podiam não reaparecer.
       pauta_main:   (Array.isArray(snap.pauta_main) && snap.pauta_main.length) ? snap.pauta_main : loc.pauta_main,
       historico:    Array.isArray(snap.historico) ? snap.historico : [],
-      designacoes:  Object.assign({},loc.designacoes,  snap.designacoes||{}),
-      designacoes_meta: Object.assign({},loc.designacoes_meta||{}, snap.designacoes_meta||{}),
+      // Por recência (designacoes_meta.atualizado_em), não "remoto sempre ganha" — ver comentário na função.
+      ...(function(){
+        const m = pcMesclarDesignacoesPorRecencia(loc.designacoes, loc.designacoes_meta, snap.designacoes, snap.designacoes_meta);
+        return { designacoes: m.edits, designacoes_meta: m.meta };
+      })(),
       designacoes_log:  Array.isArray(snap.designacoes_log) ? snap.designacoes_log : (loc.designacoes_log||[]),
       designacoes_conflitos: Array.isArray(snap.designacoes_conflitos) ? snap.designacoes_conflitos : (loc.designacoes_conflitos||[]),
       pos_audiencia:Object.assign({},loc.pos_audiencia, snap.pos_audiencia||{}),
@@ -6194,7 +6223,13 @@ function pcStartCloudRealtime(){
       const snap = await _binGet();
       if(!snap) return;
       if(pcSnapshotMaisAntigoQueUpload(snap)) return;
-      _applySnapshot(snap);
+      // Esse polling aplicava a designação da nuvem direto, sem checar se este navegador tinha
+      // uma edição manual mais recente ainda não sincronizada — podia reverter uma designação
+      // na tela sem a pessoa nem ter feito nada. Mescla por recência, igual ao applyEdits().
+      const _locEdits = (typeof getEditsLocal === 'function') ? getEditsLocal() : {};
+      const _locMeta = pcGetDesignMeta();
+      const _m = pcMesclarDesignacoesPorRecencia(_locEdits, _locMeta, snap.designacoes, snap.designacoes_meta);
+      _applySnapshot(Object.assign({}, snap, { designacoes: _m.edits, designacoes_meta: _m.meta }));
       try{ renderTable(); }catch(e){}
       try{ refreshDashboardAfterEdit(); }catch(e){}
       try{ renderPos(); }catch(e){}
