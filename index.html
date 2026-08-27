@@ -5183,12 +5183,21 @@ function _buildLocalSnapshot(){
   let testemunhasExtra=[];
   try{ testemunhasExtra=JSON.parse(localStorage.getItem('testemunhas_extra_v1')||'[]'); }catch{}
 
+  // Usuários cadastrados/alterados pelo admin e senhas customizadas: sem isso, um usuário
+  // novo (ou senha trocada) só existia no navegador de quem cadastrou -- a pessoa nem
+  // conseguia logar no computador dela.
+  let adminUsers=[];
+  try{ adminUsers=JSON.parse(localStorage.getItem(ADMIN_USERS_KEY)||'[]'); }catch{}
+  let customPasses={};
+  try{ customPasses=JSON.parse(localStorage.getItem(PASS_KEY)||'{}'); }catch{}
+
   return {
           pauta_main: (DATA && Array.isArray(DATA.main)) ? DATA.main : [],
           historico,
           pauta_updated_at: new Date().toISOString(),
           designacoes:desig,designacoes_meta:pcGetDesignMeta(),designacoes_log:pcGetDesignLog(),designacoes_conflitos:pcGetDesignConflicts(),pos_audiencia:posAud,pos_pericia:posPericia,
-          notas,pt,ctrl,preparo_info:prepInfo,contratacoes,testemunhas_extra:testemunhasExtra};
+          notas,pt,ctrl,preparo_info:prepInfo,contratacoes,testemunhas_extra:testemunhasExtra,
+          admin_users:adminUsers,custom_passes:customPasses};
 }
 
 
@@ -5336,6 +5345,20 @@ function _applySnapshot(snap){
       localStorage.setItem('testemunhas_extra_v1',JSON.stringify(Array.from(byKey.values())));
     }catch(e){ console.warn('Restore testemunhas_extra falhou',e); }
   }
+
+  // Usuários cadastrados pelo admin e senhas customizadas: sem isso, um usuário novo cadastrado
+  // em outro navegador nunca chegava aqui, e a pessoa não conseguia logar.
+  if(Array.isArray(snap.admin_users) && snap.admin_users.length){
+    try{
+      const loc=JSON.parse(localStorage.getItem(ADMIN_USERS_KEY)||'[]');
+      const byUser=new Map();
+      [...(loc||[]),...snap.admin_users].forEach(u=>{ if(u && u.user) byUser.set(u.user,u); });
+      localStorage.setItem(ADMIN_USERS_KEY, JSON.stringify(Array.from(byUser.values())));
+    }catch(e){ console.warn('Restore admin_users falhou',e); }
+  }
+  if(snap.custom_passes){
+    try{ localStorage.setItem(PASS_KEY, JSON.stringify(Object.assign({}, JSON.parse(localStorage.getItem(PASS_KEY)||'{}'), snap.custom_passes||{}))); }catch(e){ console.warn('Restore custom_passes falhou',e); }
+  }
 }
 
 // Mescla o snapshot local com a versão mais recente da nuvem (por-chave, ex.: por
@@ -5421,7 +5444,15 @@ async function _flushToCloud(){
             byKey.set(k, c);
           });
           return Array.from(byKey.values());
-        })()
+        })(),
+        // Usuários cadastrados pelo admin: união por e-mail, senão um usuário novo cadastrado
+        // aqui podia sumir se outro navegador salvasse algo antes de este sincronizar.
+        admin_users: (function(){
+          const byUser = new Map();
+          [...(remoteSnap.admin_users||[]), ...(snapAtual.admin_users||[])].forEach(u=>{ if(u && u.user) byUser.set(u.user, u); });
+          return Array.from(byUser.values());
+        })(),
+        custom_passes: Object.assign({}, remoteSnap.custom_passes||{}, snapAtual.custom_passes||{})
       });
     } else {
       finalSnap = snapAtual;
@@ -5490,7 +5521,10 @@ async function applyEdits(){
       preparo_info: Object.assign({},loc.preparo_info,  snap.preparo_info||{}),
       // Faltavam aqui: painel de Contratações e testemunhas extra nunca chegavam da nuvem no Sync.
       contratacoes: Array.isArray(snap.contratacoes) ? snap.contratacoes : (loc.contratacoes||[]),
-      testemunhas_extra: Array.isArray(snap.testemunhas_extra) ? snap.testemunhas_extra : (loc.testemunhas_extra||[])
+      testemunhas_extra: Array.isArray(snap.testemunhas_extra) ? snap.testemunhas_extra : (loc.testemunhas_extra||[]),
+      // Mesmo caso: usuário cadastrado por outra pessoa nunca chegava aqui no Sync.
+      admin_users: Array.isArray(snap.admin_users) ? snap.admin_users : (loc.admin_users||[]),
+      custom_passes: Object.assign({}, loc.custom_passes||{}, snap.custom_passes||{})
     });
   } else {
     _applySnapshot(_buildLocalSnapshot());
