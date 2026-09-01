@@ -10546,7 +10546,9 @@ const CC_ALERTA_POS_AUDIENCIA = "audiencia.trabalhista@peixotoecury.com.br";
 
 function getPendenciasPosAudienciaPorResponsavel(){
   const posData = getPosData();
-  const pendentes = getPastAudiencias().filter(r => !pcObterPosRecord(posData, r));
+  // Audiência de hoje ainda não entra na cobrança: a pessoa mal teve tempo de preencher.
+  // Só cobra a partir de amanhã (1 dia inteiro depois da audiência).
+  const pendentes = getPastAudiencias().filter(r => !pcObterPosRecord(posData, r) && diasDesdeAudiencia(r.data) >= 1);
   const map = {};
   pendentes.forEach(r => {
     const sigla = (_siglaResponsavelPosAudiencia(r) || "Sem responsável").trim();
