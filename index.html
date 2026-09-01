@@ -7818,13 +7818,23 @@ function pcChaveOcorrenciaPost(r){
   const limpar = v => String(v||'').trim().replace(/[^a-zA-Z0-9]+/g,'_');
   return limpar(r?.codigo) + '__' + limpar(r?.data) + '__' + limpar(r?.horario) + '__' + limpar(r?.tipo);
 }
-// Busca o registro efetivo de pós-audiência/pós-perícia para esta linha: prioriza a chave nova
-// (sem ambiguidade); se não achar, cai no registro antigo (salvo antes desta correção, por
-// código sozinho) validado pela heurística de data — mantém tudo que já foi preenchido
-// funcionando, sem precisar migrar nada.
+// Versão anterior da sanitização (só trocava "/", ":" e espaço) — usada por um tempo entre duas
+// correções, antes de virar mais rigorosa (processo tem ponto, que quebrava querySelector).
+// Registros salvos nessa janela ficam com essa chave; sem checar aqui também, eles sumiam da
+// lista de preenchidos (voltavam a contar como pendente por engano).
+function pcChaveOcorrenciaPostV1(r){
+  const limpar = v => String(v||'').trim().replace(/[\/: ]/g,'_');
+  return limpar(r?.codigo) + '__' + limpar(r?.data) + '__' + limpar(r?.horario) + '__' + limpar(r?.tipo);
+}
+// Busca o registro efetivo de pós-audiência/pós-perícia para esta linha: prioriza a chave atual
+// (sem ambiguidade); senão tenta a chave da versão anterior da sanitização; se não achar, cai no
+// registro antigo (salvo antes de existir chave de ocorrência, por código sozinho) validado pela
+// heurística de data — mantém tudo que já foi preenchido funcionando, sem precisar migrar nada.
 function pcObterPosRecord(store, row){
   const porOcorrencia = store[pcChaveOcorrenciaPost(row)];
   if(porOcorrencia) return porOcorrencia;
+  const porOcorrenciaV1 = store[pcChaveOcorrenciaPostV1(row)];
+  if(porOcorrenciaV1) return porOcorrenciaV1;
   const legado = store[row.codigo];
   return pcRegistroPertenceALinha(legado, row) ? legado : null;
 }
@@ -8497,7 +8507,7 @@ function limparPos(codigo) {
   const d = getPosData();
   const r = getPastAudiencias().find(x=>pcChaveOcorrenciaPost(x)===codigo) || getPostRecords().find(x=>pcChaveOcorrenciaPost(x)===codigo);
   delete d[codigo];
-  if(r) delete d[r.codigo]; // limpa também um eventual registro legado (salvo antes desta correção, por código sozinho)
+  if(r){ delete d[pcChaveOcorrenciaPostV1(r)]; delete d[r.codigo]; } // limpa também eventuais registros legados (chave da versão anterior, ou só código)
   savePosData(d);
   showToast('🗑 Registro limpo.');
   renderPos();
@@ -8702,7 +8712,7 @@ function limparPericia(codigo){
   const d=getPericiaData();
   const r = getPastPericias().find(x=>pcChaveOcorrenciaPost(x)===codigo) || getPostRecords().find(x=>pcChaveOcorrenciaPost(x)===codigo);
   delete d[codigo];
-  if(r) delete d[r.codigo]; // limpa também um eventual registro legado (salvo antes desta correção, por código sozinho)
+  if(r){ delete d[pcChaveOcorrenciaPostV1(r)]; delete d[r.codigo]; } // limpa também eventuais registros legados (chave da versão anterior, ou só código)
   savePericiaData(d); showToast('🗑 Pós-perícia limpa.'); renderPericia();
 }
 function enviarEmailPericia(codigo){
