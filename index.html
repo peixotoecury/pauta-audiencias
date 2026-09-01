@@ -7811,7 +7811,11 @@ function pcRegistroPertenceALinha(rec, row){
 // código + data + horário + tipo. Resolve a ambiguidade na raiz — novos preenchimentos são
 // salvos por aqui, então nem precisam mais da heurística de pcRegistroPertenceALinha.
 function pcChaveOcorrenciaPost(r){
-  const limpar = v => String(v||'').trim().replace(/[\/: ]/g,'_');
+  // Essa chave também vira ID de elemento no DOM (poscard-, posform- etc.) e é usada em
+  // querySelector — não pode sobrar ponto, barra, dois-pontos ou qualquer outro caractere
+  // especial de CSS (processo tem pontos: "1000303-38.2026.5.02.0411" quebraria o seletor).
+  // Colapsa qualquer sequência de caracteres não-alfanuméricos num único "_".
+  const limpar = v => String(v||'').trim().replace(/[^a-zA-Z0-9]+/g,'_');
   return limpar(r?.codigo) + '__' + limpar(r?.data) + '__' + limpar(r?.horario) + '__' + limpar(r?.tipo);
 }
 // Busca o registro efetivo de pós-audiência/pós-perícia para esta linha: prioriza a chave nova
@@ -8021,8 +8025,9 @@ function buildPosCard(r, rec) {
       else if (rest <= 7) alerteBadge = `<span style="display:inline-block;background:rgba(230,126,34,.18);color:#e67e22;border:1px solid rgba(230,126,34,.45);border-radius:5px;padding:3px 8px;font-size:11px;font-weight:700;margin-right:4px">⚠️ Vence em ${rest}d</span>`;
     }
   }
-  return `<div class="pos-card" id="poscard-${r.codigo}">
-    <div class="pos-card-header" onclick="togglePosCard('${r.codigo}')">
+  const chave = pcChaveOcorrenciaPost(r);
+  return `<div class="pos-card" id="poscard-${chave}">
+    <div class="pos-card-header" onclick="togglePosCard('${chave}')">
       <div class="pos-card-meta">
         <div class="pos-card-title">${r.parte_principal} × ${r.parte_contraria}</div>
         <div class="pos-card-sub">${r.data} ${r.horario} · ${r.tipo} · ${r.comarca}/${r.estado} · ${r.processo}</div>
@@ -8033,16 +8038,21 @@ function buildPosCard(r, rec) {
         ${isDone ? '<span class="pos-badge-done">✅ Preenchido</span>' : '<span class="pos-badge-pending">⏳ Pendente</span>'}
         ${alerteBadge}
         ${rec?.acordo === 'sim' ? '<span class="pos-badge-novo" style="background:rgba(39,174,96,.15);color:#4CAF70;border-color:rgba(39,174,96,.3)">🤝 Acordo</span>' : ''}
-        <span style="color:var(--muted);font-size:18px" id="posarrow-${r.codigo}">▼</span>
+        <span style="color:var(--muted);font-size:18px" id="posarrow-${chave}">▼</span>
       </div>
     </div>
-    <div class="pos-form" id="posform-${r.codigo}">
-      ${buildPosForm(r, rec)}
+    <div class="pos-form" id="posform-${chave}">
+      ${buildPosForm(r, rec, chave)}
     </div>
   </div>`;
 }
 
-function buildPosForm(r, rec) {
+function buildPosForm(r, rec, chave) {
+  // chave = pcChaveOcorrenciaPost(r), a identidade única desta ocorrência (código+data+horário+
+  // tipo). Usada em todos os IDs/handlers do formulário — não r.codigo sozinho — porque duas
+  // audiências do mesmo processo (redesignação) compartilham o código e colidiam nos IDs,
+  // fazendo o segundo card nunca abrir de verdade (sempre mexia no primeiro encontrado no DOM).
+  chave = chave || r.codigo;
   const v = rec || {};
   const advs = Object.entries(PROF).map(([k, p]) => `<option value="${k}" ${v.adv_realiz === k ? 'selected' : ''}>${k} — ${p.nome}</option>`).join('');
   const testemunhas = v.testemunhas && v.testemunhas.length ? v.testemunhas : [
@@ -8051,7 +8061,7 @@ function buildPosForm(r, rec) {
     { nome: '', tipo: 'Reclamada', avaliacao: 0 },
     { nome: '', tipo: 'Reclamada', avaliacao: 0 }
   ];
-  
+
   return `<div>
     <div class="pos-divider">⚖️ Informações da Audiência</div>
     <div style="font-size:11px;color:var(--muted);margin:-4px 0 12px">Todos os campos abaixo são obrigatórios para salvar. Quando não se aplicar ou não houver informação, preencha/selecione <b>N/A</b>.</div>
@@ -8059,49 +8069,49 @@ function buildPosForm(r, rec) {
 
       <div class="pos-form-group">
         <label class="pos-label">📋 Prazo em Ata? *</label>
-        <div class="pos-radio-group" id="prazo-grp-${r.codigo}">
-          ${buildRadio(r.codigo, 'prazo_ata', 'sim', 'Sim', v.prazo_ata)}
-          ${buildRadio(r.codigo, 'prazo_ata', 'nao', 'Não', v.prazo_ata)}
+        <div class="pos-radio-group" id="prazo-grp-${chave}">
+          ${buildRadio(chave, 'prazo_ata', 'sim', 'Sim', v.prazo_ata)}
+          ${buildRadio(chave, 'prazo_ata', 'nao', 'Não', v.prazo_ata)}
         </div>
       </div>
 
-      <div class="pos-form-group" id="prazo-ata-info-${r.codigo}" style="${v.prazo_ata === 'sim' ? '' : 'display:none'}">
+      <div class="pos-form-group" id="prazo-ata-info-${chave}" style="${v.prazo_ata === 'sim' ? '' : 'display:none'}">
         <label class="pos-label">📋 Descrição do Prazo em Ata</label>
-        <textarea class="pos-textarea" id="prazo_ata_descricao-${r.codigo}" placeholder="Descreva o prazo constante na ata (ex: 15 dias para manifestação, apresentação de documentos, etc.)" style="min-height:70px" oninput="posFieldChange('${r.codigo}')">${v.prazo_ata_descricao || ''}</textarea>
+        <textarea class="pos-textarea" id="prazo_ata_descricao-${chave}" placeholder="Descreva o prazo constante na ata (ex: 15 dias para manifestação, apresentação de documentos, etc.)" style="min-height:70px" oninput="posFieldChange('${chave}')">${v.prazo_ata_descricao || ''}</textarea>
       </div>
 
       <div class="pos-form-group">
         <label class="pos-label">📅 Nova Data de Audiência? *</label>
-        <div class="pos-radio-group" id="nova-data-grp-${r.codigo}">
-          ${buildRadio(r.codigo, 'nova_data_bool', 'sim', 'Sim', v.nova_data_bool)}
-          ${buildRadio(r.codigo, 'nova_data_bool', 'nao', 'Não', v.nova_data_bool)}
+        <div class="pos-radio-group" id="nova-data-grp-${chave}">
+          ${buildRadio(chave, 'nova_data_bool', 'sim', 'Sim', v.nova_data_bool)}
+          ${buildRadio(chave, 'nova_data_bool', 'nao', 'Não', v.nova_data_bool)}
         </div>
       </div>
 
-      <div class="pos-form-group" id="nova-data-input-${r.codigo}" style="${v.nova_data_bool === 'sim' ? '' : 'display:none'}">
+      <div class="pos-form-group" id="nova-data-input-${chave}" style="${v.nova_data_bool === 'sim' ? '' : 'display:none'}">
         <label class="pos-label">📅 Data da Nova Audiência</label>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-          <input type="date" class="pos-input" id="nova_data-${r.codigo}" value="${v.nova_data || ''}" oninput="posFieldChange('${r.codigo}')">
-          <input type="time" class="pos-input" id="nova_horario-${r.codigo}" value="${v.nova_horario || ''}" placeholder="Horário" oninput="posFieldChange('${r.codigo}')">
+          <input type="date" class="pos-input" id="nova_data-${chave}" value="${v.nova_data || ''}" oninput="posFieldChange('${chave}')">
+          <input type="time" class="pos-input" id="nova_horario-${chave}" value="${v.nova_horario || ''}" placeholder="Horário" oninput="posFieldChange('${chave}')">
         </div>
       </div>
 
       <div class="pos-form-group">
         <label class="pos-label">🤝 Houve Acordo? *</label>
-        <div class="pos-radio-group" id="acordo-grp-${r.codigo}">
-          ${buildRadio(r.codigo, 'acordo', 'sim', 'Sim', v.acordo)}
-          ${buildRadio(r.codigo, 'acordo', 'nao', 'Não', v.acordo)}
+        <div class="pos-radio-group" id="acordo-grp-${chave}">
+          ${buildRadio(chave, 'acordo', 'sim', 'Sim', v.acordo)}
+          ${buildRadio(chave, 'acordo', 'nao', 'Não', v.acordo)}
         </div>
       </div>
 
       <div class="pos-form-group">
         <label class="pos-label">⚖️ Nome do Juiz *</label>
-        <input class="pos-input" id="nome_juiz-${r.codigo}" value="${v.nome_juiz || ''}" placeholder="Ex: Dr. João Silva (ou N/A)" oninput="posFieldChange('${r.codigo}')">
+        <input class="pos-input" id="nome_juiz-${chave}" value="${v.nome_juiz || ''}" placeholder="Ex: Dr. João Silva (ou N/A)" oninput="posFieldChange('${chave}')">
       </div>
 
       <div class="pos-form-group">
         <label class="pos-label">👤 Advogado que realizou *</label>
-        <select class="pos-select" id="adv_realiz-${r.codigo}" onchange="posFieldChange('${r.codigo}')">
+        <select class="pos-select" id="adv_realiz-${chave}" onchange="posFieldChange('${chave}')">
           <option value="">— Selecionar —</option>
           <option value="N/A" ${v.adv_realiz === 'N/A' ? 'selected' : ''}>N/A</option>
           ${advs}
@@ -8110,7 +8120,7 @@ function buildPosForm(r, rec) {
 
       <div class="pos-form-group">
         <label class="pos-label">⚔️ Advogado da parte contrária *</label>
-        <input class="pos-input" id="adv_contrario-${r.codigo}" value="${v.adv_contrario || ''}" placeholder="Nome do advogado adverso (ou N/A)" oninput="posFieldChange('${r.codigo}')">
+        <input class="pos-input" id="adv_contrario-${chave}" value="${v.adv_contrario || ''}" placeholder="Nome do advogado adverso (ou N/A)" oninput="posFieldChange('${chave}')">
       </div>
 
     </div>
@@ -8120,12 +8130,12 @@ function buildPosForm(r, rec) {
     <div class="pos-form-grid">
       <div class="pos-form-group">
         <label class="pos-label">Nome do Preposto *</label>
-        <input class="pos-input" id="preposto_nome-${r.codigo}" value="${v.preposto_nome || ''}" placeholder="Nome completo (ou N/A)" oninput="posFieldChange('${r.codigo}')">
+        <input class="pos-input" id="preposto_nome-${chave}" value="${v.preposto_nome || ''}" placeholder="Nome completo (ou N/A)" oninput="posFieldChange('${chave}')">
       </div>
       <div class="pos-form-group">
         <label class="pos-label">Avaliação do Preposto *</label>
         <div>
-          <select class="pos-avaliacao-select" id="preposto-avaliacao-${r.codigo}" onchange="posFieldChange('${r.codigo}');mostraExplicacaoPreposto('${r.codigo}')">
+          <select class="pos-avaliacao-select" id="preposto-avaliacao-${chave}" onchange="posFieldChange('${chave}');mostraExplicacaoPreposto('${chave}')">
             <option value="">— Selecionar —</option>
             <option value="Superou expectativas" ${v.preposto_avaliacao === 'Superou expectativas' ? 'selected' : ''}>⭐ Superou expectativas</option>
             <option value="Atendeu" ${v.preposto_avaliacao === 'Atendeu' ? 'selected' : ''}>✓ Atendeu</option>
@@ -8133,9 +8143,9 @@ function buildPosForm(r, rec) {
             <option value="N/A" ${v.preposto_avaliacao === 'N/A' ? 'selected' : ''}>N/A</option>
           </select>
         </div>
-        <div class="pos-explicacao-box" id="preposto-explicacao-${r.codigo}" style="display:${v.preposto_avaliacao === 'Não atendeu' ? 'block' : 'none'};margin-top:8px;padding:10px;background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.3);border-radius:6px">
+        <div class="pos-explicacao-box" id="preposto-explicacao-${chave}" style="display:${v.preposto_avaliacao === 'Não atendeu' ? 'block' : 'none'};margin-top:8px;padding:10px;background:rgba(192,57,43,.12);border:1px solid rgba(192,57,43,.3);border-radius:6px">
           <label class="pos-label" style="font-size:11px;margin-bottom:6px">Por que não atendeu?</label>
-          <textarea class="pos-textarea" id="preposto-explicacao-txt-${r.codigo}" placeholder="Descreva brevemente o motivo..." style="min-height:60px;font-size:12px">${v.preposto_explicacao || ''}</textarea>
+          <textarea class="pos-textarea" id="preposto-explicacao-txt-${chave}" placeholder="Descreva brevemente o motivo..." style="min-height:60px;font-size:12px">${v.preposto_explicacao || ''}</textarea>
         </div>
       </div>
     </div>
@@ -8143,21 +8153,21 @@ function buildPosForm(r, rec) {
     <div class="pos-divider">🧑‍⚖️ Testemunhas</div>
     <div style="display:flex;gap:18px;flex-wrap:wrap;margin-bottom:10px">
       <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer">
-        <input type="checkbox" id="sem-test-reclamante-${r.codigo}" ${v.sem_testemunha_reclamante ? 'checked' : ''} onchange="posFieldChange('${r.codigo}')"> Não teve testemunha do Reclamante
+        <input type="checkbox" id="sem-test-reclamante-${chave}" ${v.sem_testemunha_reclamante ? 'checked' : ''} onchange="posFieldChange('${chave}')"> Não teve testemunha do Reclamante
       </label>
       <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);cursor:pointer">
-        <input type="checkbox" id="sem-test-reclamada-${r.codigo}" ${v.sem_testemunha_reclamada ? 'checked' : ''} onchange="posFieldChange('${r.codigo}')"> Não teve testemunha da Reclamada
+        <input type="checkbox" id="sem-test-reclamada-${chave}" ${v.sem_testemunha_reclamada ? 'checked' : ''} onchange="posFieldChange('${chave}')"> Não teve testemunha da Reclamada
       </label>
     </div>
-    <div id="testemunhas-list-${r.codigo}">
-      ${testemunhas.map((t, i) => buildTestemunhaRow(r.codigo, i, t)).join('')}
+    <div id="testemunhas-list-${chave}">
+      ${testemunhas.map((t, i) => buildTestemunhaRow(chave, i, t)).join('')}
     </div>
-    <button class="pos-add-btn" onclick="addTestemunha('${r.codigo}')">+ Adicionar Testemunha</button>
+    <button class="pos-add-btn" onclick="addTestemunha('${chave}')">+ Adicionar Testemunha</button>
 
     <div class="pos-divider">📧 Comunicação *</div>
     <div class="pos-form-group full" style="margin-bottom:14px">
       <label class="pos-label">📧 Notificar Controladoria — obrigatório para salvar</label>
-      ${(() => { const enviado = posEmailFoiEnviado(r.codigo); return `<button id="email-ctrl-btn-${r.codigo}" onclick="enviarEmailControladoria('${r.codigo}')" style="
+      ${(() => { const enviado = posEmailFoiEnviado(chave); return `<button id="email-ctrl-btn-${chave}" onclick="enviarEmailControladoria('${chave}')" style="
         display:inline-flex;align-items:center;gap:8px;
         background:${enviado ? 'rgba(39,174,96,.15)' : 'rgba(0,174,239,.15)'};border:1px solid ${enviado ? 'rgba(39,174,96,.4)' : 'rgba(0,174,239,.4)'};
         color:${enviado ? '#4CAF70' : 'var(--cyan)'};border-radius:var(--radius);
@@ -8172,26 +8182,26 @@ function buildPosForm(r, rec) {
 
     <div class="pos-divider">📄 Ata / Documentos</div>
     <div class="pos-form-group full" style="margin-bottom:14px">
-      <div class="pos-upload-area" id="upload-area-${r.codigo}"
-        onclick="document.getElementById('file-input-${r.codigo}').click()"
+      <div class="pos-upload-area" id="upload-area-${chave}"
+        onclick="document.getElementById('file-input-${chave}').click()"
         ondragover="event.preventDefault();this.classList.add('dragover')"
         ondragleave="this.classList.remove('dragover')"
-        ondrop="handlePosDrop(event,'${r.codigo}')">
+        ondrop="handlePosDrop(event,'${chave}')">
         <div class="up-icon">📎</div>
         <div class="up-text">Clique ou arraste para anexar a ata</div>
-        <div class="up-file" id="upload-filename-${r.codigo}">${v.ata_filename ? '📄 ' + v.ata_filename : ''}</div>
+        <div class="up-file" id="upload-filename-${chave}">${v.ata_filename ? '📄 ' + v.ata_filename : ''}</div>
       </div>
-      <input type="file" id="file-input-${r.codigo}" accept=".pdf,.doc,.docx,.jpg,.png" style="display:none" onchange="handlePosFileInput(event,'${r.codigo}')">
+      <input type="file" id="file-input-${chave}" accept=".pdf,.doc,.docx,.jpg,.png" style="display:none" onchange="handlePosFileInput(event,'${chave}')">
     </div>
 
     <div class="pos-divider">📝 Observações *</div>
     <div class="pos-form-group full" style="margin-bottom:16px">
-      <textarea class="pos-textarea" id="observacoes-${r.codigo}" placeholder="Anotações pertinentes à audiência... (ou N/A se não houver)" oninput="posFieldChange('${r.codigo}')">${v.observacoes || ''}</textarea>
+      <textarea class="pos-textarea" id="observacoes-${chave}" placeholder="Anotações pertinentes à audiência... (ou N/A se não houver)" oninput="posFieldChange('${chave}')">${v.observacoes || ''}</textarea>
     </div>
 
     <div style="display:flex;gap:10px;align-items:center">
-      <button class="pos-save-btn" onclick="salvarPos('${r.codigo}')">💾 Salvar Registro</button>
-      ${rec ? `<button onclick="limparPos('${r.codigo}')" style="background:var(--red-lt);border:1px solid rgba(192,57,43,.3);color:#E57373;border-radius:var(--radius);padding:10px 18px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">🗑 Limpar</button>` : ''}
+      <button class="pos-save-btn" onclick="salvarPos('${chave}')">💾 Salvar Registro</button>
+      ${rec ? `<button onclick="limparPos('${chave}')" style="background:var(--red-lt);border:1px solid rgba(192,57,43,.3);color:#E57373;border-radius:var(--radius);padding:10px 18px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">🗑 Limpar</button>` : ''}
     </div>
   </div>`;
 }
@@ -8427,7 +8437,7 @@ async function _persistirPosRecord(codigo, record) {
   // basta, porque o mesmo processo pode ter mais de uma audiência (remarcações). Sem isso,
   // quando a audiência é redesignada pro futuro, o sistema não tem como saber que o registro
   // salvo agora é sobre a sessão de HOJE, e não sobre a próxima que ainda vai ocorrer.
-  const _rAud = getPastAudiencias().find(x=>x.codigo===codigo) || getPostRecords().find(x=>x.codigo===codigo);
+  const _rAud = getPastAudiencias().find(x=>pcChaveOcorrenciaPost(x)===codigo) || getPostRecords().find(x=>pcChaveOcorrenciaPost(x)===codigo);
   if(_rAud){ record._occ_data = _rAud.data; record._occ_horario = _rAud.horario; }
   // Salva pela chave da ocorrência (código+data+horário+tipo), não só pelo código — mesma
   // chave usada na pauta, sem ambiguidade nenhuma daqui pra frente mesmo se o mesmo processo
@@ -8485,9 +8495,9 @@ async function salvarPos(codigo) {
 function limparPos(codigo) {
   if (!confirm('Limpar todos os dados deste registro?')) return;
   const d = getPosData();
-  const r = getPastAudiencias().find(x=>x.codigo===codigo) || getPostRecords().find(x=>x.codigo===codigo);
-  if(r) delete d[pcChaveOcorrenciaPost(r)];
-  delete d[codigo]; // limpa também um eventual registro legado salvo antes desta correção
+  const r = getPastAudiencias().find(x=>pcChaveOcorrenciaPost(x)===codigo) || getPostRecords().find(x=>pcChaveOcorrenciaPost(x)===codigo);
+  delete d[codigo];
+  if(r) delete d[r.codigo]; // limpa também um eventual registro legado (salvo antes desta correção, por código sozinho)
   savePosData(d);
   showToast('🗑 Registro limpo.');
   renderPos();
@@ -8595,19 +8605,22 @@ function buildPericiaCard(r,rec){
       else if (rest <= 7) alerteBadgeP = `<span style="display:inline-block;background:rgba(230,126,34,.18);color:#e67e22;border:1px solid rgba(230,126,34,.45);border-radius:5px;padding:3px 8px;font-size:11px;font-weight:700;margin-right:4px">⚠️ Vence em ${rest}d</span>`;
     }
   }
-  return `<div class="pos-card" id="periciacard-${r.codigo}">
-    <div class="pos-card-header" onclick="togglePericiaCard('${r.codigo}')">
+  const chave = pcChaveOcorrenciaPost(r);
+  return `<div class="pos-card" id="periciacard-${chave}">
+    <div class="pos-card-header" onclick="togglePericiaCard('${chave}')">
       <div class="pos-card-meta">
         <div class="pos-card-title">${r.parte_principal} × ${r.parte_contraria}</div>
         <div class="pos-card-sub">${r.data} ${r.horario} · ${r.tipo} · ${r.comarca}/${r.estado} · ${r.processo}</div>
         <div class="pos-card-sub" style="margin-top:3px;color:var(--cyan)">${advLinha}</div>
       </div>
-      <div class="pos-card-badges">${done?'<span class="pos-badge-done">✅ Preenchido</span>':'<span class="pos-badge-pending">⏳ Pendente</span>'}${alerteBadgeP}<span style="color:var(--muted);font-size:18px" id="periciaarrow-${r.codigo}">▼</span></div>
+      <div class="pos-card-badges">${done?'<span class="pos-badge-done">✅ Preenchido</span>':'<span class="pos-badge-pending">⏳ Pendente</span>'}${alerteBadgeP}<span style="color:var(--muted);font-size:18px" id="periciaarrow-${chave}">▼</span></div>
     </div>
-    <div class="pos-form" id="periciaform-${r.codigo}">${buildPericiaForm(r,rec)}</div>
+    <div class="pos-form" id="periciaform-${chave}">${buildPericiaForm(r,rec,chave)}</div>
   </div>`;
 }
-function buildPericiaForm(r,rec){
+function buildPericiaForm(r,rec,chave){
+  // chave = pcChaveOcorrenciaPost(r) — ver comentário equivalente em buildPosForm.
+  chave = chave || r.codigo;
   const v=rec||{};
   const advogadoAtual = (v.advogado_compareceu === 'N/A') ? '' : (v.advogado_compareceu || '');
   const advogadosBase = [...new Set(DATA.main.map(x => x.adv_audiencia).filter(a => a && a !== 'N/A' && a !== 'Indicar Advogado' && !String(a).startsWith('Correspondente')))].sort();
@@ -8620,24 +8633,24 @@ function buildPericiaForm(r,rec){
   return `<div>
     <div class="pos-divider">🔬 Informações da Perícia</div>
     <div class="pos-form-grid">
-      <div class="pos-form-group"><label class="pos-label">Tipo de Perícia</label><select class="pos-select" id="tipo_pericia-${r.codigo}"><option value="">— Selecionar —</option><option value="tecnica" ${v.tipo_pericia==='tecnica'?'selected':''}>Técnica</option><option value="ergonomica" ${v.tipo_pericia==='ergonomica'?'selected':''}>Ergonômica</option><option value="medica" ${v.tipo_pericia==='medica'?'selected':''}>Médica</option></select></div>
-      <div class="pos-form-group"><label class="pos-label">Data da Perícia</label><input type="date" class="pos-input" id="data_pericia-${r.codigo}" value="${v.data_pericia||''}"></div>
-      <div class="pos-form-group"><label class="pos-label">Horário da Perícia</label><input type="time" class="pos-input" id="horario_pericia-${r.codigo}" value="${v.horario_pericia||''}"></div>
-      <div class="pos-form-group full"><label class="pos-label">Local da Perícia</label><input class="pos-input" id="local_pericia-${r.codigo}" value="${v.local_pericia||''}" placeholder="Endereço/local onde a perícia foi realizada"></div>
-      <div class="pos-form-group"><label class="pos-label">Área Vistoriada</label><input class="pos-input" id="area_vistoriada-${r.codigo}" value="${v.area_vistoriada||''}" placeholder="Ex: produção, manutenção, ergonomia, posto de trabalho"></div>
-      <div class="pos-form-group"><label class="pos-label">Advogado Responsável pelo Comparecimento</label><select class="pos-select" id="advogado_compareceu-${r.codigo}">${advOptions}</select></div>
-      <div class="pos-form-group"><label class="pos-label">Perito Nomeado</label><input class="pos-input" id="perito_nome-${r.codigo}" value="${v.perito_nome||''}" placeholder="Nome do perito"></div>
-      <div class="pos-form-group"><label class="pos-label">Assistente Técnico</label><input class="pos-input" id="assistente_tecnico-${r.codigo}" value="${v.assistente_tecnico||''}" placeholder="Nome do assistente técnico (se houver)"></div>
-      <div class="pos-form-group"><label class="pos-label">Ação de Próprio ou Terceiro?</label><select class="pos-select" id="acao_proprio_terceiro-${r.codigo}"><option value="">— Selecionar —</option><option value="proprio" ${v.acao_proprio_terceiro==='proprio'?'selected':''}>Próprio</option><option value="terceiro" ${v.acao_proprio_terceiro==='terceiro'?'selected':''}>Terceiro</option></select></div>
-      <div class="pos-form-group"><label class="pos-label">Comparecimento</label><select class="pos-select" id="comparecimento-${r.codigo}"><option value="">— Selecionar —</option><option value="realizada" ${v.comparecimento==='realizada'?'selected':''}>Realizada</option><option value="nao_realizada" ${v.comparecimento==='nao_realizada'?'selected':''}>Não realizada</option><option value="redesignada" ${v.comparecimento==='redesignada'?'selected':''}>Redesignada</option></select></div>
-      <div class="pos-form-group"><label class="pos-label">Nova Data de Perícia</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><input type="date" class="pos-input" id="nova_data_pericia-${r.codigo}" value="${v.nova_data_pericia||''}"><input type="time" class="pos-input" id="nova_horario_pericia-${r.codigo}" value="${v.nova_horario_pericia||''}"></div></div>
-      <div class="pos-form-group"><label class="pos-label">Prazo de Quesitos / Manifestação</label><input class="pos-input" id="prazo_pericia-${r.codigo}" value="${v.prazo_pericia||''}" placeholder="Ex: 10 dias / 15 dias"></div>
+      <div class="pos-form-group"><label class="pos-label">Tipo de Perícia</label><select class="pos-select" id="tipo_pericia-${chave}"><option value="">— Selecionar —</option><option value="tecnica" ${v.tipo_pericia==='tecnica'?'selected':''}>Técnica</option><option value="ergonomica" ${v.tipo_pericia==='ergonomica'?'selected':''}>Ergonômica</option><option value="medica" ${v.tipo_pericia==='medica'?'selected':''}>Médica</option></select></div>
+      <div class="pos-form-group"><label class="pos-label">Data da Perícia</label><input type="date" class="pos-input" id="data_pericia-${chave}" value="${v.data_pericia||''}"></div>
+      <div class="pos-form-group"><label class="pos-label">Horário da Perícia</label><input type="time" class="pos-input" id="horario_pericia-${chave}" value="${v.horario_pericia||''}"></div>
+      <div class="pos-form-group full"><label class="pos-label">Local da Perícia</label><input class="pos-input" id="local_pericia-${chave}" value="${v.local_pericia||''}" placeholder="Endereço/local onde a perícia foi realizada"></div>
+      <div class="pos-form-group"><label class="pos-label">Área Vistoriada</label><input class="pos-input" id="area_vistoriada-${chave}" value="${v.area_vistoriada||''}" placeholder="Ex: produção, manutenção, ergonomia, posto de trabalho"></div>
+      <div class="pos-form-group"><label class="pos-label">Advogado Responsável pelo Comparecimento</label><select class="pos-select" id="advogado_compareceu-${chave}">${advOptions}</select></div>
+      <div class="pos-form-group"><label class="pos-label">Perito Nomeado</label><input class="pos-input" id="perito_nome-${chave}" value="${v.perito_nome||''}" placeholder="Nome do perito"></div>
+      <div class="pos-form-group"><label class="pos-label">Assistente Técnico</label><input class="pos-input" id="assistente_tecnico-${chave}" value="${v.assistente_tecnico||''}" placeholder="Nome do assistente técnico (se houver)"></div>
+      <div class="pos-form-group"><label class="pos-label">Ação de Próprio ou Terceiro?</label><select class="pos-select" id="acao_proprio_terceiro-${chave}"><option value="">— Selecionar —</option><option value="proprio" ${v.acao_proprio_terceiro==='proprio'?'selected':''}>Próprio</option><option value="terceiro" ${v.acao_proprio_terceiro==='terceiro'?'selected':''}>Terceiro</option></select></div>
+      <div class="pos-form-group"><label class="pos-label">Comparecimento</label><select class="pos-select" id="comparecimento-${chave}"><option value="">— Selecionar —</option><option value="realizada" ${v.comparecimento==='realizada'?'selected':''}>Realizada</option><option value="nao_realizada" ${v.comparecimento==='nao_realizada'?'selected':''}>Não realizada</option><option value="redesignada" ${v.comparecimento==='redesignada'?'selected':''}>Redesignada</option></select></div>
+      <div class="pos-form-group"><label class="pos-label">Nova Data de Perícia</label><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><input type="date" class="pos-input" id="nova_data_pericia-${chave}" value="${v.nova_data_pericia||''}"><input type="time" class="pos-input" id="nova_horario_pericia-${chave}" value="${v.nova_horario_pericia||''}"></div></div>
+      <div class="pos-form-group"><label class="pos-label">Prazo de Quesitos / Manifestação</label><input class="pos-input" id="prazo_pericia-${chave}" value="${v.prazo_pericia||''}" placeholder="Ex: 10 dias / 15 dias"></div>
     </div>
     <div class="pos-divider">📝 Observações da Perícia</div>
-    <div class="pos-form-group full" style="margin-bottom:16px"><textarea class="pos-textarea" id="obs_pericia-${r.codigo}" placeholder="Registre ocorrências, documentos pendentes, informações do perito e próximos passos...">${v.obs_pericia||''}</textarea></div>
+    <div class="pos-form-group full" style="margin-bottom:16px"><textarea class="pos-textarea" id="obs_pericia-${chave}" placeholder="Registre ocorrências, documentos pendentes, informações do perito e próximos passos...">${v.obs_pericia||''}</textarea></div>
     <div class="pos-divider">📧 Comunicação</div>
-    <div class="pos-form-group full" style="margin-bottom:14px"><button onclick="enviarEmailPericia('${r.codigo}')" style="display:inline-flex;align-items:center;gap:8px;background:rgba(0,174,239,.15);border:1px solid rgba(0,174,239,.4);color:var(--cyan);border-radius:var(--radius);padding:10px 18px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);width:100%;justify-content:center;">📧 Enviar e-mail para Perícia Trabalhista</button><div style="font-size:10px;color:var(--muted);margin-top:5px;text-align:center">pericia.trabalhista@peixotoecury.com.br</div></div>
-    <div style="display:flex;gap:10px;align-items:center"><button class="pos-save-btn" onclick="salvarPericia('${r.codigo}')">💾 Salvar Pós-Perícia</button>${rec?`<button onclick="limparPericia('${r.codigo}')" style="background:var(--red-lt);border:1px solid rgba(192,57,43,.3);color:#E57373;border-radius:var(--radius);padding:10px 18px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">🗑 Limpar</button>`:''}</div>
+    <div class="pos-form-group full" style="margin-bottom:14px"><button onclick="enviarEmailPericia('${chave}')" style="display:inline-flex;align-items:center;gap:8px;background:rgba(0,174,239,.15);border:1px solid rgba(0,174,239,.4);color:var(--cyan);border-radius:var(--radius);padding:10px 18px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);width:100%;justify-content:center;">📧 Enviar e-mail para Perícia Trabalhista</button><div style="font-size:10px;color:var(--muted);margin-top:5px;text-align:center">pericia.trabalhista@peixotoecury.com.br</div></div>
+    <div style="display:flex;gap:10px;align-items:center"><button class="pos-save-btn" onclick="salvarPericia('${chave}')">💾 Salvar Pós-Perícia</button>${rec?`<button onclick="limparPericia('${chave}')" style="background:var(--red-lt);border:1px solid rgba(192,57,43,.3);color:#E57373;border-radius:var(--radius);padding:10px 18px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font)">🗑 Limpar</button>`:''}</div>
   </div>`;
 }
 function togglePericiaCard(codigo){
@@ -8671,7 +8684,7 @@ function salvarPericia(codigo){
     updated_at:new Date().toISOString()
   };
   // Marca a que perícia (data/horário) este registro se refere — ver comentário equivalente em _persistirPosRecord.
-  const r=getPastPericias().find(x=>x.codigo===codigo) || DATA.main.find(x=>x.codigo===codigo);
+  const r=getPastPericias().find(x=>pcChaveOcorrenciaPost(x)===codigo) || DATA.main.find(x=>pcChaveOcorrenciaPost(x)===codigo);
   if(r){ record._occ_data = r.data; record._occ_horario = r.horario; }
   // Salva pela chave da ocorrência (código+data+horário+tipo) — ver comentário equivalente em _persistirPosRecord.
   savePericiaCodigo(r ? pcChaveOcorrenciaPost(r) : codigo, record); addAuditEntry('Pós-Perícia salva', `Código ${codigo} · ${r? r.parte_principal + ' (' + r.data + ')' : ''}`); showToast('✅ Pós-perícia salvo com sucesso!');
@@ -8687,13 +8700,13 @@ function salvarPericia(codigo){
 function limparPericia(codigo){
   if(!confirm('Limpar todos os dados desta pós-perícia?')) return;
   const d=getPericiaData();
-  const r = getPastPericias().find(x=>x.codigo===codigo) || getPostRecords().find(x=>x.codigo===codigo);
-  if(r) delete d[pcChaveOcorrenciaPost(r)];
-  delete d[codigo]; // limpa também um eventual registro legado salvo antes desta correção
+  const r = getPastPericias().find(x=>pcChaveOcorrenciaPost(x)===codigo) || getPostRecords().find(x=>pcChaveOcorrenciaPost(x)===codigo);
+  delete d[codigo];
+  if(r) delete d[r.codigo]; // limpa também um eventual registro legado (salvo antes desta correção, por código sozinho)
   savePericiaData(d); showToast('🗑 Pós-perícia limpa.'); renderPericia();
 }
 function enviarEmailPericia(codigo){
-  const r=getPostRecords().find(x=>x.codigo===codigo); const d=(r ? pcObterPosRecord(getPericiaData(), r) : getPericiaData()[codigo])||{};
+  const r=getPostRecords().find(x=>pcChaveOcorrenciaPost(x)===codigo); const d=(r ? pcObterPosRecord(getPericiaData(), r) : getPericiaData()[codigo])||{};
   const subject=encodeURIComponent(`Pós-perícia - ${r?.processo||codigo}`);
   const body=encodeURIComponent(`Prezados,\n\nSegue registro de pós-perícia:\n\nProcesso: ${r?.processo||''}\nCliente: ${r?.parte_principal||''}\nParte contrária: ${r?.parte_contraria||''}\nData/Horário da pauta: ${r?.data||''} ${r?.horario||''}\nTipo da pauta: ${r?.tipo||''}\n\nTipo de perícia: ${d.tipo_pericia||''}\nData da perícia: ${d.data_pericia||''}\nHorário da perícia: ${d.horario_pericia||''}\nLocal da perícia: ${d.local_pericia||''}\nÁrea vistoriada: ${d.area_vistoriada||''}\nAdvogado responsável pelo comparecimento: ${d.advogado_compareceu||''}\nPerito: ${d.perito_nome||''}\nComparecimento: ${d.comparecimento||''}\nNova data: ${d.nova_data_pericia||''} ${d.nova_horario_pericia||''}\nPrazo: ${d.prazo_pericia||''}\nObservações: ${d.obs_pericia||''}\n\nObrigada.`);
   window.location.href=`mailto:pericia.trabalhista@peixotoecury.com.br?subject=${subject}&body=${body}`;
@@ -8955,7 +8968,7 @@ function copiarOrientacaoResponsavel(resp){
 // mesmo que o cliente de e-mail trave a aba), e só então monta e abre o e-mail
 // com os dados que acabaram de ser salvos.
 async function enviarEmailControladoria(codigo) {
-  const r = getPostRecords().find(x => x.codigo === codigo);
+  const r = getPostRecords().find(x => pcChaveOcorrenciaPost(x) === codigo);
   if (!r) { showToast('⚠ Não encontrei essa audiência para montar o e-mail.'); return; }
 
   const rec = _lerEValidarPosDoDom(codigo);
@@ -8971,8 +8984,9 @@ async function enviarEmailControladoria(codigo) {
   const testsRec = (rec.testemunhas || []).filter(t => t.tipo === 'Reclamante').map(t => t.nome).filter(Boolean).join(', ') || '—';
   const testsRda = (rec.testemunhas || []).filter(t => t.tipo === 'Reclamada').map(t => t.nome).filter(Boolean).join(', ') || '—';
 
-  // Dados da Controladoria (salvos separadamente via salvarInfoControladoria)
-  const ctrlDados = (() => { try { return JSON.parse(localStorage.getItem('ctrl_aud_' + codigo)); } catch { return {}; } })() || {};
+  // Dados da Controladoria (salvos separadamente via salvarInfoControladoria, pelo código
+  // real do processo — não pela chave de ocorrência usada aqui no pós-audiência).
+  const ctrlDados = (() => { try { return JSON.parse(localStorage.getItem('ctrl_aud_' + r.codigo)); } catch { return {}; } })() || {};
 
   const subject = `[Pós-Audiência] ${r.parte_principal} × ${r.parte_contraria} — ${r.data}`;
 
@@ -10731,7 +10745,7 @@ function autoSyncTestemunha(codigo, idx){
   if(!nome) return;
   const tipoRaw = document.getElementById('test-tipo-' + codigo + '-' + idx)?.value || '';
   const avaliacao = document.getElementById('test-avaliacao-' + codigo + '-' + idx)?.value || '';
-  const r = getPostRecords().find(x => x.codigo === codigo);
+  const r = getPostRecords().find(x => pcChaveOcorrenciaPost(x) === codigo);
   if(!r) return;
   let lado = tipoRaw;
   if(lado === 'Autora') lado = 'Reclamante';
