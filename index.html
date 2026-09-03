@@ -7923,8 +7923,11 @@ function updatePostDiretoria(prefix, rows, dataStore){
   setText(prefix+'-dir-percentual', pct + '%');
   const bar = document.getElementById(prefix+'-dir-progress');
   if(bar) bar.style.width = pct + '%';
+  // Mesma regra do e-mail de cobrança (getPendenciasPosAudienciaPorResponsavel): audiência do
+  // próprio dia não entra aqui, senão o ranking mostra uma pendência que o e-mail ainda não cobra
+  // (a pessoa não teve o dia inteiro pra preencher), e os dois números nunca batem.
   const ranking = {};
-  rows.filter(r => !pcObterPosRecord(dataStore, r)).forEach(r => {
+  rows.filter(r => !pcObterPosRecord(dataStore, r) && diasDesdeAudiencia(r.data) >= 1).forEach(r => {
     const nome = getResponsibleNameForPost(r);
     ranking[nome] = (ranking[nome] || 0) + 1;
   });
