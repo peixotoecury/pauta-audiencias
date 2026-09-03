@@ -2731,6 +2731,7 @@ button.lp-submit-btn:hover{background:linear-gradient(135deg,#0d2540 0%,#1f4770 
 <button class="export-btn" id="btn-alerta-17h" onclick="abrirAlertas17hAmanha(event)" title="Enviar alerta de preparação das audiências do próximo dia útil" style="background:#003B5C;color:#fff">✉️ Alerta - 17h</button>
 <button class="export-btn" id="btn-dashboard-designacoes" onclick="abrirDashboardDesignacoesPendentes(event)" title="Ver dashboard de designações pendentes por grupo">📊 Dashboard Designações</button>
 <button class="export-btn" onclick="exportarExcel()" title="Exportar pauta filtrada para Excel (.xlsx)">📥 Excel (.xlsx)</button>
+<button class="export-btn" onclick="abrirModalCompiladoRealizadas()" title="Exportar Excel no modelo da pauta com as audiências já realizadas em um ou mais meses, só com advogado indicado" style="background:#6a3d9a;color:#fff">📊 Compilado de Realizadas</button>
 <button class="export-btn" id="btn-contratacoes" onclick="abrirPainelContratacoes()" title="Painel de solicitações de correspondente" style="background:#1a6b3c;color:#fff">📊 Contratações (<span id="cnt-contratacoes">0</span>)</button>
 </div>
 </div>
@@ -9108,6 +9109,79 @@ function exportarExcel(){
   const cfg = pautaCompletaOficialConfig(rows);
   baixarXlsx(cfg, 'Pauta_de_Audiencias_OFICIAL');
   if(typeof showToast === 'function') showToast('📥 Pauta Completa exportada em Excel no padrão oficial!');
+}
+
+const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+// Tudo que já foi realizado (audiências, perícias, julgamentos etc.) e com indicação de
+// advogado registrada (exclui N/A/"Indicar Advogado"/vazio). Usa getPostRecords() -- que
+// mescla histórico + pauta atual -- então o adv_audiencia lido aqui é sempre a designação
+// mais recente registrada no sistema, mesmo que tenha sido alterada depois de ocorrer.
+function getAudienciasRealizadasParaCompilado() {
+  return getPostRecords().filter(r => {
+    if (!r.data) return false;
+    const temIndicacao = r.adv_audiencia && r.adv_audiencia !== 'N/A' && r.adv_audiencia !== 'Indicar Advogado' && r.adv_audiencia.trim() !== '';
+    if (!temIndicacao) return false;
+    return diasDesdeAudiencia(r.data) !== null;
+  });
+}
+
+function _mesAnoDeData(dataStr){
+  const p = String(dataStr||'').split('/');
+  if(p.length !== 3) return null;
+  return p[2] + '-' + p[1].padStart(2,'0'); // yyyy-MM, ordenável
+}
+
+function abrirModalCompiladoRealizadas(){
+  const rows = getAudienciasRealizadasParaCompilado();
+  const meses = [...new Set(rows.map(r => _mesAnoDeData(r.data)).filter(Boolean))].sort();
+  const optionsHtml = meses.length
+    ? meses.map(m => {
+        const [ano, mes] = m.split('-');
+        const label = MESES_PT[(+mes) - 1] + '/' + ano;
+        const qtd = rows.filter(r => _mesAnoDeData(r.data) === m).length;
+        return `<label style="display:flex;align-items:center;gap:8px;padding:6px 4px;cursor:pointer;font-size:13px">`
+          +`<input type="checkbox" class="compilado-mes-check" value="${m}">`
+          +`${label} <span style="color:#888">(${qtd})</span>`
+          +`</label>`;
+      }).join('')
+    : '<div style="color:#888;padding:8px 0">Nenhuma audiência realizada encontrada.</div>';
+
+  const html = '<div id="compilado-realizadas-bg" onclick="if(event.target===this)fecharModalCompiladoRealizadas()" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px">'
+    +'<div style="background:#fff;border-radius:12px;max-width:420px;width:100%;max-height:85vh;overflow:auto;box-shadow:0 8px 40px rgba(0,0,0,.35)">'
+    +'<div style="background:#003B5C;color:#fff;padding:16px 20px;border-radius:12px 12px 0 0;display:flex;align-items:center;justify-content:space-between">'
+    +'<b style="font-size:16px">📊 Compilado de Audiências Realizadas</b>'
+    +'<button onclick="fecharModalCompiladoRealizadas()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:16px">✕</button>'
+    +'</div>'
+    +'<div style="padding:16px 20px">'
+    +'<div style="font-size:12px;color:#666;margin-bottom:10px">Selecione um ou mais meses. Só entram casos com advogado indicado (sem N/A), usando a designação mais atual do sistema.</div>'
+    +optionsHtml
+    +'</div>'
+    +'<div style="padding:12px 20px 20px;display:flex;gap:10px;justify-content:flex-end">'
+    +'<button onclick="fecharModalCompiladoRealizadas()" style="background:#eee;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px">Cancelar</button>'
+    +'<button onclick="exportarCompiladoRealizadas()" style="background:#1a6b3c;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:13px">⬇️ Exportar Excel</button>'
+    +'</div>'
+    +'</div></div>';
+
+  const el = document.getElementById('compilado-realizadas-bg');
+  if(el) el.remove();
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function fecharModalCompiladoRealizadas(){
+  const el = document.getElementById('compilado-realizadas-bg');
+  if(el) el.remove();
+}
+
+function exportarCompiladoRealizadas(){
+  const checks = [...document.querySelectorAll('.compilado-mes-check:checked')].map(c => c.value);
+  if(!checks.length){ alert('⚠️ Selecione ao menos um mês.'); return; }
+  const rows = getAudienciasRealizadasParaCompilado().filter(r => checks.includes(_mesAnoDeData(r.data)));
+  if(!rows.length){ alert('Nenhuma audiência encontrada para os meses selecionados.'); return; }
+  const cfg = pautaCompletaOficialConfig(rows);
+  baixarXlsx(cfg, 'Compilado_Audiencias_Realizadas');
+  fecharModalCompiladoRealizadas();
+  if(typeof showToast === 'function') showToast('📊 Compilado exportado em Excel!');
 }
 
 function abrirModalRedesig(codigo,processo,parte,data,horario,comarca,resp){
