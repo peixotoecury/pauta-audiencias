@@ -7846,9 +7846,13 @@ function getPastAudiencias() {
     const isAudiencia = !String(r.tipo||'').startsWith('Perícia') && !String(r.tipo||'').toLowerCase().includes('perícia') && !String(r.tipo||'').toLowerCase().includes('pericia') && !String(r.tipo||'').includes('Julgamento - Vara') && !String(r.tipo||'').includes('Julgamento - Vara do Trabalho - Súmula') && !String(r.tipo||'').includes('Sessão de Julgamento');
     const temIndicacao = r.adv_audiencia && r.adv_audiencia !== 'N/A' && r.adv_audiencia !== 'Indicar Advogado' && r.adv_audiencia.trim() !== '';
     if (!isAudiencia || !temIndicacao) return false;
+    const rec = pcObterPosRecord(posData, r);
+    // Pendência dispensada a pedido da gestão: some da relação inteira (não conta como
+    // pendente nem como preenchida), pra não ficar parecendo que alguém preencheu de verdade.
+    if (rec && rec.dispensado) return false;
     const dias = diasDesdeAudiencia(r.data);
     if (dias === null) return false; // audiência ainda não ocorreu: nunca mostra, mesmo com pos de sessão anterior do mesmo processo
-    if (pcObterPosRecord(posData, r)) return true;
+    if (rec) return true;
     return dias <= 30;
   });
 }
