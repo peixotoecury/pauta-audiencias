@@ -10427,9 +10427,6 @@ const RESPONSAVEIS_ALERTA_DESIGNACAO = {
   "B3": "anacarolina.martini@peixotoecury.com.br",
   "C":  "sofia.freire@peixotoecury.com.br",
   "C1": "sofia.freire@peixotoecury.com.br",
-  "D":  "bianca.camacho@peixotoecury.com.br",
-  "D1": "bianca.camacho@peixotoecury.com.br",
-  "D2": "bianca.camacho@peixotoecury.com.br",
   "E1": "keyla.moraes@peixotoecury.com.br",
   "E2": "washington.soares@peixotoecury.com.br"
 };
@@ -10439,14 +10436,12 @@ function normalizarGrupoAlertaDesignacao(grupo){
   const g = String(grupo || "").replace(/grupo/ig, "").trim().toUpperCase().replace(/\s+/g, "");
   if(g === "C") return "C";
   if(g.startsWith("C")) return "C1";
-  if(g.startsWith("D")) return g;
   return g;
 }
 
 function getEmailAlertaDesignacao(grupo){
   const g = normalizarGrupoAlertaDesignacao(grupo);
   if(RESPONSAVEIS_ALERTA_DESIGNACAO[g]) return RESPONSAVEIS_ALERTA_DESIGNACAO[g];
-  if(g.startsWith("D")) return RESPONSAVEIS_ALERTA_DESIGNACAO["D"];
   return CC_ALERTA_DESIGNACAO;
 }
 
