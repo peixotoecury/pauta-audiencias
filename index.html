@@ -8446,7 +8446,18 @@ async function _persistirPosRecord(codigo, record) {
   // Salva pela chave da ocorrência (código+data+horário+tipo), não só pelo código — mesma
   // chave usada na pauta, sem ambiguidade nenhuma daqui pra frente mesmo se o mesmo processo
   // tiver duas audiências pendentes ao mesmo tempo.
-  savePosCodigo(_rAud ? pcChaveOcorrenciaPost(_rAud) : codigo, record);
+  // Sem esse try/catch, um erro aqui (ex.: QuotaExceededError por localStorage cheio) derrubava
+  // a Promise sem aviso nenhum: a pessoa preenchia tudo, clicava Salvar/Enviar e-mail, e nada
+  // acontecia -- nem confirmação, nem erro, e o preenchimento "sumia" da tela sem ter sido salvo.
+  try{
+    savePosCodigo(_rAud ? pcChaveOcorrenciaPost(_rAud) : codigo, record);
+  }catch(e){
+    console.error('Falha ao salvar Pós-Audiência localmente', e);
+    showToast(e && e.name === 'QuotaExceededError'
+      ? '❌ Não consegui salvar: o armazenamento do navegador está cheio. Feche outras abas, limpe o cache do site e tente de novo.'
+      : '❌ Não consegui salvar (erro inesperado). Tente novamente — se persistir, avise a Controladoria com o código ' + codigo + '.');
+    return null; // null = já mostrei o erro aqui; diferente de false (falhou só a sincronização com a nuvem)
+  }
   addAuditEntry('Pós-Audiência salva', `Código ${codigo} · ${_rAud ? _rAud.parte_principal + ' (' + _rAud.data + ')' : ''}`);
 
   if (_rAud) {
@@ -8492,8 +8503,14 @@ async function salvarPos(codigo) {
   }
   const record = _lerEValidarPosDoDom(codigo);
   if (!record) return;
-  const ok = await _persistirPosRecord(codigo, record);
-  showToast(ok ? '✅ Registro salvo com sucesso!' : '⚠️ Salvo neste dispositivo, mas falhou ao enviar pra nuvem agora. Vou tentar de novo — não feche a aba ainda.');
+  try{
+    const ok = await _persistirPosRecord(codigo, record);
+    if (ok === null) return; // erro já mostrado dentro de _persistirPosRecord
+    showToast(ok ? '✅ Registro salvo com sucesso!' : '⚠️ Salvo neste dispositivo, mas falhou ao enviar pra nuvem agora. Vou tentar de novo — não feche a aba ainda.');
+  }catch(e){
+    console.error('Falha ao salvar Pós-Audiência', e);
+    showToast('❌ Algo deu errado ao salvar. Os dados preenchidos continuam na tela — tente de novo. Se persistir, avise a Controladoria com o código ' + codigo + '.');
+  }
 }
 
 function limparPos(codigo) {
@@ -8978,7 +8995,13 @@ async function enviarEmailControladoria(codigo) {
   const rec = _lerEValidarPosDoDom(codigo);
   if (!rec) return;
 
-  await _persistirPosRecord(codigo, rec);
+  // Tudo daqui pra baixo fica num try/catch: sem isso, qualquer erro inesperado no meio do
+  // caminho (montagem do e-mail, etc.) abortava a função em silêncio -- a pessoa preenchia
+  // tudo, clicava aqui, e nada parecia acontecer, sem nenhum aviso do que deu errado.
+  try{
+
+  const persistiu = await _persistirPosRecord(codigo, rec);
+  if (persistiu === null) return; // erro já mostrado dentro de _persistirPosRecord
 
   const advNome = PROF[r.adv_audiencia] ? PROF[r.adv_audiencia].nome : (r.adv_audiencia || '—');
   const advRealizNome = PROF[rec.adv_realiz] ? PROF[rec.adv_realiz].nome : (rec.adv_realiz || '—');
@@ -9051,6 +9074,11 @@ Enviado pelo sistema de Pós-Audiência — Peixoto & Cury Advogados`;
     btn.style.background = 'rgba(39,174,96,.15)';
     btn.style.borderColor = 'rgba(39,174,96,.4)';
     btn.style.color = '#4CAF70';
+  }
+
+  }catch(e){
+    console.error('Falha ao enviar e-mail de Pós-Audiência', e);
+    showToast('❌ Algo deu errado ao salvar/enviar o e-mail. Os dados preenchidos continuam na tela — tente clicar de novo. Se persistir, avise a Controladoria com o código ' + codigo + '.');
   }
 }
 
