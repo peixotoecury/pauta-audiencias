@@ -6253,6 +6253,11 @@ function pcStartCloudRealtime(){
       try{ renderPos(); }catch(e){}
       try{ renderPericia(); }catch(e){}
       try{ renderHistorico(); }catch(e){}
+      // Sem isso, quem ficava com a aba "Histórico e Conflitos de Designações" aberta nunca via
+      // as alterações feitas por outra pessoa: o polling já buscava e mesclava o log certinho
+      // por baixo dos panos, mas a tabela na tela não era atualizada de novo -- só ao trocar de
+      // aba e voltar, ou clicar em Sync manualmente.
+      try{ if(typeof renderHistoricoDesignacoes === 'function') renderHistoricoDesignacoes(); }catch(e){}
     }catch(e){ console.warn('Atualização automática falhou', e); }
   }, 60000);
 }
