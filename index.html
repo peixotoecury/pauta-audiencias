@@ -9143,12 +9143,42 @@ const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho',
 // advogado registrada (exclui N/A/"Indicar Advogado"/vazio). Usa getPostRecords() -- que
 // mescla histórico + pauta atual -- então o adv_audiencia lido aqui é sempre a designação
 // mais recente registrada no sistema, mesmo que tenha sido alterada depois de ocorrer.
+// Respeita os mesmos filtros da barra da Pauta Completa (grupo, tipo, profissional, resp.
+// pasta, busca) -- igual ao botão "Excel (.xlsx)" (getFiltered()) -- pra poder extrair, por
+// exemplo, só o compilado de um profissional específico.
 function getAudienciasRealizadasParaCompilado() {
+  const grupo = document.getElementById('filter-grupo')?.value || '';
+  const tipo = document.getElementById('filter-tipo')?.value || '';
+  const prof = document.getElementById('filter-prof')?.value || '';
+  const respPasta = (document.getElementById('filter-resp-pasta') || {}).value || '';
+  const q = (document.getElementById('search-main')?.value || '').toLowerCase();
+  const _n2s = window.PC_NOME_PARA_SIGLA || {};
+  const norm = v => { v = String(v||'').trim(); return _n2s[v] || v; };
+
   return getPostRecords().filter(r => {
     if (!r.data) return false;
     const temIndicacao = r.adv_audiencia && r.adv_audiencia !== 'N/A' && r.adv_audiencia !== 'Indicar Advogado' && r.adv_audiencia.trim() !== '';
     if (!temIndicacao) return false;
-    return diasDesdeAudiencia(r.data) !== null;
+    if (diasDesdeAudiencia(r.data) === null) return false;
+
+    if (grupo && r.grupo !== grupo) return false;
+    if (tipo) {
+      const t = r.tipo || '';
+      if (tipo === 'Audiência' && !t.includes('Audiência')) return false;
+      if (tipo === 'Julgamento' && !t.includes('Julgamento') && !t.includes('Sessão')) return false;
+      if (tipo === 'Perícia' && !t.includes('Perícia')) return false;
+    }
+    if (prof) {
+      if (prof.toLowerCase().startsWith('correspondente')) {
+        if (r.adv_audiencia !== prof && r.adv_preparo !== prof) return false;
+      } else if (norm(r.adv_audiencia) !== prof) return false;
+    }
+    if (respPasta && norm(r.adv_preparo) !== respPasta) return false;
+    if (q) {
+      const hay = [r.processo, (typeof clienteDaLinha === 'function' ? clienteDaLinha(r) : ''), r.parte_principal, r.parte_contraria, r.comarca, r.adv_audiencia, r.adv_preparo].join(' ').toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
   });
 }
 
@@ -9158,9 +9188,30 @@ function _mesAnoDeData(dataStr){
   return p[2] + '-' + p[1].padStart(2,'0'); // yyyy-MM, ordenável
 }
 
+// Descreve os filtros ativos da barra da Pauta Completa (mesmos que valem pro compilado),
+// pra deixar claro na hora de exportar que o resultado não é "tudo", é o filtrado na tela.
+function _resumoFiltrosAtivosCompilado(){
+  const partes = [];
+  const grupoEl = document.getElementById('filter-grupo');
+  const tipoEl = document.getElementById('filter-tipo');
+  const profEl = document.getElementById('filter-prof');
+  const respPastaEl = document.getElementById('filter-resp-pasta');
+  const searchEl = document.getElementById('search-main');
+  if(grupoEl && grupoEl.value) partes.push('Grupo: ' + (grupoEl.options[grupoEl.selectedIndex]?.text || grupoEl.value));
+  if(tipoEl && tipoEl.value) partes.push('Tipo: ' + (tipoEl.options[tipoEl.selectedIndex]?.text || tipoEl.value));
+  if(profEl && profEl.value) partes.push('Profissional: ' + (profEl.options[profEl.selectedIndex]?.text || profEl.value));
+  if(respPastaEl && respPastaEl.value) partes.push('Resp. pasta: ' + (respPastaEl.options[respPastaEl.selectedIndex]?.text || respPastaEl.value));
+  if(searchEl && searchEl.value.trim()) partes.push('Busca: "' + searchEl.value.trim() + '"');
+  return partes;
+}
+
 function abrirModalCompiladoRealizadas(){
   const rows = getAudienciasRealizadasParaCompilado();
   const meses = [...new Set(rows.map(r => _mesAnoDeData(r.data)).filter(Boolean))].sort();
+  const filtrosAtivos = _resumoFiltrosAtivosCompilado();
+  const filtrosHtml = filtrosAtivos.length
+    ? `<div style="font-size:12px;background:#FFF8E1;border:1px solid #F0D98C;border-radius:8px;padding:8px 10px;margin-bottom:10px;color:#7A5B00"><b>🔎 Filtro(s) da tela aplicado(s):</b> ${filtrosAtivos.join(' · ')}</div>`
+    : '';
   const optionsHtml = meses.length
     ? meses.map(m => {
         const [ano, mes] = m.split('-');
@@ -9180,6 +9231,7 @@ function abrirModalCompiladoRealizadas(){
     +'<button onclick="fecharModalCompiladoRealizadas()" style="background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:6px;padding:6px 14px;cursor:pointer;font-size:16px">✕</button>'
     +'</div>'
     +'<div style="padding:16px 20px">'
+    +filtrosHtml
     +'<div style="font-size:12px;color:#666;margin-bottom:10px">Selecione um ou mais meses. Só entram casos com advogado indicado (sem N/A), usando a designação mais atual do sistema.</div>'
     +optionsHtml
     +'</div>'
