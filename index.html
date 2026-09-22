@@ -9149,7 +9149,13 @@ const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho',
 function getAudienciasRealizadasParaCompilado() {
   const grupo = document.getElementById('filter-grupo')?.value || '';
   const tipo = document.getElementById('filter-tipo')?.value || '';
-  const prof = document.getElementById('filter-prof')?.value || '';
+  // O filtro de profissional da barra da Pauta Completa (filter-prof) só lista quem tem
+  // audiência na pauta ATUAL -- alguém que só tem realizadas antigas (fora da janela corrente,
+  // já em histórico) nem aparece lá pra ser selecionado. Por isso o modal do Compilado tem seu
+  // próprio seletor (compilado-prof-select), montado com todo mundo que aparece no universo de
+  // realizadas. Ele tem prioridade; sem ele, cai no filtro da tela (igual antes).
+  const profModal = document.getElementById('compilado-prof-select')?.value || '';
+  const prof = profModal || document.getElementById('filter-prof')?.value || '';
   const respPasta = (document.getElementById('filter-resp-pasta') || {}).value || '';
   const q = (document.getElementById('search-main')?.value || '').toLowerCase();
   const _n2s = window.PC_NOME_PARA_SIGLA || {};
@@ -9182,6 +9188,46 @@ function getAudienciasRealizadasParaCompilado() {
   });
 }
 
+// Lista de profissionais pra popular o seletor do modal do Compilado: todo mundo que aparece
+// como adv_audiencia em algum realizado (sem aplicar o filtro de profissional ainda, senão
+// vira uma referência circular), respeitando só os outros filtros da tela (grupo/tipo/busca).
+function _profissionaisParaCompilado(){
+  const grupo = document.getElementById('filter-grupo')?.value || '';
+  const tipo = document.getElementById('filter-tipo')?.value || '';
+  const respPasta = (document.getElementById('filter-resp-pasta') || {}).value || '';
+  const q = (document.getElementById('search-main')?.value || '').toLowerCase();
+  const _n2s = window.PC_NOME_PARA_SIGLA || {};
+  const norm = v => { v = String(v||'').trim(); return _n2s[v] || v; };
+
+  const contagem = {};
+  getPostRecords().forEach(r => {
+    if (!r.data) return;
+    const temIndicacao = r.adv_audiencia && r.adv_audiencia !== 'N/A' && r.adv_audiencia !== 'Indicar Advogado' && r.adv_audiencia.trim() !== '';
+    if (!temIndicacao) return;
+    if (diasDesdeAudiencia(r.data) === null) return;
+    if (grupo && r.grupo !== grupo) return;
+    if (tipo) {
+      const t = r.tipo || '';
+      if (tipo === 'Audiência' && !t.includes('Audiência')) return;
+      if (tipo === 'Julgamento' && !t.includes('Julgamento') && !t.includes('Sessão')) return;
+      if (tipo === 'Perícia' && !t.includes('Perícia')) return;
+    }
+    if (respPasta && norm(r.adv_preparo) !== respPasta) return;
+    if (q) {
+      const hay = [r.processo, (typeof clienteDaLinha === 'function' ? clienteDaLinha(r) : ''), r.parte_principal, r.parte_contraria, r.comarca, r.adv_audiencia, r.adv_preparo].join(' ').toLowerCase();
+      if (!hay.includes(q)) return;
+    }
+    const chave = String(r.adv_audiencia||'').trim().toLowerCase().startsWith('correspondente') ? r.adv_audiencia : norm(r.adv_audiencia);
+    if (!chave) return;
+    contagem[chave] = (contagem[chave] || 0) + 1;
+  });
+  return Object.entries(contagem).sort((a,b) => {
+    const nomeA = (typeof PROF !== 'undefined' && PROF[a[0]]) ? PROF[a[0]].nome : a[0];
+    const nomeB = (typeof PROF !== 'undefined' && PROF[b[0]]) ? PROF[b[0]].nome : b[0];
+    return nomeA.localeCompare(nomeB, 'pt-BR');
+  });
+}
+
 function _mesAnoDeData(dataStr){
   const p = String(dataStr||'').split('/');
   if(p.length !== 3) return null;
@@ -9199,19 +9245,45 @@ function _resumoFiltrosAtivosCompilado(){
   const searchEl = document.getElementById('search-main');
   if(grupoEl && grupoEl.value) partes.push('Grupo: ' + (grupoEl.options[grupoEl.selectedIndex]?.text || grupoEl.value));
   if(tipoEl && tipoEl.value) partes.push('Tipo: ' + (tipoEl.options[tipoEl.selectedIndex]?.text || tipoEl.value));
-  if(profEl && profEl.value) partes.push('Profissional: ' + (profEl.options[profEl.selectedIndex]?.text || profEl.value));
+  // Seletor de profissional do próprio modal tem prioridade sobre o da barra (mesma regra
+  // usada em getAudienciasRealizadasParaCompilado) -- só mostra um dos dois, não os dois juntos.
+  const profModalEl = document.getElementById('compilado-prof-select');
+  if(profModalEl && profModalEl.value) partes.push('Profissional: ' + (profModalEl.options[profModalEl.selectedIndex]?.text || profModalEl.value));
+  else if(profEl && profEl.value) partes.push('Profissional: ' + (profEl.options[profEl.selectedIndex]?.text || profEl.value));
   if(respPastaEl && respPastaEl.value) partes.push('Resp. pasta: ' + (respPastaEl.options[respPastaEl.selectedIndex]?.text || respPastaEl.value));
   if(searchEl && searchEl.value.trim()) partes.push('Busca: "' + searchEl.value.trim() + '"');
   return partes;
 }
 
 function abrirModalCompiladoRealizadas(){
+  // Preserva a seleção de profissional entre reaberturas do modal (o próprio seletor dispara
+  // isso de novo no onchange, pra recalcular os meses/quantidades com o filtro escolhido).
+  const profSelecionadoAntes = document.getElementById('compilado-prof-select')?.value || '';
+
   const rows = getAudienciasRealizadasParaCompilado();
   const meses = [...new Set(rows.map(r => _mesAnoDeData(r.data)).filter(Boolean))].sort();
   const filtrosAtivos = _resumoFiltrosAtivosCompilado();
   const filtrosHtml = filtrosAtivos.length
     ? `<div style="font-size:12px;background:#FFF8E1;border:1px solid #F0D98C;border-radius:8px;padding:8px 10px;margin-bottom:10px;color:#7A5B00"><b>🔎 Filtro(s) da tela aplicado(s):</b> ${filtrosAtivos.join(' · ')}</div>`
     : '';
+
+  // Seletor de profissional próprio do modal -- diferente do filtro da barra da Pauta
+  // Completa, este lista TODO MUNDO que aparece no universo de realizadas (inclusive quem só
+  // tem audiência antiga, fora da pauta atual), então dá pra achar qualquer advogado por sigla.
+  const profOpcoes = _profissionaisParaCompilado();
+  const profLabel = s => {
+    if (s.toLowerCase().startsWith('correspondente')) return s;
+    const p = (typeof PROF !== 'undefined') && PROF[s];
+    return p ? `${s} — ${p.nome}` : s;
+  };
+  const profSelectHtml = '<div style="margin-bottom:12px">'
+    + '<label style="display:block;font-size:12px;font-weight:600;color:#444;margin-bottom:4px">Profissional (opcional)</label>'
+    + '<select id="compilado-prof-select" onchange="abrirModalCompiladoRealizadas()" style="width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;font-family:inherit">'
+    + '<option value="">Todos os profissionais</option>'
+    + profOpcoes.map(([sigla, qtd]) => `<option value="${sigla}" ${sigla === profSelecionadoAntes ? 'selected' : ''}>${profLabel(sigla)} (${qtd})</option>`).join('')
+    + '</select>'
+    + '</div>';
+
   const optionsHtml = meses.length
     ? meses.map(m => {
         const [ano, mes] = m.split('-');
@@ -9232,6 +9304,7 @@ function abrirModalCompiladoRealizadas(){
     +'</div>'
     +'<div style="padding:16px 20px">'
     +filtrosHtml
+    +profSelectHtml
     +'<div style="font-size:12px;color:#666;margin-bottom:10px">Selecione um ou mais meses. Só entram casos com advogado indicado (sem N/A), usando a designação mais atual do sistema.</div>'
     +optionsHtml
     +'</div>'
