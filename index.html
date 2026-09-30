@@ -1860,6 +1860,12 @@ body.public-mode #btn-pericia,
 body.public-mode #btn-auditoria,
 body.public-mode .topbar-right .logout-btn:first-of-type { display:none !important; }
 body.public-mode .nav { justify-content:flex-start !important; }
+/* perfil cliente: sem as ferramentas internas da equipe (alertas, designações, compilado, contratações) */
+body.cliente-mode #btn-alertas-designacao,
+body.cliente-mode #btn-alerta-17h,
+body.cliente-mode #btn-dashboard-designacoes,
+body.cliente-mode #btn-contratacoes,
+body.cliente-mode button[onclick^="abrirModalCompiladoRealizadas"] { display:none !important; }
 @media(max-width:768px){
   .modal{width:100vw!important;max-width:100vw!important;height:92vh!important;max-height:92vh!important;}
   #modal-body.modal-grid{grid-template-columns:1fr!important;}
@@ -3719,7 +3725,9 @@ function getUsers(){
     {user:"karine.monteiro@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:["Grupo A2"],sigla:"KNM",nome:"Karine Nitopi Monteiro"},
     {user:"karine.cruz@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:["Grupo B1"],sigla:"KRC",nome:"Karine Rodrigues da Cruz"},
     {user:"luna.coelho@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:["Grupo B3"],sigla:"LUN",nome:"Luna Martins Coelho"},
-    {user:"mariana.teberges@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:["Grupo B1"],sigla:"MTE",nome:"Mariana Arruda Teberges"}
+    {user:"mariana.teberges@peixotoecury.com.br",pass:"123456",role:"visualizador",grupos:["Grupo B1"],sigla:"MTE",nome:"Mariana Arruda Teberges"},
+    // Clientes externos: perfil "cliente" vê só a Pauta Completa, filtrada pelas audiências do próprio cliente
+    {user:"LopesFernando@la-bridgestone.com",pass:"123456",role:"cliente",cliente:"Bridgestone",grupos:[],sigla:null,nome:"Fernando Lopes (Bridgestone)"}
   ];
   // Aplica senhas customizadas e perfis alterados sobre os defaults
   const adminExtras = JSON.parse(localStorage.getItem(ADMIN_USERS_KEY) || '[]');
@@ -3769,8 +3777,15 @@ function getPautaRecords() {
   const start = pcGetPautaStart(DATA.main || []);
   return (DATA.main || []).filter(r => {
     const dt = pcDateFromPt(r && r.data);
-    return dt && dt.getTime() >= start;
+    return dt && dt.getTime() >= start && pcLinhaVisivelParaCliente(r);
   });
+}
+
+// Perfil "cliente": só as audiências do cliente do login (ex.: Bridgestone). Demais perfis veem tudo.
+function pcLinhaVisivelParaCliente(r){
+  if(typeof currentRole === 'undefined' || currentRole !== 'cliente') return true;
+  if(!currentUserCliente) return false;
+  return clienteCanonico(clienteDaLinha(r)) === currentUserCliente || clienteCanonico(r && r.parte_principal) === currentUserCliente;
 }
 
 
@@ -3817,6 +3832,7 @@ let currentRole = 'visualizador';
 let currentUserGrupos = []; // [] = todos os grupos (admin/visualizador)
 let currentUserSigla = null; // sigla do advogado logado, filtra pauta automaticamente
 let currentUserEmail = null; // email de login do usuário atual
+let currentUserCliente = null; // perfil "cliente": nome canônico do cliente (ex.: 'Bridgestone')
 let selectedRoleLogin = 'visualizador';
 
 // Bind role buttons via event delegation (more robust than inline onclick)
@@ -3952,13 +3968,15 @@ async function doLogin(){
   const u = document.getElementById('login-user').value.trim();
   const p = document.getElementById('login-pass').value;
   const users = getUsers();
-  const found = users.find(x=>x.user===u && x.pass===p);
+  const found = users.find(x=>String(x.user).toLowerCase()===u.toLowerCase() && x.pass===p);
   if(!found){
     document.getElementById('login-error').textContent = 'Usuário ou senha incorretos.';
     document.getElementById('login-hint').style.display = 'block';
     return;
   }
-  document.body.classList.remove('public-mode');
+  if(found.role === 'cliente') return doClienteLogin(found);
+  currentUserCliente = null;
+  document.body.classList.remove('public-mode','cliente-mode');
   currentRole = found.role;
   currentUserGrupos = found.grupos || [];
   currentUserSigla = found.sigla || null;
@@ -4023,6 +4041,44 @@ async function doLogin(){
   }
 }
 
+// Login de cliente externo: mesma tela da consulta pública (só Pauta Completa), filtrada pelo cliente.
+async function doClienteLogin(found){
+  currentRole = 'cliente';
+  currentUserGrupos = [];
+  currentUserSigla = null;
+  currentUserEmail = found.user;
+  currentUserCliente = found.cliente || null;
+  document.body.classList.add('public-mode','cliente-mode');
+  document.getElementById('login-screen').style.display='none';
+  const app = document.getElementById('app');
+  app.style.display='flex';
+  app.classList.add('visible');
+  document.getElementById('user-label').textContent = (found.nome || found.user);
+  document.querySelectorAll('#btn-upload-pauta,#btn-upload-pauta-top').forEach(b=>{ if(b) b.style.display='none'; });
+  ['admin-nav','historico-nav','admin-bottom-nav','btn-auditoria','mn-auditoria','mn-admin','mn-historico'].forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
+  document.querySelectorAll('.nav-btn').forEach(btn=>{
+    const isPauta = btn.textContent.includes('Pauta Completa');
+    btn.classList.toggle('public-allowed', isPauta);
+    btn.style.display = isPauta ? '' : 'none';
+    btn.classList.toggle('active', isPauta);
+  });
+  document.querySelectorAll('.bottom-nav-btn').forEach(btn=>{
+    const isPauta = btn.dataset && btn.dataset.tab === 'pauta';
+    btn.classList.toggle('public-allowed', isPauta);
+    btn.style.display = isPauta ? '' : 'none';
+    btn.classList.toggle('active', isPauta);
+  });
+  try{ await applyEdits(); }catch(e){ console.warn("Sync inicial ignorado", e); }
+  initApp();
+  ['search-main','filter-grupo','filter-data','filter-tipo','filter-prof'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  _filterStatus = '';
+  addAuditEntry('Login', `Cliente "${found.user}" entrou (perfil cliente · ${currentUserCliente})`);
+  showTab('pauta', document.querySelector('.nav-btn.public-allowed') || document.querySelectorAll('.nav-btn')[1]);
+}
+
 function toggleMobileMenu(){
   const overlay = document.getElementById('mobile-menu-overlay');
   const drawer = document.getElementById('mobile-menu-drawer');
@@ -4037,8 +4093,10 @@ function closeMobileMenu(){
 
 function logout(){
   try{ localStorage.removeItem('pc_session_v2'); }catch(e){}
-  document.body.classList.remove('public-mode');
+  document.body.classList.remove('public-mode','cliente-mode');
   currentUserSigla = null;
+  currentUserCliente = null;
+  if(currentRole === 'cliente') currentRole = 'visualizador';
   closeMobileMenu();
   document.getElementById('login-screen').style.display='flex';
   document.getElementById('app').style.display='none';
@@ -4059,7 +4117,7 @@ function logout(){
 
 // ---- TABS ----
 function showTab(id, el){
-  if(currentRole === 'publico' && id !== 'pauta'){ id = 'pauta'; el = document.querySelector('.nav-btn.public-allowed') || document.querySelectorAll('.nav-btn')[1]; }
+  if((currentRole === 'publico' || currentRole === 'cliente') && id !== 'pauta'){ id = 'pauta'; el = document.querySelector('.nav-btn.public-allowed') || document.querySelectorAll('.nav-btn')[1]; }
 
   ['dashboard','pauta','conflitos','histdesignacoes','comarcas','responsavel','auditoria','pos','pericia','testemunhas','admin','historico','linksuteis','cliente'].forEach(t=>{
     const _el=document.getElementById('tab-'+t);
