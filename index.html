@@ -5545,6 +5545,12 @@ async function applyEdits(){
   if(snap){
     const loc=_buildLocalSnapshot();
     _applySnapshot({
+      // Sem a data do upload da nuvem aqui, pcSnapshotMaisAntigoQueUpload() via "sem data" e
+      // devolvia true SEMPRE que o navegador tinha o lock de upload (quem sobe a planilha). Aí
+      // _applySnapshot descartava toda designação manual de adv_audiencia/adv_preparo/link no
+      // login e no Sync -- o Excel exportado saía sem as designações feitas por outras pessoas
+      // depois do upload, e o próximo flush apagava essas edições da nuvem (meta/log ficavam).
+      pauta_updated_at: snap.pauta_updated_at,
       // IMPORTANTE: agora também traz a pauta salva na nuvem.
       // Antes o Sync buscava designações/pós, mas não reaplicava a pauta_main;
       // por isso dias antigos podiam não reaparecer.
