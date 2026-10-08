@@ -5307,7 +5307,21 @@ function _applySnapshot(snap){
     } catch(e) { console.warn('Não foi possível aplicar histórico', e); }
   }
 
-  let desig = pcSanitizarEditsSoberanos(pcLimparDesignacoesLegadas(Object.assign({}, snap.designacoes || {})), DATA.main);
+  // Autocura: designação manual feita DEPOIS do upload vigente que tem registro (meta) mas perdeu
+  // o valor em "designacoes" (um navegador antigo/instável pode gravar a nuvem sem a edição). O
+  // meta guarda o valor, então reconstrói a partir dele. Só vale pra origem 'manual' mais nova
+  // que o upload: as anteriores já foram substituídas pelo Excel (soberano) e não voltam.
+  const desigBruta = Object.assign({}, snap.designacoes || {});
+  if(!snapAntigoDepoisUpload && snap.pauta_updated_at && snap.designacoes_meta){
+    const tUpload = Date.parse(snap.pauta_updated_at);
+    Object.entries(snap.designacoes_meta).forEach(([k, m]) => {
+      if(!m || m.origem !== 'manual' || (k in desigBruta)) return;
+      if(!(Date.parse(m.atualizado_em) > tUpload)) return;
+      if(!pcEhChaveDesignacaoAtual(k) || typeof m.valor !== 'string') return;
+      desigBruta[k] = m.valor;
+    });
+  }
+  let desig = pcSanitizarEditsSoberanos(pcLimparDesignacoesLegadas(desigBruta), DATA.main);
   // Depois de um upload Excel soberano, não reaplica edits antigos da nuvem nos campos críticos.
   // Esses campos devem permanecer exatamente como vieram do Excel, até nova edição manual consciente.
   if(snapAntigoDepoisUpload){
@@ -5429,6 +5443,14 @@ function pcMesclarDesignacoesPorRecencia(baseEdits, baseMeta, prioridadeEdits, p
     const edSrc = usaBase ? baseEdits : prioridadeEdits;
     const metaSrc = usaBase ? baseMeta : prioridadeMeta;
     if (k in edSrc) edits[k] = edSrc[k];
+    else if (Number.isFinite(tBase) && tBase === tPrioridade) {
+      // Empate de data: um lado tem a edição e o outro só tem o registro (meta) dela. Ausência
+      // nunca significa "apagar" -- quem apaga designação é o upload do Excel, e esse grava
+      // meta com data mais nova, não empatada. Sem isso, um navegador que perdeu a edição
+      // (mas guardou o meta) apagava a edição da nuvem no próximo salvamento.
+      const outro = usaBase ? prioridadeEdits : baseEdits;
+      if (k in outro) edits[k] = outro[k];
+    }
     if (metaSrc[k]) meta[k] = metaSrc[k];
   });
   return { edits, meta };
