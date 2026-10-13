@@ -7797,6 +7797,9 @@ checkAndFireAlerts();
 // PÓS-AUDIÊNCIA ENGINE
 // ═══════════════════════════════════════════════════════
 const POS_KEY = 'pos_audiencia_v1';
+// Quantos dias depois da audiência/perícia a pendência de Pós continua na lista (e no dash, e
+// na cobrança por e-mail) sem preenchimento. Passando disso some; o já preenchido segue aparecendo.
+const POS_JANELA_DIAS = 20;
 
 function getPosData() {
   try { return JSON.parse(localStorage.getItem(POS_KEY) || '{}'); } catch { return {}; }
@@ -7932,7 +7935,7 @@ function getPastAudiencias() {
     const dias = diasDesdeAudiencia(r.data);
     if (dias === null) return false; // audiência ainda não ocorreu: nunca mostra, mesmo com pos de sessão anterior do mesmo processo
     if (rec) return true;
-    return dias <= 30;
+    return dias <= POS_JANELA_DIAS;
   });
 }
 
@@ -8636,7 +8639,7 @@ function getPastPericias(){
     const dias = diasDesdeAudiencia(r.data);
     if (dias === null) return false; // perícia ainda não ocorreu: nunca mostra, mesmo com pos de sessão anterior do mesmo processo
     if (pcObterPosRecord(periciaData, r)) return true;
-    return dias <= 30;
+    return dias <= POS_JANELA_DIAS;
   });
 }
 function initPericiaFilters(){
