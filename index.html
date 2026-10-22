@@ -8245,10 +8245,9 @@ function buildPosForm(r, rec, chave) {
     { nome: '', tipo: 'Reclamada', avaliacao: 0 }
   ];
 
-  const acoesGestao = (!rec && pcPodeGerirPos(r)) ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
-      <button type="button" class="alerta-btn-secondary" onclick="pcAbrirModalResponsavelPos('${chave}')">👤 Trocar responsável pelo Pós</button>
-      <button type="button" class="alerta-btn-secondary" onclick="pcMarcarPosNaoOcorreu('${chave}')">🚫 Audiência não ocorreu / redesignada</button>
-    </div>` : '';
+  const btnNaoOcorreu = pcPodeMarcarNaoOcorreu(r) ? `<button type="button" class="alerta-btn-secondary" onclick="pcMarcarPosNaoOcorreu('${chave}')">🚫 Audiência não ocorreu / redesignada</button>` : '';
+  const btnTrocarResp = pcPodeGerirPos(r) ? `<button type="button" class="alerta-btn-secondary" onclick="pcAbrirModalResponsavelPos('${chave}')">👤 Trocar responsável pelo Pós</button>` : '';
+  const acoesGestao = (!rec && (btnNaoOcorreu || btnTrocarResp)) ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">${btnTrocarResp}${btnNaoOcorreu}</div>` : '';
 
   return `<div>
     ${acoesGestao}
@@ -8703,6 +8702,12 @@ async function salvarPos(codigo) {
 function pcPodeGerirPos(r){
   return typeof usuarioPodeEditarLinha === 'function' && usuarioPodeEditarLinha(r);
 }
+// "Não ocorreu / redesignada" qualquer pessoa logada que trabalha com o Pós pode marcar (quem está
+// com a pendência na mão é quem sabe que a audiência foi redesignada). Só fica de fora o perfil
+// "cliente" (acesso externo, só consulta da própria carteira).
+function pcPodeMarcarNaoOcorreu(r){
+  return typeof currentRole !== 'undefined' && !!currentRole && currentRole !== 'cliente';
+}
 function _posLinhaPorChave(chave){
   return getPastAudiencias().find(x => pcChaveOcorrenciaPost(x) === chave) || getPostRecords().find(x => pcChaveOcorrenciaPost(x) === chave);
 }
@@ -8760,7 +8765,7 @@ async function pcConfirmarResponsavelPos(chave, automatico){
 async function pcMarcarPosNaoOcorreu(chave){
   const r = _posLinhaPorChave(chave);
   if(!r){ showToast('⚠ Não encontrei essa audiência.'); return; }
-  if(!pcPodeGerirPos(r)){ showToast('⚠️ Seu perfil não tem permissão para alterar este caso.'); return; }
+  if(!pcPodeMarcarNaoOcorreu(r)){ showToast('⚠️ Seu perfil não tem permissão para alterar este caso.'); return; }
   if(pcObterPosRecord(getPosData(), r)){ showToast('⚠ Esse Pós já foi preenchido — não dá pra marcar como não ocorrida.'); return; }
   const motivo = prompt(`Marcar como "audiência não ocorreu" e tirar da lista de Pós?\n\n${r.processo} · ${r.data} ${r.horario}\n\nMotivo (fica registrado):`, 'Audiência não ocorreu — redesignada');
   if(motivo === null) return;
