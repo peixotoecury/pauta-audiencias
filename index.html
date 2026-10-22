@@ -3413,9 +3413,53 @@ function getPostRecords() {
   // mesmo código reaparecia com uma data nova na pauta importada. (Usa só código+data+horário,
   // não a chave completa pcChaveAudiencia — campos como grupo/comarca podem ter sido corrigidos
   // entre o momento em que foi pro Histórico e agora, o que criaria duplicata da mesma audiência.)
-  [...(POST_OLD_RECORDS || []), ...hist, ...(DATA.main || [])].forEach(r => {
+  const daPauta = new Set();
+  [...(POST_OLD_RECORDS || []), ...hist].forEach(r => {
     if(r && r.codigo != null) map.set(r.codigo + '|' + (r.data||'') + '|' + (r.horario||''), r);
   });
+  (DATA.main || []).forEach(r => {
+    if(r && r.codigo != null){
+      const k = r.codigo + '|' + (r.data||'') + '|' + (r.horario||'');
+      map.set(k, r);
+      daPauta.add(k);
+    }
+  });
+  // Quem tem o Pós a preencher tem que ser SEMPRE o último designado. Linhas que estão na pauta
+  // completa já vêm com a designação vigente. Já as que só existem no Histórico (saíram da pauta
+  // depois de um upload) guardam a cópia de quando saíram: qualquer designação manual feita depois
+  // disso ficava só no log e o Pós continuava indo pra sigla antiga. Aqui reaplica, a partir do log,
+  // as designações feitas DEPOIS que a linha foi pro Histórico (as anteriores já foram substituídas
+  // pelo Excel, que é soberano). Correspondente só troca de pessoa pra outro tipo de indicação:
+  // nunca sobrescreve o nome completo ("Correspondente - Fulano") pela palavra solta do log.
+  try{
+    const log = (typeof pcGetDesignLog === 'function') ? pcGetDesignLog() : [];
+    if(log.length){
+      const ult = new Map();
+      log.forEach(e => {
+        if(!e || (e.campo !== 'adv_audiencia' && e.campo !== 'adv_preparo')) return;
+        const t = Date.parse(e.criado_em);
+        if(!Number.isFinite(t)) return;
+        const k = e.codigo + '|' + (e.data||'') + '|' + (e.horario||'') + '||' + e.campo;
+        const a = ult.get(k);
+        if(!a || t > a.t) ult.set(k, { novo: String(e.novo||''), t });
+      });
+      map.forEach((r, k) => {
+        if(daPauta.has(k)) return;
+        const tAbs = Date.parse(r._hist_absorvido || '');
+        if(!Number.isFinite(tAbs)) return;
+        let nr = null;
+        ['adv_audiencia', 'adv_preparo'].forEach(campo => {
+          const u = ult.get(k + '||' + campo);
+          if(!u || u.t <= tAbs) return;
+          const atual = String(r[campo] || '');
+          if(u.novo === atual) return;
+          if(/^correspondente/i.test(u.novo) && /^correspondente/i.test(atual)) return;
+          (nr = nr || Object.assign({}, r))[campo] = u.novo;
+        });
+        if(nr) map.set(k, nr);
+      });
+    }
+  }catch(e){ console.warn('Reaplicação de designações no Pós falhou', e); }
   return Array.from(map.values()).sort((a,b) => {
     const pa = String(a.data || '').split('/');
     const pb = String(b.data || '').split('/');
@@ -5243,7 +5287,7 @@ function _buildLocalSnapshot(){
           pauta_main: (DATA && Array.isArray(DATA.main)) ? DATA.main : [],
           historico,
           pauta_updated_at: new Date().toISOString(),
-          designacoes:desig,designacoes_meta:pcGetDesignMeta(),designacoes_log:pcGetDesignLog(),designacoes_conflitos:pcGetDesignConflicts(),pos_audiencia:posAud,pos_pericia:posPericia,
+          designacoes:desig,designacoes_meta:pcGetDesignMeta(),designacoes_log:pcGetDesignLog(),designacoes_conflitos:pcGetDesignConflicts(),pos_audiencia:posAud,pos_pericia:posPericia,pos_responsavel:getPosResponsavel(),
           notas,pt,ctrl,preparo_info:prepInfo,contratacoes,testemunhas_extra:testemunhasExtra,
           admin_users:adminUsers,custom_passes:customPasses};
 }
@@ -5375,6 +5419,10 @@ function _applySnapshot(snap){
     try{ localStorage.setItem('pos_pericia_v1',JSON.stringify(snap.pos_pericia)); }catch{}
   }
 
+  if(snap.pos_responsavel){
+    try{ localStorage.setItem(POS_RESP_KEY, JSON.stringify(pcMesclarPosResponsavel(getPosResponsavel(), snap.pos_responsavel))); }catch{}
+  }
+
   if(snap.notas)      Object.entries(snap.notas).forEach(([c,v])=>{ try{localStorage.setItem('nota_'+c,v);}catch{} });
   if(snap.pt)         Object.entries(snap.pt).forEach(([c,v])=>{ try{localStorage.setItem('pt_'+c,JSON.stringify(v));}catch{} });
   if(snap.ctrl)       Object.entries(snap.ctrl).forEach(([c,v])=>{ try{localStorage.setItem('ctrl_aud_'+c,JSON.stringify(v));}catch{} });
@@ -5495,6 +5543,7 @@ async function _flushToCloud(){
         })(),
         pos_audiencia:    Object.assign({}, remoteSnap.pos_audiencia||{},    snapAtual.pos_audiencia||{}),
         pos_pericia:      Object.assign({}, remoteSnap.pos_pericia||{},      snapAtual.pos_pericia||{}),
+        pos_responsavel:  pcMesclarPosResponsavel(remoteSnap.pos_responsavel, snapAtual.pos_responsavel),
         notas:            Object.assign({}, remoteSnap.notas||{},            snapAtual.notas||{}),
         pt:               Object.assign({}, remoteSnap.pt||{},               snapAtual.pt||{}),
         ctrl:             Object.assign({}, remoteSnap.ctrl||{},             snapAtual.ctrl||{}),
@@ -5591,6 +5640,7 @@ async function applyEdits(){
       designacoes_conflitos: Array.isArray(snap.designacoes_conflitos) ? snap.designacoes_conflitos : (loc.designacoes_conflitos||[]),
       pos_audiencia:Object.assign({},loc.pos_audiencia, snap.pos_audiencia||{}),
       pos_pericia:  Object.assign({},loc.pos_pericia,   snap.pos_pericia||{}),
+      pos_responsavel: pcMesclarPosResponsavel(loc.pos_responsavel, snap.pos_responsavel),
       notas:        Object.assign({},loc.notas,         snap.notas||{}),
       pt:           Object.assign({},loc.pt,            snap.pt||{}),
       ctrl:         Object.assign({},loc.ctrl,          snap.ctrl||{}),
@@ -7988,7 +8038,35 @@ function initPosFilters() {
 // Quando a audiência é feita por correspondente ("Correspondente - Fulano"), quem
 // precisa preencher o Pós-Audiência e receber a cobrança é o responsável interno
 // pela pasta (adv_preparo), não o correspondente (que não tem login nem e-mail no PROF).
+// Troca manual de quem responde pelo Pós de uma ocorrência (ex.: quem realizou foi outra pessoa
+// que não a designada). Fica à parte do registro do Pós pra NÃO contar como preenchido.
+// { [chaveOcorrencia]: { sigla, por, em } } -- sigla vazia = voltou pro automático (tombstone,
+// porque o sync por união nunca remove chave que só falta de um lado).
+const POS_RESP_KEY = 'pos_responsavel_v1';
+let _posRespCache = { raw: null, obj: {} };
+function getPosResponsavel(){
+  let raw = null;
+  try{ raw = localStorage.getItem(POS_RESP_KEY); }catch(e){}
+  if(raw === _posRespCache.raw) return _posRespCache.obj;
+  let obj = {};
+  try{ obj = JSON.parse(raw || '{}') || {}; }catch(e){ obj = {}; }
+  _posRespCache = { raw, obj };
+  return obj;
+}
+function savePosResponsavel(d){ localStorage.setItem(POS_RESP_KEY, JSON.stringify(d)); _scheduleSave(); }
+// Mescla por recência (campo "em"), não por posição: quem trocou por último vence.
+function pcMesclarPosResponsavel(a, b){
+  const out = Object.assign({}, a || {});
+  Object.entries(b || {}).forEach(([k, v]) => {
+    const cur = out[k];
+    if(!cur || String((v && v.em) || '') >= String(cur.em || '')) out[k] = v;
+  });
+  return out;
+}
+
 function _siglaResponsavelPosAudiencia(r){
+  const ov = r ? getPosResponsavel()[pcChaveOcorrenciaPost(r)] : null;
+  if(ov && ov.sigla) return ov.sigla;
   const advAud = r && r.adv_audiencia;
   if(typeof pcEhCorrespondenteAlerta17 === 'function' && pcEhCorrespondenteAlerta17(advAud) && r.adv_preparo){
     return r.adv_preparo;
@@ -8124,7 +8202,7 @@ function buildPosCard(r, rec) {
   if (!isDone) {
     const diasD = diasDesdeAudiencia(r.data);
     if (diasD !== null) {
-      const rest = 30 - diasD;
+      const rest = POS_JANELA_DIAS - diasD;
       if (rest <= 0) alerteBadge = '<span style="display:inline-block;background:#c0392b;color:#fff;border-radius:5px;padding:3px 8px;font-size:11px;font-weight:700;margin-right:4px">🚨 Último dia para preencher</span>';
       else if (rest <= 7) alerteBadge = `<span style="display:inline-block;background:rgba(230,126,34,.18);color:#e67e22;border:1px solid rgba(230,126,34,.45);border-radius:5px;padding:3px 8px;font-size:11px;font-weight:700;margin-right:4px">⚠️ Vence em ${rest}d</span>`;
     }
@@ -8137,6 +8215,7 @@ function buildPosCard(r, rec) {
         <div class="pos-card-sub">${r.data} ${r.horario} · ${r.tipo} · ${r.comarca}/${r.estado} · ${r.processo}</div>
         <div class="pos-card-sub" style="margin-top:3px;color:var(--cyan)">Adv. Audiência: ${advNome} · ${r.grupo}</div>
         ${isCorrespondenteAud ? `<div class="pos-card-sub" style="margin-top:3px;color:#e07a1f;font-weight:600">📁 Responsável pela pasta: ${respPastaNome}</div>` : ''}
+        ${(() => { const ov = getPosResponsavel()[chave]; if(!(ov && ov.sigla)) return ''; const nm = PROF[ov.sigla] ? PROF[ov.sigla].nome : ov.sigla; return `<div class="pos-card-sub" style="margin-top:3px;color:#8e44ad;font-weight:600">👤 Responsável pelo Pós: ${nm} (definido manualmente)</div>`; })()}
       </div>
       <div class="pos-card-badges">
         ${isDone ? '<span class="pos-badge-done">✅ Preenchido</span>' : '<span class="pos-badge-pending">⏳ Pendente</span>'}
@@ -8166,7 +8245,13 @@ function buildPosForm(r, rec, chave) {
     { nome: '', tipo: 'Reclamada', avaliacao: 0 }
   ];
 
+  const acoesGestao = (!rec && pcPodeGerirPos(r)) ? `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+      <button type="button" class="alerta-btn-secondary" onclick="pcAbrirModalResponsavelPos('${chave}')">👤 Trocar responsável pelo Pós</button>
+      <button type="button" class="alerta-btn-secondary" onclick="pcMarcarPosNaoOcorreu('${chave}')">🚫 Audiência não ocorreu / redesignada</button>
+    </div>` : '';
+
   return `<div>
+    ${acoesGestao}
     <div class="pos-divider">⚖️ Informações da Audiência</div>
     <div style="font-size:11px;color:var(--muted);margin:-4px 0 12px">Todos os campos abaixo são obrigatórios para salvar. Quando não se aplicar ou não houver informação, preencha/selecione <b>N/A</b>.</div>
     <div class="pos-form-grid">
@@ -8613,6 +8698,95 @@ async function salvarPos(codigo) {
   }
 }
 
+// ── Ações de gestão sobre um Pós pendente: trocar o responsável, ou dizer que a audiência não
+// ocorreu (redesignada). Só admin/editor com acesso ao grupo da linha (mesma regra de editar pauta).
+function pcPodeGerirPos(r){
+  return typeof usuarioPodeEditarLinha === 'function' && usuarioPodeEditarLinha(r);
+}
+function _posLinhaPorChave(chave){
+  return getPastAudiencias().find(x => pcChaveOcorrenciaPost(x) === chave) || getPostRecords().find(x => pcChaveOcorrenciaPost(x) === chave);
+}
+function pcFecharModalResponsavelPos(){
+  const el = document.getElementById('pos-resp-modal-bg'); if(el) el.remove();
+}
+function pcAbrirModalResponsavelPos(chave){
+  const r = _posLinhaPorChave(chave);
+  if(!r){ showToast('⚠ Não encontrei essa audiência.'); return; }
+  if(!pcPodeGerirPos(r)){ showToast('⚠️ Seu perfil não tem permissão para alterar este caso.'); return; }
+  const atual = _siglaResponsavelPosAudiencia(r);
+  const ativos = Object.keys(PROF).filter(s => !PROF_INATIVOS.has(s)).sort((a, b) => PROF[a].nome.localeCompare(PROF[b].nome, 'pt-BR'));
+  const opts = ativos.map(s => `<option value="${s}" ${s === atual ? 'selected' : ''}>${s} — ${PROF[s].nome}</option>`).join('');
+  const manual = !!(getPosResponsavel()[chave] && getPosResponsavel()[chave].sigla);
+  pcFecharModalResponsavelPos();
+  document.body.insertAdjacentHTML('beforeend',
+    '<div id="pos-resp-modal-bg" onclick="if(event.target===this)pcFecharModalResponsavelPos()" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px">'
+    + '<div style="background:#fff;border-radius:12px;max-width:440px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,.35)">'
+    + '<div style="background:#003B5C;color:#fff;padding:16px 20px;border-radius:12px 12px 0 0"><b style="font-size:16px">👤 Responsável pelo Pós-Audiência</b></div>'
+    + '<div style="padding:16px 20px">'
+    + `<div style="font-size:12px;color:#666;margin-bottom:10px">${r.processo} · ${r.data} ${r.horario}<br>Hoje o Pós vai para: <b>${PROF[atual] ? PROF[atual].nome : (atual || '—')}</b>${manual ? ' (definido manualmente)' : ''}</div>`
+    + '<label style="display:block;font-size:12px;font-weight:600;color:#444;margin-bottom:4px">Passar o Pós para</label>'
+    + `<select id="pos-resp-select" style="width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:6px;font-size:13px;font-family:inherit">${opts}</select>`
+    + '</div>'
+    + '<div style="padding:12px 20px 20px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">'
+    + '<button type="button" onclick="pcFecharModalResponsavelPos()" style="background:#eee;color:#333;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px">Cancelar</button>'
+    + (manual ? `<button type="button" onclick="pcConfirmarResponsavelPos('${chave}', true)" style="background:#8e44ad;color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px">Voltar ao automático</button>` : '')
+    + `<button type="button" onclick="pcConfirmarResponsavelPos('${chave}', false)" style="background:#1a6b3c;color:#fff;border:none;padding:8px 14px;border-radius:6px;cursor:pointer;font-size:13px">Confirmar</button>`
+    + '</div></div></div>');
+}
+async function pcConfirmarResponsavelPos(chave, automatico){
+  const r = _posLinhaPorChave(chave);
+  if(!r || !pcPodeGerirPos(r)){ showToast('⚠️ Seu perfil não tem permissão para alterar este caso.'); return; }
+  const sigla = automatico ? '' : (document.getElementById('pos-resp-select')?.value || '');
+  if(!automatico && !sigla){ showToast('⚠ Escolha um profissional.'); return; }
+  const anterior = _siglaResponsavelPosAudiencia(r);
+  try{
+    const d = Object.assign({}, getPosResponsavel());
+    d[chave] = { sigla, por: pcUsuarioAtual(), em: new Date().toISOString() };
+    savePosResponsavel(d);
+  }catch(e){
+    console.error('Falha ao salvar responsável do Pós', e);
+    showToast('❌ Não consegui salvar a troca (armazenamento do navegador). Tente de novo.');
+    return;
+  }
+  const novo = _siglaResponsavelPosAudiencia(r);
+  addAuditEntry('Responsável do Pós alterado', `${r.processo} · ${r.data} ${r.horario}: ${anterior || '—'} → ${novo || '—'}${automatico ? ' (voltou ao automático)' : ''}`);
+  pcFecharModalResponsavelPos();
+  if(_syncTimer) clearTimeout(_syncTimer);
+  const ok = await _flushToCloud();
+  showToast(ok ? `✅ Pós de ${r.processo} agora é de ${novo}.` : '⚠️ Salvo neste dispositivo, mas falhou ao enviar pra nuvem agora. Não feche a aba.');
+  if(!ok) _scheduleSave();
+  renderPos();
+}
+async function pcMarcarPosNaoOcorreu(chave){
+  const r = _posLinhaPorChave(chave);
+  if(!r){ showToast('⚠ Não encontrei essa audiência.'); return; }
+  if(!pcPodeGerirPos(r)){ showToast('⚠️ Seu perfil não tem permissão para alterar este caso.'); return; }
+  if(pcObterPosRecord(getPosData(), r)){ showToast('⚠ Esse Pós já foi preenchido — não dá pra marcar como não ocorrida.'); return; }
+  const motivo = prompt(`Marcar como "audiência não ocorreu" e tirar da lista de Pós?\n\n${r.processo} · ${r.data} ${r.horario}\n\nMotivo (fica registrado):`, 'Audiência não ocorreu — redesignada');
+  if(motivo === null) return;
+  const rec = {
+    dispensado: true,
+    dispensado_motivo: motivo.trim() || 'Audiência não ocorreu',
+    dispensado_em: new Date().toISOString(),
+    dispensado_por: pcUsuarioAtual(),
+    _occ_data: r.data, _occ_horario: r.horario,
+    testemunhas: []
+  };
+  try{
+    savePosCodigo(chave, rec);
+  }catch(e){
+    console.error('Falha ao salvar dispensa do Pós', e);
+    showToast('❌ Não consegui salvar (armazenamento do navegador). Tente de novo.');
+    return;
+  }
+  addAuditEntry('Pós-Audiência retirada (não ocorreu)', `${r.processo} · ${r.data} ${r.horario} — ${rec.dispensado_motivo}`);
+  if(_syncTimer) clearTimeout(_syncTimer);
+  const ok = await _flushToCloud();
+  showToast(ok ? '✅ Retirada da lista de Pós.' : '⚠️ Salvo neste dispositivo, mas falhou ao enviar pra nuvem agora. Não feche a aba.');
+  if(!ok) _scheduleSave();
+  renderPos();
+}
+
 function limparPos(codigo) {
   if (!confirm('Limpar todos os dados deste registro?')) return;
   const d = getPosData();
@@ -8721,7 +8895,7 @@ function buildPericiaCard(r,rec){
   if (!done) {
     const diasD = diasDesdeAudiencia(r.data);
     if (diasD !== null) {
-      const rest = 30 - diasD;
+      const rest = POS_JANELA_DIAS - diasD;
       if (rest <= 0) alerteBadgeP = '<span style="display:inline-block;background:#c0392b;color:#fff;border-radius:5px;padding:3px 8px;font-size:11px;font-weight:700;margin-right:4px">🚨 Último dia para preencher</span>';
       else if (rest <= 7) alerteBadgeP = `<span style="display:inline-block;background:rgba(230,126,34,.18);color:#e67e22;border:1px solid rgba(230,126,34,.45);border-radius:5px;padding:3px 8px;font-size:11px;font-weight:700;margin-right:4px">⚠️ Vence em ${rest}d</span>`;
     }
