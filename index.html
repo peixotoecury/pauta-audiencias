@@ -537,6 +537,19 @@ body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:13
   box-shadow:0 0 0 3px var(--cyan-lt);
 }
 .filter-input{min-width:240px;}
+/* Filtro de grupo com seleção múltipla: botão + painel de checkboxes (o <select id="filter-grupo"> fica escondido só como guardião de dados) */
+.grp-multi{position:relative;display:inline-block;flex:0 0 auto;min-width:160px;}
+.grp-multi-btn{width:100%;text-align:left;font-size:12px;font-family:var(--font);font-weight:400;padding:8px 28px 8px 12px;border-radius:var(--radius);cursor:pointer;position:relative;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  background:#fff!important;color:var(--preto-pc)!important;border:1px solid #BFD6E4!important;}
+.grp-multi-btn::after{content:"▾";position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--muted);}
+.grp-multi-btn.ativo{border-color:var(--azul-pc)!important;box-shadow:0 0 0 3px rgba(0,169,224,.14);}
+.grp-multi-panel{position:absolute;top:calc(100% + 4px);left:0;min-width:100%;max-height:300px;overflow:auto;background:#fff;border:1px solid #BFD6E4;border-radius:8px;box-shadow:0 8px 24px rgba(0,59,92,.18);padding:6px;z-index:60;}
+.grp-multi-panel label{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:12px;color:var(--preto-pc);cursor:pointer;white-space:nowrap;}
+.grp-multi-panel label:hover{background:#F0FAFE;}
+.grp-multi-panel input[type=checkbox]{width:auto!important;margin:0;}
+.grp-multi-panel .grp-multi-limpar{display:block;width:100%;margin-top:4px;padding:6px 8px;font-size:11px;font-weight:700;border-radius:6px;cursor:pointer;
+  background:#F4F9FC!important;color:var(--escuro-pc)!important;border:1px solid #D8E7F0!important;}
+@media(max-width:768px){.grp-multi{flex:1 1 100%;min-width:0;}}
 .filter-input::placeholder{color:var(--muted2);}
 .filter-select option{background:var(--surface);}
 .filter-count{margin-left:auto;color:var(--muted);font-size:11px;font-weight:500;}
@@ -2710,9 +2723,13 @@ button.lp-submit-btn:hover{background:linear-gradient(135deg,#0d2540 0%,#1f4770 
 <div class="filters" id="main-filters">
 <div class="filter-inputs-row">
 <input class="filter-input" id="search-main" placeholder="🔍 Buscar processo, cliente, parte, comarca, advogado..." type="text"/>
-<select class="filter-select" id="filter-grupo">
+<div class="grp-multi" id="filter-grupo-wrap">
+<button type="button" class="grp-multi-btn" id="filter-grupo-btn" onclick="pcToggleGrupoPanel(event)" aria-haspopup="true">Todos os grupos</button>
+<div class="grp-multi-panel" id="filter-grupo-panel" style="display:none" onclick="event.stopPropagation()"></div>
+<select id="filter-grupo" style="display:none" tabindex="-1" aria-hidden="true">
 <option value="">Todos os grupos</option>
 </select>
+</div>
 <select class="filter-select" id="filter-data">
 <option value="">Todas as datas</option>
 </select>
@@ -4781,6 +4798,62 @@ function countBy(arr, key){
   return m;
 }
 
+// ---- Filtro de GRUPO da Pauta Completa: seleção múltipla ----
+// A fonte da verdade é a lista abaixo. O <select id="filter-grupo"> continua existindo (escondido)
+// só pra guardar as opções e pra todo código antigo que faz filter-grupo.value = '...' continuar
+// funcionando: o "value" dele é redefinido pra ler/escrever essa lista (vários grupos = "A||B").
+window._pcGruposFiltro = [];
+function pcGruposFiltro(){ return window._pcGruposFiltro || []; }
+function pcSetGruposFiltro(arr, disparar){
+  window._pcGruposFiltro = [...new Set((arr || []).filter(Boolean))];
+  pcAtualizarUIGrupos();
+  if(disparar){ const s = document.getElementById('filter-grupo'); if(s) s.dispatchEvent(new Event('change')); }
+}
+function pcAtualizarUIGrupos(){
+  const g = pcGruposFiltro();
+  const btn = document.getElementById('filter-grupo-btn');
+  if(btn){
+    const curto = x => String(x).replace(/^Grupo\s*/i, '');
+    btn.textContent = !g.length ? 'Todos os grupos' : g.length === 1 ? g[0] : g.length <= 3 ? 'Grupos ' + g.map(curto).join(', ') : g.length + ' grupos';
+    btn.classList.toggle('ativo', g.length > 0);
+  }
+  document.querySelectorAll('#filter-grupo-panel input[type=checkbox]').forEach(cb => { cb.checked = g.includes(cb.value); });
+}
+function pcRenderPainelGrupos(){
+  const sel = document.getElementById('filter-grupo'), painel = document.getElementById('filter-grupo-panel');
+  if(!sel || !painel) return;
+  const vals = [...new Set([...sel.options].map(o => o.value).filter(Boolean))];
+  painel.innerHTML = vals.map(v => `<label><input type="checkbox" value="${v}" onchange="pcToggleGrupo(this.value,this.checked)"> ${v}</label>`).join('')
+    + '<button type="button" class="grp-multi-limpar" onclick="pcSetGruposFiltro([],true)">Limpar seleção</button>';
+  pcAtualizarUIGrupos();
+}
+function pcToggleGrupo(valor, marcado){
+  const g = pcGruposFiltro().filter(x => x !== valor);
+  if(marcado) g.push(valor);
+  pcSetGruposFiltro(g, true);
+}
+function pcToggleGrupoPanel(ev){
+  if(ev) ev.stopPropagation();
+  const p = document.getElementById('filter-grupo-panel'); if(!p) return;
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+function pcInstalarFiltroGrupoMulti(){
+  const sel = document.getElementById('filter-grupo');
+  if(!sel || sel.__multi) return;
+  sel.__multi = true;
+  Object.defineProperty(sel, 'value', {
+    configurable: true,
+    get(){ return pcGruposFiltro().join('||'); },
+    set(v){ pcSetGruposFiltro(v ? String(v).split('||') : [], false); }
+  });
+  document.addEventListener('click', e => {
+    const wrap = document.getElementById('filter-grupo-wrap'), p = document.getElementById('filter-grupo-panel');
+    if(p && wrap && !wrap.contains(e.target)) p.style.display = 'none';
+  });
+  pcRenderPainelGrupos();
+}
+pcInstalarFiltroGrupoMulti();
+
 // ---- PAUTA ----
 let _filtersPopulated = false;
 function populateFilters(){
@@ -4790,6 +4863,8 @@ function populateFilters(){
   const gs = [...new Set(main.map(r=>r.grupo).filter(Boolean))].sort();
   const sel = document.getElementById('filter-grupo');
   gs.forEach(g=>{ const o=document.createElement('option'); o.value=g; o.textContent=g; sel.appendChild(o); });
+  pcInstalarFiltroGrupoMulti();
+  pcRenderPainelGrupos();
   const ds = [...new Set(main.map(r=>r.data).filter(Boolean))].sort((a,b)=>{
     const [da,ma,ya]=a.split('/'); const [db,mb,yb]=b.split('/');
     return new Date(ya,ma-1,da)-new Date(yb,mb-1,db);
@@ -4898,7 +4973,7 @@ function filterByStatus(grupo, status){
 
 function getFiltered(){
   const q = document.getElementById('search-main').value.toLowerCase();
-  const grupo = document.getElementById('filter-grupo').value;
+  const grupos = pcGruposFiltro();
   const data = document.getElementById('filter-data').value;
   const tipo = document.getElementById('filter-tipo').value;
   const prof = document.getElementById('filter-prof').value;
@@ -4909,7 +4984,7 @@ function getFiltered(){
     if(currentUserSigla && currentRole === 'individual'){
       if(r.adv_audiencia !== currentUserSigla && r.adv_preparo !== currentUserSigla) return false;
     }
-    if(grupo && r.grupo!==grupo) return false;
+    if(grupos.length && !grupos.includes(r.grupo)) return false;
     if(data && r.data!==data) return false;
     if(tipo){
       const t = r.tipo||'';
@@ -9421,7 +9496,7 @@ const MESES_PT = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho',
 // pasta, busca) -- igual ao botão "Excel (.xlsx)" (getFiltered()) -- pra poder extrair, por
 // exemplo, só o compilado de um profissional específico.
 function getAudienciasRealizadasParaCompilado() {
-  const grupo = document.getElementById('filter-grupo')?.value || '';
+  const grupos = pcGruposFiltro();
   const tipo = document.getElementById('filter-tipo')?.value || '';
   // O filtro de profissional da barra da Pauta Completa (filter-prof) só lista quem tem
   // audiência na pauta ATUAL -- alguém que só tem realizadas antigas (fora da janela corrente,
@@ -9441,7 +9516,7 @@ function getAudienciasRealizadasParaCompilado() {
     if (!temIndicacao) return false;
     if (diasDesdeAudiencia(r.data) === null) return false;
 
-    if (grupo && r.grupo !== grupo) return false;
+    if (grupos.length && !grupos.includes(r.grupo)) return false;
     if (tipo) {
       const t = r.tipo || '';
       if (tipo === 'Audiência' && !t.includes('Audiência')) return false;
@@ -9466,7 +9541,7 @@ function getAudienciasRealizadasParaCompilado() {
 // como adv_audiencia em algum realizado (sem aplicar o filtro de profissional ainda, senão
 // vira uma referência circular), respeitando só os outros filtros da tela (grupo/tipo/busca).
 function _profissionaisParaCompilado(){
-  const grupo = document.getElementById('filter-grupo')?.value || '';
+  const grupos = pcGruposFiltro();
   const tipo = document.getElementById('filter-tipo')?.value || '';
   const respPasta = (document.getElementById('filter-resp-pasta') || {}).value || '';
   const q = (document.getElementById('search-main')?.value || '').toLowerCase();
@@ -9479,7 +9554,7 @@ function _profissionaisParaCompilado(){
     const temIndicacao = r.adv_audiencia && r.adv_audiencia !== 'N/A' && r.adv_audiencia !== 'Indicar Advogado' && r.adv_audiencia.trim() !== '';
     if (!temIndicacao) return;
     if (diasDesdeAudiencia(r.data) === null) return;
-    if (grupo && r.grupo !== grupo) return;
+    if (grupos.length && !grupos.includes(r.grupo)) return;
     if (tipo) {
       const t = r.tipo || '';
       if (tipo === 'Audiência' && !t.includes('Audiência')) return;
@@ -9517,7 +9592,8 @@ function _resumoFiltrosAtivosCompilado(){
   const profEl = document.getElementById('filter-prof');
   const respPastaEl = document.getElementById('filter-resp-pasta');
   const searchEl = document.getElementById('search-main');
-  if(grupoEl && grupoEl.value) partes.push('Grupo: ' + (grupoEl.options[grupoEl.selectedIndex]?.text || grupoEl.value));
+  const gruposSel = pcGruposFiltro();
+  if(gruposSel.length) partes.push((gruposSel.length > 1 ? 'Grupos: ' : 'Grupo: ') + gruposSel.join(', '));
   if(tipoEl && tipoEl.value) partes.push('Tipo: ' + (tipoEl.options[tipoEl.selectedIndex]?.text || tipoEl.value));
   // Seletor de profissional do próprio modal tem prioridade sobre o da barra (mesma regra
   // usada em getAudienciasRealizadasParaCompilado) -- só mostra um dos dois, não os dois juntos.
