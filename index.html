@@ -2950,7 +2950,7 @@ button.lp-submit-btn:hover{background:linear-gradient(135deg,#0d2540 0%,#1f4770 
   </div>
   <div class="pos-diretoria-card">
     <div class="pos-diretoria-title">🚨 Pendências por responsável</div>
-    <button type="button" class="alerta-btn-secondary" style="margin-bottom:10px" onclick="abrirDashboardPosAudienciaPendente()">📧 Notificar quem não preencheu</button>
+    <button type="button" class="alerta-btn-secondary" id="btn-notificar-pos" style="margin-bottom:10px" onclick="abrirDashboardPosAudienciaPendente()">📧 Notificar quem não preencheu</button>
     <div class="pos-ranking-list" id="pos-dir-ranking"><div class="pos-empty-mini">Sem pendências no período.</div></div>
   </div>
 </div>
@@ -4183,7 +4183,24 @@ function logout(){
 }
 
 // ---- TABS ----
+// Envio de alertas (designação por grupo, alerta das 17h, cobrança de Pós-Audiência) é só do perfil
+// admin. Aqui só some com os botões pra quem não é admin; a trava de verdade está em cada função
+// de envio (pcSomenteAdminAlertas), pra não depender de o botão estar escondido.
+function pcSomenteAdminAlertas(acao){
+  if(typeof currentRole !== 'undefined' && currentRole === 'admin') return true;
+  if(typeof showToast === 'function') showToast('⚠️ Apenas o perfil admin pode ' + acao + '.');
+  return false;
+}
+function pcAplicarVisibilidadeAlertas(){
+  const admin = typeof currentRole !== 'undefined' && currentRole === 'admin';
+  ['btn-alertas-designacao', 'btn-alerta-17h', 'btn-notificar-pos'].forEach(id => {
+    const b = document.getElementById(id);
+    if(b) b.style.display = admin ? '' : 'none';
+  });
+}
+
 function showTab(id, el){
+  pcAplicarVisibilidadeAlertas();
   if((currentRole === 'publico' || currentRole === 'cliente') && id !== 'pauta'){ id = 'pauta'; el = document.querySelector('.nav-btn.public-allowed') || document.querySelectorAll('.nav-btn')[1]; }
 
   ['dashboard','pauta','conflitos','histdesignacoes','comarcas','responsavel','auditoria','pos','pericia','testemunhas','admin','historico','linksuteis','cliente'].forEach(t=>{
@@ -11185,6 +11202,7 @@ function abrirMailtoPosAudienciaComFallback(email, rows){
   window.location.href = mailto;
 }
 function abrirEmailAlertaPosAudiencia(sigla){
+  if(!pcSomenteAdminAlertas('enviar a cobrança de Pós-Audiência')) return;
   const item = window.__alertasPosAudienciaPorSigla && window.__alertasPosAudienciaPorSigla[sigla];
   if(!item || !item.rows || !item.rows.length) return;
   if(!item.email){ alert(`Sem e-mail cadastrado para ${item.nome || sigla}. Avise manualmente.`); return; }
@@ -11193,6 +11211,7 @@ function abrirEmailAlertaPosAudiencia(sigla){
 
 function abrirDashboardPosAudienciaPendente(ev){
   if(ev && ev.stopPropagation) ev.stopPropagation();
+  if(!pcSomenteAdminAlertas('enviar a cobrança de Pós-Audiência')) return;
   const map = getPendenciasPosAudienciaPorResponsavel();
   const siglas = Object.keys(map);
   if(!siglas.length){
@@ -11427,6 +11446,7 @@ function renderTestemunhasHistorico(){
 }
 
 function abrirEmailAlertaDesignacaoPorGrupo(grupoNormalizado){
+  if(!pcSomenteAdminAlertas('enviar os alertas de designação')) return;
   const rows = getAudienciasSemDesignacao().filter(r => normalizarGrupoAlertaDesignacao(r.grupo) === grupoNormalizado);
   if(!rows.length) return;
   const email = getEmailAlertaDesignacao(grupoNormalizado);
@@ -11435,6 +11455,7 @@ function abrirEmailAlertaDesignacaoPorGrupo(grupoNormalizado){
 
 function dispararAlertasDesignacao(ev){
   if(ev && ev.stopPropagation) ev.stopPropagation();
+  if(!pcSomenteAdminAlertas('enviar os alertas de designação')) return;
   const pendentes = getAudienciasSemDesignacao();
   if(!pendentes.length){
     alert("Nenhuma audiência pendente de designação encontrada a partir da pauta atual sincronizada. 🎉");
@@ -11696,6 +11717,7 @@ function pcMailtoAlerta17(r){
   return {url:`mailto:${encodeURIComponent(to)}?cc=${encodeURIComponent(PC_ALERTA_17H_CC)}&subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`, pessoas:unicos, assunto, corpo};
 }
 function pcAbrirEmailAlerta17(idx){
+  if(!pcSomenteAdminAlertas('enviar os alertas das 17h')) return;
   const r = window.__alertas17hAmanha && window.__alertas17hAmanha[idx];
   if(!r) return;
   const m = pcMailtoAlerta17(r);
@@ -11704,6 +11726,7 @@ function pcAbrirEmailAlerta17(idx){
   window.location.href = m.url;
 }
 function pcCopiarEmailAlerta17(idx){
+  if(!pcSomenteAdminAlertas('enviar os alertas das 17h')) return;
   const r = window.__alertas17hAmanha && window.__alertas17hAmanha[idx];
   if(!r) return;
   const m = pcMailtoAlerta17(r);
@@ -11716,10 +11739,7 @@ function fecharAlertas17hAmanha(){
 }
 function abrirAlertas17hAmanha(ev){
   if(ev && ev.stopPropagation) ev.stopPropagation();
-  if(currentRole && currentRole !== 'admin'){
-    showToast('⚠️ Apenas o perfil admin pode enviar os alertas das 17h.');
-    return;
-  }
+  if(!pcSomenteAdminAlertas('enviar os alertas das 17h')) return;
   const rows = pcGetAudienciasAmanha17h();
   if(!rows.length){ alert('Nenhuma audiência com indicação válida encontrada para o próximo dia útil ('+pcDataProximoDiaUtilBR()+').'); return; }
   window.__alertas17hAmanha = rows;
