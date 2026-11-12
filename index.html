@@ -6411,6 +6411,64 @@ function pcMesclarPendentesAntigos(novaPauta){
   return novos;
 }
 
+// ── Data de inclusão na pauta ──
+// Cada upload do Excel substitui a pauta inteira, então a data em que uma audiência/perícia/sessão
+// entrou na pauta é gravada na própria linha (campo "incluida_em") no upload em que ela aparece
+// pela primeira vez, e é preservada nos uploads seguintes. Linhas que já estavam na pauta antes
+// deste controle existir ficam sem data (a informação não foi guardada) e o card mostra isso.
+const PC_INCLUSAO_CONTROLE_DESDE = '12/11/2026';
+function pcChaveInclusao(r){
+  const cod = pcNormKeyPart(r && r.codigo);
+  const base = cod || ('P:' + pcNormKeyPart(r && r.processo));
+  return [base, pcNormKeyPart(r && r.data), pcNormKeyPart((r && r.horario) || '00:00'), pcNormKeyPart(r && r.tipo)].join('|');
+}
+async function pcCarimbarInclusaoNoUpload(rowsNovas, uploadedAt){
+  // Descobre o que já estava na pauta/histórico: local + o que está agora na nuvem (outro admin
+  // pode ter subido uma planilha há pouco e este navegador ainda não ter recarregado).
+  const conhecidas = new Map(); // chave -> data de inclusão (ISO) ou null (já existia, sem data registrada)
+  const registrar = lista => (Array.isArray(lista) ? lista : []).forEach(r => {
+    if(!r) return;
+    const k = pcChaveInclusao(r);
+    const atual = conhecidas.get(k);
+    if(r.incluida_em){
+      if(!atual || r.incluida_em < atual) conhecidas.set(k, r.incluida_em);
+    } else if(!conhecidas.has(k)){
+      conhecidas.set(k, null);
+    }
+  });
+  try{ registrar(DATA && DATA.main); }catch{}
+  try{ registrar(typeof getHistorico === 'function' ? getHistorico() : []); }catch{}
+  try{
+    const nuvem = await _binGet();
+    if(nuvem){ registrar(nuvem.pauta_main); registrar(nuvem.historico); }
+  }catch{}
+  // Sem nenhuma referência do que existia antes (primeira carga / nuvem inacessível), não dá pra saber
+  // o que é novo: não carimba nada em vez de marcar tudo como incluído hoje.
+  if(!conhecidas.size) return 0;
+  let novas = 0;
+  (rowsNovas || []).forEach(r => {
+    const k = pcChaveInclusao(r);
+    if(conhecidas.has(k)){
+      const dt = conhecidas.get(k);
+      if(dt) r.incluida_em = dt; else delete r.incluida_em;
+    } else {
+      r.incluida_em = uploadedAt;
+      novas++;
+    }
+  });
+  return novas;
+}
+function pcTextoInclusaoPauta(r){
+  const iso = r && r.incluida_em;
+  if(iso){
+    const d = new Date(iso);
+    if(!isNaN(d)){
+      return d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+    }
+  }
+  return 'Não registrada (já estava na pauta antes de ' + PC_INCLUSAO_CONTROLE_DESDE + ')';
+}
+
 async function pcImportarPlanilhaSite(file){
   if(typeof XLSX === 'undefined'){
     showToast('❌ Biblioteca de Excel ainda carregando. Tente novamente em alguns segundos.');
@@ -6423,9 +6481,10 @@ async function pcImportarPlanilhaSite(file){
     const wb = XLSX.read(buf, {type:'array', cellDates:true});
     const rows = pcParsePlanilhaPauta(wb);
     if(!rows.length) throw new Error('A planilha não trouxe nenhuma audiência.');
+    const uploadedAt = new Date().toISOString();
+    try{ await pcCarimbarInclusaoNoUpload(rows, uploadedAt); }catch(e){ console.warn('Carimbo de inclusão falhou', e); }
     const rowsFinal = pcForcarExcelComoFonte(pcMesclarPendentesAntigos(rows));
     DATA.main = rowsFinal;
-    const uploadedAt = new Date().toISOString();
     try{
       const hash = _getPautaHash();
       localStorage.setItem('pauta_data_hash_v1', hash);
@@ -6869,6 +6928,7 @@ function openModal(idx){
     ['Tipo de Ato', r.tipo, true],
     ['Valor da Causa', r.valor?'R$ '+r.valor.toLocaleString('pt-BR',{minimumFractionDigits:2}):'—'],
     ['Link / Observações', r.link||'—', true],
+    ['Incluída na pauta em', pcTextoInclusaoPauta(r), true],
   ];
   document.getElementById('modal-body').innerHTML = fields.map(([l,v,full,mono])=>
     `<div class="modal-field${full?' full':''}">
