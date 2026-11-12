@@ -6416,7 +6416,7 @@ function pcMesclarPendentesAntigos(novaPauta){
 // entrou na pauta é gravada na própria linha (campo "incluida_em") no upload em que ela aparece
 // pela primeira vez, e é preservada nos uploads seguintes. Linhas que já estavam na pauta antes
 // deste controle existir ficam sem data (a informação não foi guardada) e o card mostra isso.
-const PC_INCLUSAO_CONTROLE_DESDE = '12/11/2026';
+const PC_INCLUSAO_ULTIMO_UPLOAD_SEM_DATA = '11/11/2026'; // último upload da nuvem antes do controle existir
 function pcChaveInclusao(r){
   const cod = pcNormKeyPart(r && r.codigo);
   const base = cod || ('P:' + pcNormKeyPart(r && r.processo));
@@ -6466,7 +6466,8 @@ function pcTextoInclusaoPauta(r){
       return d.toLocaleDateString('pt-BR') + ' às ' + d.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
     }
   }
-  return 'Não registrada (já estava na pauta antes de ' + PC_INCLUSAO_CONTROLE_DESDE + ')';
+  // Última carga feita antes do controle: tudo que estava na pauta nela entrou em ou antes dessa data.
+  return 'Até ' + PC_INCLUSAO_ULTIMO_UPLOAD_SEM_DATA + ' (data exata não registrada)';
 }
 
 async function pcImportarPlanilhaSite(file){
