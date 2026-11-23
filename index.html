@@ -5322,6 +5322,8 @@ async function _binPut(data){
       return false;
     }
     _lastRemoteUpdatedAt = payload.atualizado_em;
+    // o histórico já está na nuvem: libera a cópia antiga do navegador (ver getHistorico)
+    if (typeof pcLiberarHistoricoLocal === 'function' && Array.isArray(data && data.historico) && data.historico.length) pcLiberarHistoricoLocal();
     return true;
   }catch(e){ console.warn('Supabase PUT falhou', e); return false; }
 }
@@ -5501,6 +5503,11 @@ function _applySnapshot(snap){
       const loc=JSON.parse(localStorage.getItem('pos_audiencia_v1')||'{}');
       const merged=Object.assign({},snap.pos_audiencia);
       Object.entries(loc).forEach(([cod,rec])=>{
+        // registro preenchido neste navegador que ainda não chegou à nuvem (ou é mais novo que o da nuvem):
+        // fica, em vez de ser trocado pela cópia da nuvem -- era assim que o preenchimento "sumia" quando
+        // a gravação na nuvem falhava; o próximo salvamento sobe ele
+        const rem = merged[cod];
+        if(rec && (!rem || String(rec.updated_at||'') > String(rem.updated_at||''))){ merged[cod]=Object.assign({},rem||{},rec); return; }
         if(rec.ata_base64||rec.ata_url)
           merged[cod]=Object.assign({},merged[cod]||{},{ata_base64:rec.ata_base64,ata_url:rec.ata_url,ata_filename:rec.ata_filename});
       });
@@ -10618,20 +10625,32 @@ function togglePasswordPremium(){
 // ═══════════════════════════════════════════════════════
 const HIST_KEY = 'pauta_historico_v1';
 
+// O histórico fica em MEMÓRIA, não no localStorage (23/11/2026). Ele chegou a 3,8 milhões de caracteres e, somado
+// ao resto, passou do limite do Chrome (~5,2 milhões por site, dividido com as outras ferramentas LAWgico em
+// peixotoecury.github.io): a partir de 19/11 o Pós-Audiência deixou de caber no navegador e quem preenchia perdia o
+// registro. A fonte do histórico é a nuvem (cada salvamento faz a união nuvem + memória em _flushToCloud). A cópia
+// antiga do localStorage é lida uma vez para a memória e só é apagada depois de um salvamento bem-sucedido na nuvem
+// (_binPut), para não perder nada que só existisse neste navegador.
+let _pcHistMem = null;
 function getHistorico() {
-  try { return JSON.parse(localStorage.getItem(HIST_KEY) || '[]'); } catch { return []; }
-}
-function saveHistorico(arr) {
-  let data = arr;
-  while (data.length > 0) {
-    try {
-      localStorage.setItem(HIST_KEY, JSON.stringify(data));
-      return;
-    } catch(e) {
-      // quota excedida — descarta os 20% mais antigos e tenta novamente
-      data = data.slice(Math.ceil(data.length * 0.2));
+  if (_pcHistMem === null) {
+    let tinha = false;
+    try { const raw = localStorage.getItem(HIST_KEY); tinha = !!raw; _pcHistMem = JSON.parse(raw || '[]'); } catch { _pcHistMem = []; }
+    if (!Array.isArray(_pcHistMem)) _pcHistMem = [];
+    // navegador que já estava cheio: libera o espaço na hora (senão o próprio salvamento do Pós-Audiência
+    // continua sem caber) e agenda a sincronização, que sobe para a nuvem a união com esta cópia
+    if (tinha) {
+      try { localStorage.removeItem(HIST_KEY); } catch(e) {}
+      try { if (_pcHistMem.length && typeof _scheduleSave === 'function') setTimeout(() => _scheduleSave(), 4000); } catch(e) {}
     }
   }
+  return _pcHistMem;
+}
+function saveHistorico(arr) {
+  _pcHistMem = Array.isArray(arr) ? arr : [];
+}
+function pcLiberarHistoricoLocal() {
+  try { if (localStorage.getItem(HIST_KEY) !== null) { getHistorico(); localStorage.removeItem(HIST_KEY); } } catch(e) {}
 }
 
 // Absorve a pauta atual no histórico (merge por código, sem duplicar)
